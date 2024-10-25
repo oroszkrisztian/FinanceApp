@@ -18,7 +18,7 @@ const SideBar = () => {
     <div className="relative">
       {/* Drawer */}
       <div
-        className="fixed top-0 left-0 h-full bg-white shadow-lg transform transition-all duration-300 ease-in-out"
+        className="h-lvh bg-white shadow-lg transform transition-all duration-300 ease-in-out"
         style={{
           width: open ? 'auto' : 'fit-content', 
           transitionProperty: 'width, transform',
