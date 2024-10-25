@@ -16,19 +16,31 @@ const App: React.FC = () => {
       <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-50">
         <Router>
           <Routes>
-            <Route path="/" element={
-              <div className="min-h-screen flex items-center justify-center px-4">
-                <div className="w-full max-w-7xl">
-                  <LoginPage />
+            <Route
+              path="/"
+              element={
+                <div className="min-h-screen flex items-center justify-center px-4">
+                  <div className="w-full max-w-7xl">
+                    <LoginPage />
+                  </div>
                 </div>
-              </div>
-            } />
-            <Route path="/home" element={<HomePage />} />
+              }
+            />
+            <Route
+              path="/home"
+              element={
+                <div className="min-h-screen w-full flex items-center justify-center">
+                  <div className="w-full ">
+                    <HomePage />
+                  </div>
+                </div>
+              }
+            />
           </Routes>
         </Router>
       </div>
     </ConfigProvider>
   );
-}
+};
 
 export default App;
