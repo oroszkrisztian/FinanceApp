@@ -1,0 +1,22 @@
+/* body {
+  margin: 0;
+  display: flex;
+  justify-content: center; 
+  align-items: center;     
+  min-height: 100vh;     
+  background-image: url('./assets/money.jpg'); 
+  background-size: cover; 
+  background-position: center; 
+  background-repeat: no-repeat; 
+} */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  overflow: auto;
+  height: 100%;
+}
