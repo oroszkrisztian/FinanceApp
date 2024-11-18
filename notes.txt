@@ -1,0 +1,2 @@
+kriszti@kriszti:~/Desktop/FinanceApp/backend$ npx tsx src/index.ts
+Server is running on port 3000

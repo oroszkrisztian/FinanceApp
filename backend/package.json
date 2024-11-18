@@ -7,23 +7,26 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
-    "test:db": "tsx src/db-test.ts"
+    "test:db": "tsx src/db-test.ts",
+    "create-test-user": "tsx src/scripts/create-test-user.ts"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.7.9",
-    "prisma": "^5.21.1",
+    "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
-    "tsx": "^4.19.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.2",
-    "@prisma/client": "^5.21.1",
+    "@prisma/client": "^5.22.0",
     "bcryptjs": "^2.4.3",
-    "hono": "^4.6.6"
+    "hono": "^4.6.6",
+    "jsonwebtoken": "^9.0.2"
   }
 }

@@ -1,8 +1,8 @@
 import React from "react";
-import LoginForm from "../components/LoginForm";
+import SignupForm from "../components/SignupForm";
 import { motion } from "framer-motion";
 
-const LoginPage = () => {
+const SignupPage = () => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -10,30 +10,33 @@ const LoginPage = () => {
       transition={{ duration: 0.6 }}
       className="relative flex min-h-[30rem] overflow-hidden rounded-2xl shadow-2xl"
     >
-      {/* Left Column - Login Form with Gradient */}
+      {/* Left Column - Signup Form with Gradient */}
       <div className="w-full md:w-[45%] p-8 lg:p-12 bg-gradient-to-r from-white via-white to-[rgb(250,223,134)]">
         <div className="h-full">
           {/* Logo Section */}
           <div className="mb-8">
             <div className="h-10 w-10">
-              <img
-                src="../src/assets/testlogo.png"
-                alt="Logo"
-                className="h-full w-full object-contain"
+              <img 
+                src="../src/assets/testlogo.png" 
+                alt="Logo" 
+                className="h-full w-full object-contain" 
               />
             </div>
           </div>
 
           {/* Welcome Text */}
-          <div className="flex justify-center items-center mb-10 space-y-2">
+          <div className="mb-10 space-y-2">
+            <h1 className="text-3xl font-bold text-gray-900 lg:text-4xl">
+              Create Account
+            </h1>
             <p className="text-gray-600">
-              Please enter your details to sign in
+              Please fill in your details to sign up
             </p>
           </div>
 
-          {/* Login Form */}
+          {/* Signup Form */}
           <div className="w-full max-w-md">
-            <LoginForm />
+            <SignupForm />
           </div>
         </div>
       </div>
@@ -43,7 +46,7 @@ const LoginPage = () => {
         <div className="absolute inset-0">
           <img
             src="../src/assets/money.jpg"
-            alt="Login illustration"
+            alt="Signup illustration"
             className="h-full w-full object-cover"
           />
         </div>
@@ -52,4 +55,4 @@ const LoginPage = () => {
   );
 };
 
-export default LoginPage;
+export default SignupPage;

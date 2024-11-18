@@ -72,7 +72,7 @@ const LoginForm = () => {
   };
 
   const handleRegister = () => {
-    navigate("/register");
+    navigate("/signup");
   };
 
   return (
