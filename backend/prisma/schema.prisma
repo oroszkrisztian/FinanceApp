@@ -14,9 +14,9 @@ model Service {
 }
 
 model TransactionType {
-  id        Int           @id @default(autoincrement())
-  name      String
-  in_or_out Boolean
+  id           Int           @id @default(autoincrement())
+  name         String
+  in_or_out    Boolean
   transactions Transaction[]
 }
 
@@ -27,29 +27,37 @@ model Currency {
 }
 
 model Transaction {
-  id                Int             @id @default(autoincrement())
-  recipientAccount  Account         @relation("ReceivedTransactions", fields: [recipientAccountId], references: [id])
+  id                 Int             @id @default(autoincrement())
   recipientAccountId Int
-  senderAccount     Account         @relation("SentTransactions", fields: [senderAccountId], references: [id])
-  senderAccountId   Int
-  type             TransactionType @relation(fields: [typeId], references: [id])
-  typeId           Int
-  service          Service?        @relation(fields: [serviceId], references: [id])
-  serviceId        Int?
-  amount           Decimal         @db.Decimal(15, 2)
-  description      String?
-  createdAt        DateTime        @default(now())
+  senderAccountId    Int
+  typeId             Int
+  amount             Decimal         @db.Decimal(15, 2)
+  createdAt          DateTime        @default(now())
+  description        String?
+  serviceId          Int?
+  recipientAccount   Account         @relation("ReceivedTransactions", fields: [recipientAccountId], references: [id])
+  senderAccount      Account         @relation("SentTransactions", fields: [senderAccountId], references: [id])
+  service            Service?        @relation(fields: [serviceId], references: [id])
+  type               TransactionType @relation(fields: [typeId], references: [id])
+
+  @@index([recipientAccountId], map: "Transaction_recipientAccountId_fkey")
+  @@index([senderAccountId], map: "Transaction_senderAccountId_fkey")
+  @@index([serviceId], map: "Transaction_serviceId_fkey")
+  @@index([typeId], map: "Transaction_typeId_fkey")
 }
 
 model Account {
   id                   Int           @id @default(autoincrement())
-  owner                User          @relation(fields: [ownerId], references: [id])
   ownerId              Int
-  currency             Currency      @relation(fields: [currencyId], references: [id])
   currencyId           Int
   name                 String
+  currency             Currency      @relation(fields: [currencyId], references: [id])
+  owner                User          @relation(fields: [ownerId], references: [id])
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
   sentTransactions     Transaction[] @relation("SentTransactions")
+
+  @@index([currencyId], map: "Account_currencyId_fkey")
+  @@index([ownerId], map: "Account_ownerId_fkey")
 }
 
 model User {
@@ -59,6 +67,6 @@ model User {
   username  String    @unique
   email     String    @unique
   password  String
-  accounts  Account[]
   createdAt DateTime  @default(now())
+  accounts  Account[]
 }

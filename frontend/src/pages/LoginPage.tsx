@@ -1,6 +1,9 @@
 import React from "react";
 import LoginForm from "../components/LoginForm";
 import { motion } from "framer-motion";
+// Import images
+import testLogo from "../assets/testlogo.png";
+import moneyImage from "../assets/money.jpg";
 
 const LoginPage = () => {
   return (
@@ -18,12 +21,13 @@ const LoginPage = () => {
             <div className="mb-6">
               <div className="h-10 w-10">
                 <img
-                  src="../src/assets/testlogo.png"
+                  src={testLogo}
                   alt="Logo"
                   className="h-full w-full object-contain"
                 />
               </div>
             </div>
+            
             {/* Welcome Text */}
             <div className="mb-8">
               <h2 className="text-2xl font-bold text-black mb-2">
@@ -33,13 +37,15 @@ const LoginPage = () => {
                 Please enter your details to sign in
               </p>
             </div>
+
             {/* Login Form */}
             <LoginForm />
           </div>
+
           {/* Right Column - Image */}
           <div className="hidden md:block md:w-1/2 bg-black">
             <img
-              src="../src/assets/money.jpg"
+              src={moneyImage}
               alt="Login illustration"
               className="h-full w-full object-cover opacity-90 grayscale"
             />

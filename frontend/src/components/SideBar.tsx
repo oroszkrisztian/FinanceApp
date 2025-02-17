@@ -1,21 +1,26 @@
 import React, { useState, useEffect } from "react";
 import { Button, Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   DashboardOutlined,
   WalletOutlined,
-  DollarOutlined,
   LogoutOutlined,
-  PlusCircleOutlined,
-  AreaChartOutlined,
+  BankOutlined,
+  SettingOutlined,
+  TransactionOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
 const SideBar: React.FC = () => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
   const savedCollapsedState = localStorage.getItem("sidebar-collapsed");
   const savedOpenKeysState = localStorage.getItem("sidebar-open-keys");
 
@@ -28,54 +33,52 @@ const SideBar: React.FC = () => {
 
   const [collapsed, setCollapsed] = useState(initialCollapsedState);
   const [openKeys, setOpenKeys] = useState<string[]>(initialOpenKeysState);
-  const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
     localStorage.setItem("sidebar-open-keys", JSON.stringify(openKeys));
   }, [collapsed, openKeys]);
 
-  useEffect(() => {
-    if (
-      (location.pathname === "/add-expense" ||
-        location.pathname === "/overview") &&
-      !collapsed
-    ) {
-      if (!openKeys.includes("expenses")) {
-        setOpenKeys([...openKeys, "expenses"]);
-      }
-    }
-  }, [location.pathname, openKeys, collapsed]);
-
   const getSelectedKey = () => {
-    if (location.pathname === "/add-expense") return "add-expense";
-    if (location.pathname === "/home") return "dashboard";
-    if (location.pathname === "/savings") return "savings";
-    if (location.pathname === "/expenses") return "expenses";
-    if (location.pathname === "/overview") return "overview";
-    return "";
+    const path = location.pathname;
+    switch (path) {
+      case "/home": return "dashboard";
+      case "/accounts": return "accounts";
+      case "/transactions": return "transactions";
+      case "/savings": return "savings";
+      case "/settings": return "settings";
+      default: return "";
+    }
   };
 
-  const handleMenuCick = (e: { key: string }) => {
-    if (e.key === "add-expense") {
-      navigate("/add-expense");
-    }
-    if (e.key === "dashboard") {
-      navigate("/home");
-      console.log("dashboard clicked");
-    }
-    if (e.key === "savings") {
-      navigate("/savings");
-      console.log("saving clicked");
-    }
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
+
+  const handleMenuClick = (e: { key: string }) => {
     if (e.key === "logout") {
-      console.log("Logout clicked");
+      handleLogout();
+      return;
     }
-  };
 
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed);
+    switch (e.key) {
+      case "dashboard":
+        navigate("/home");
+        break;
+      case "accounts":
+        navigate("/accounts");
+        break;
+      case "transactions":
+        navigate("/transactions");
+        break;
+      case "savings":
+        navigate("/savings");
+        break;
+      case "settings":
+        navigate("/settings");
+        break;
+    }
   };
 
   const mainMenuItems: MenuItem[] = [
@@ -85,26 +88,24 @@ const SideBar: React.FC = () => {
       label: "Dashboard",
     },
     {
+      key: "accounts",
+      icon: <BankOutlined />,
+      label: "Accounts",
+    },
+    {
+      key: "transactions",
+      icon: <TransactionOutlined />,
+      label: "Transactions",
+    },
+    {
       key: "savings",
       icon: <WalletOutlined />,
       label: "Savings",
     },
     {
-      key: "expenses",
-      icon: <DollarOutlined />,
-      label: "Expenses",
-      children: [
-        {
-          key: "add-expense",
-          icon: <PlusCircleOutlined />,
-          label: "Add Expense",
-        },
-        {
-          key: "overview",
-          icon: <AreaChartOutlined />,
-          label: "Overview",
-        },
-      ],
+      key: "settings",
+      icon: <SettingOutlined />,
+      label: "Settings",
     },
   ];
 
@@ -115,23 +116,27 @@ const SideBar: React.FC = () => {
     className: "mt-auto",
   };
 
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+
   return (
     <ConfigProvider
       theme={{
-        algorithm: theme.defaultAlgorithm, // or theme.darkAlgorithm for dark mode
+        algorithm: theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#1E293B", // Dark blue-gray
-          colorText: "#0F172A", // Almost black
-          colorBgContainer: "#F8FAFC", // Light gray background
+          colorPrimary: "#1E293B",
+          colorText: "#0F172A",
+          colorBgContainer: "#F8FAFC",
           borderRadius: 8,
         },
         components: {
           Menu: {
-            itemSelectedColor: "#FFFFFF", // White text color for selected item
+            itemSelectedColor: "#FFFFFF",
             itemHoverColor: "#1E293B",
             itemHoverBg: "#CBD5E1",
-            itemSelectedBg: "#000000", // Black background for selected item
-            darkItemSelectedColor: "#FFFFFF", // White text color for selected item in dark mode
+            itemSelectedBg: "#000000",
+            darkItemSelectedColor: "#FFFFFF",
           },
         },
       }}
@@ -150,7 +155,7 @@ const SideBar: React.FC = () => {
         </Button>
 
         <Menu
-          onClick={handleMenuCick}
+          onClick={handleMenuClick}
           selectedKeys={[getSelectedKey()]}
           mode="inline"
           theme="light"
@@ -161,7 +166,7 @@ const SideBar: React.FC = () => {
         />
 
         <Menu
-          onClick={handleMenuCick}
+          onClick={handleMenuClick}
           mode="inline"
           theme="light"
           inlineCollapsed={collapsed}
