@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Menu } from "antd";
+import { Button, Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   MenuFoldOutlined,
@@ -36,7 +36,6 @@ const SideBar: React.FC = () => {
     localStorage.setItem("sidebar-open-keys", JSON.stringify(openKeys));
   }, [collapsed, openKeys]);
 
-  // Automatically open the "expenses" submenu when on /add-expense or /overview
   useEffect(() => {
     if (
       (location.pathname === "/add-expense" ||
@@ -47,7 +46,7 @@ const SideBar: React.FC = () => {
         setOpenKeys([...openKeys, "expenses"]);
       }
     }
-  }, [location.pathname, openKeys, collapsed]); // Add collapsed to the dependencies
+  }, [location.pathname, openKeys, collapsed]);
 
   const getSelectedKey = () => {
     if (location.pathname === "/add-expense") return "add-expense";
@@ -82,31 +81,27 @@ const SideBar: React.FC = () => {
   const mainMenuItems: MenuItem[] = [
     {
       key: "dashboard",
-      icon: <DashboardOutlined className="text-black group-hover:text-black" />,
+      icon: <DashboardOutlined />,
       label: "Dashboard",
     },
     {
       key: "savings",
-      icon: <WalletOutlined className="text-black group-hover:text-black" />,
+      icon: <WalletOutlined />,
       label: "Savings",
     },
     {
       key: "expenses",
-      icon: <DollarOutlined className="text-black group-hover:text-black" />,
+      icon: <DollarOutlined />,
       label: "Expenses",
       children: [
         {
           key: "add-expense",
-          icon: (
-            <PlusCircleOutlined className="text-black group-hover:text-black" />
-          ),
+          icon: <PlusCircleOutlined />,
           label: "Add Expense",
         },
         {
           key: "overview",
-          icon: (
-            <AreaChartOutlined className="text-black group-hover:text-black" />
-          ),
+          icon: <AreaChartOutlined />,
           label: "Overview",
         },
       ],
@@ -115,70 +110,65 @@ const SideBar: React.FC = () => {
 
   const logoutItem: MenuItem = {
     key: "logout",
-    icon: <LogoutOutlined className="text-black group-hover:text-black" />,
+    icon: <LogoutOutlined />,
     label: "Logout",
-    className: "mt-auto hover:bg-black hover:text-white",
+    className: "mt-auto",
   };
 
   return (
-    <div
-      className={`h-screen bg-white border-r border-gray-200 transition-all duration-300 ${
-        collapsed ? "w-20" : "w-64"
-      } flex flex-col`}
+    <ConfigProvider
+      theme={{
+        algorithm: theme.defaultAlgorithm, // or theme.darkAlgorithm for dark mode
+        token: {
+          colorPrimary: "#1E293B", // Dark blue-gray
+          colorText: "#0F172A", // Almost black
+          colorBgContainer: "#F8FAFC", // Light gray background
+          borderRadius: 8,
+        },
+        components: {
+          Menu: {
+            itemSelectedColor: "#FFFFFF", // White text color for selected item
+            itemHoverColor: "#1E293B",
+            itemHoverBg: "#CBD5E1",
+            itemSelectedBg: "#000000", // Black background for selected item
+            darkItemSelectedColor: "#FFFFFF", // White text color for selected item in dark mode
+          },
+        },
+      }}
     >
-      <Button
-        type="text"
-        onClick={toggleCollapsed}
-        className={`m-4 border border-gray-200 rounded ${
-          collapsed ? "w-12" : "w-auto"
-        }`}
+      <div
+        className={`h-screen border-r transition-all duration-300 ${
+          collapsed ? "w-20" : "w-64"
+        } flex flex-col bg-white`}
       >
-        {collapsed ? (
-          <MenuUnfoldOutlined className="text-black" />
-        ) : (
-          <MenuFoldOutlined className="text-black" />
-        )}
-      </Button>
-      <Menu
-        onClick={(e) => handleMenuCick(e)}
-        selectedKeys={[getSelectedKey()]}
-        mode="inline"
-        theme="light"
-        inlineCollapsed={collapsed}
-        openKeys={openKeys}
-        onOpenChange={(keys) => setOpenKeys(keys)}
-        items={mainMenuItems}
-        className="border-none bg-white flex-1 flex flex-col
-          [&_.ant-menu-item-selected]:bg-black
-          [&_.ant-menu-item]:text-black
-          [&_.ant-menu-submenu-title]:text-black
-          [&_.ant-menu-submenu]:text-black
-          [&_.ant-menu-item-selected_.anticon]:text-white
-          [&_.ant-menu-item-selected:hover]:bg-black
-          [&_.ant-menu-item-selected]:!text-white
-          [&_.ant-menu-item-selected>span]:!text-white
-          [&_.ant-menu-submenu-selected>.ant-menu-submenu-title]:text-black
-          [&_.ant-menu-submenu-selected>.ant-menu-submenu-title_.anticon]:text-black"
-      />
-      <Menu
-        onClick={(e) => handleMenuCick(e)}
-        mode="inline"
-        theme="light"
-        inlineCollapsed={collapsed}
-        items={[logoutItem]}
-        className="border-none bg-white border-t border-gray-200
-          [&_.ant-menu-item]:text-black
-          [&_.ant-menu-item]:bg-white
-          [&_.ant-menu-item-selected]:bg-white
-          [&_.ant-menu-item-selected_.anticon]:text-black
-          [&_.ant-menu-item-selected]:!text-black
-          [&_.ant-menu-item-selected>span]:!text-black
-          [&_.ant-menu-item:hover]:bg-black
-          [&_.ant-menu-item:hover_.anticon]:text-white
-          [&_.ant-menu-item:hover]:!text-white
-          [&_.ant-menu-item:hover>span]:!text-white"
-      />
-    </div>
+        <Button
+          type="text"
+          onClick={toggleCollapsed}
+          className={`m-4 border rounded ${collapsed ? "w-12" : "w-auto"}`}
+        >
+          {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        </Button>
+
+        <Menu
+          onClick={handleMenuCick}
+          selectedKeys={[getSelectedKey()]}
+          mode="inline"
+          theme="light"
+          inlineCollapsed={collapsed}
+          openKeys={openKeys}
+          onOpenChange={(keys) => setOpenKeys(keys)}
+          items={mainMenuItems}
+        />
+
+        <Menu
+          onClick={handleMenuCick}
+          mode="inline"
+          theme="light"
+          inlineCollapsed={collapsed}
+          items={[logoutItem]}
+        />
+      </div>
+    </ConfigProvider>
   );
 };
 
