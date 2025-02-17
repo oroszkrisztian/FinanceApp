@@ -7,10 +7,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model TransactionType {
+model Service {
   id           Int           @id @default(autoincrement())
   name         String
-  in_or_out    Boolean
+  transactions Transaction[]
+}
+
+model TransactionType {
+  id        Int           @id @default(autoincrement())
+  name      String
+  in_or_out Boolean
   transactions Transaction[]
 }
 
@@ -21,35 +27,38 @@ model Currency {
 }
 
 model Transaction {
-  id                Int            @id @default(autoincrement())
-  recipientAccount  Account        @relation("ReceivedTransactions", fields: [recipientAccountId], references: [id])
+  id                Int             @id @default(autoincrement())
+  recipientAccount  Account         @relation("ReceivedTransactions", fields: [recipientAccountId], references: [id])
   recipientAccountId Int
-  senderAccount     Account        @relation("SentTransactions", fields: [senderAccountId], references: [id])
+  senderAccount     Account         @relation("SentTransactions", fields: [senderAccountId], references: [id])
   senderAccountId   Int
   type             TransactionType @relation(fields: [typeId], references: [id])
   typeId           Int
+  service          Service?        @relation(fields: [serviceId], references: [id])
+  serviceId        Int?
   amount           Decimal         @db.Decimal(15, 2)
+  description      String?
   createdAt        DateTime        @default(now())
 }
 
 model Account {
-  id                  Int           @id @default(autoincrement())
-  owner               User          @relation(fields: [ownerId], references: [id])
-  ownerId            Int
-  currency           Currency       @relation(fields: [currencyId], references: [id])
-  currencyId         Int
-  name               String
+  id                   Int           @id @default(autoincrement())
+  owner                User          @relation(fields: [ownerId], references: [id])
+  ownerId              Int
+  currency             Currency      @relation(fields: [currencyId], references: [id])
+  currencyId           Int
+  name                 String
   receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  sentTransactions    Transaction[] @relation("SentTransactions")
+  sentTransactions     Transaction[] @relation("SentTransactions")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
+  id        Int       @id @default(autoincrement())
   firstName String
   lastName  String
-  username  String   @unique
-  email     String   @unique
+  username  String    @unique
+  email     String    @unique
   password  String
   accounts  Account[]
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 }

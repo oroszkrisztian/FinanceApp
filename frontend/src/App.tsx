@@ -1,66 +1,33 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ConfigProvider } from 'antd';
-import LoginPage from './pages/LoginPage';
-import SignupPage from './pages/SignupPage';
-import HomePage from './pages/HomePage';
+import React from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import LoginPage from "./pages/LoginPage";
+import SignupPage from "./pages/SignupPage";
+import HomePage from "./pages/HomePage";
+import AddExpense from "./pages/AddExpense";
+import Savings from "./pages/Savings";
+import Overview from "./pages/Overwiev";
 
+// Removed the PageWrapper for auth pages since they need full viewport control
 const App: React.FC = () => {
   return (
-    <ConfigProvider
-      theme={{
-        token: {
-          colorPrimary: '#BFA55E',
-        },
-      }}
-    >
-      <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 to-indigo-50">
-        <Router>
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="min-h-screen flex items-center justify-center px-4">
-                  <div className="w-full max-w-7xl">
-                    <LoginPage />
-                  </div>
-                </div>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <div className="min-h-screen flex items-center justify-center px-4">
-                  <div className="w-full max-w-7xl">
-                    <SignupPage />
-                  </div>
-                </div>
-              }
-            />
-            <Route
-              path="/login"
-              element={
-                <div className="min-h-screen flex items-center justify-center px-4">
-                  <div className="w-full max-w-7xl">
-                    <LoginPage />
-                  </div>
-                </div>
-              }
-            />
-            <Route
-              path="/home"
-              element={
-                <div className="min-h-screen w-full flex items-center justify-center">
-                  <div className="w-full">
-                    <HomePage />
-                  </div>
-                </div>
-              }
-            />
-          </Routes>
-        </Router>
-      </div>
-    </ConfigProvider>
+    <Router>
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/signup" element={<SignupPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/home"
+          element={
+            <div className="min-h-screen w-full">
+              <HomePage />
+            </div>
+          }
+        />
+        <Route path="/add-expense" element={<AddExpense />} />
+        <Route path="/savings" element={<Savings />} />
+        <Route path="/overview" element={<Overview />} />
+      </Routes>
+    </Router>
   );
 };
 

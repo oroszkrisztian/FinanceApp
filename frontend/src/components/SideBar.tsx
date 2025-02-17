@@ -1,90 +1,183 @@
-import React, { useState } from 'react';
-import { Home, BarChart, Users, Settings, HelpCircle, Menu, ChevronLeft } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Button, Menu } from "antd";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  DashboardOutlined,
+  WalletOutlined,
+  DollarOutlined,
+  LogoutOutlined,
+  PlusCircleOutlined,
+  AreaChartOutlined,
+} from "@ant-design/icons";
+import type { MenuProps } from "antd";
 
-const drawerWidth = 240;
+type MenuItem = Required<MenuProps>["items"][number];
 
-const SideBar = () => {
-  const [open, setOpen] = useState(false);
+const SideBar: React.FC = () => {
+  const savedCollapsedState = localStorage.getItem("sidebar-collapsed");
+  const savedOpenKeysState = localStorage.getItem("sidebar-open-keys");
 
-  const menuItems = [
-    { title: 'Dashboard', icon: <Home />, path: '/dashboard' },
-    { title: 'Analytics', icon: <BarChart />, path: '/analytics' },
-    { title: 'Users', icon: <Users />, path: '/users' },
-    { title: 'Settings', icon: <Settings />, path: '/settings' },
-    { title: 'Help', icon: <HelpCircle />, path: '/help' },
+  const initialCollapsedState = savedCollapsedState
+    ? JSON.parse(savedCollapsedState)
+    : true;
+  const initialOpenKeysState = savedOpenKeysState
+    ? JSON.parse(savedOpenKeysState)
+    : [];
+
+  const [collapsed, setCollapsed] = useState(initialCollapsedState);
+  const [openKeys, setOpenKeys] = useState<string[]>(initialOpenKeysState);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
+    localStorage.setItem("sidebar-open-keys", JSON.stringify(openKeys));
+  }, [collapsed, openKeys]);
+
+  // Automatically open the "expenses" submenu when on /add-expense or /overview
+  useEffect(() => {
+    if (
+      (location.pathname === "/add-expense" ||
+        location.pathname === "/overview") &&
+      !collapsed
+    ) {
+      if (!openKeys.includes("expenses")) {
+        setOpenKeys([...openKeys, "expenses"]);
+      }
+    }
+  }, [location.pathname, openKeys, collapsed]); // Add collapsed to the dependencies
+
+  const getSelectedKey = () => {
+    if (location.pathname === "/add-expense") return "add-expense";
+    if (location.pathname === "/home") return "dashboard";
+    if (location.pathname === "/savings") return "savings";
+    if (location.pathname === "/expenses") return "expenses";
+    if (location.pathname === "/overview") return "overview";
+    return "";
+  };
+
+  const handleMenuCick = (e: { key: string }) => {
+    if (e.key === "add-expense") {
+      navigate("/add-expense");
+    }
+    if (e.key === "dashboard") {
+      navigate("/home");
+      console.log("dashboard clicked");
+    }
+    if (e.key === "savings") {
+      navigate("/savings");
+      console.log("saving clicked");
+    }
+    if (e.key === "logout") {
+      console.log("Logout clicked");
+    }
+  };
+
+  const toggleCollapsed = () => {
+    setCollapsed(!collapsed);
+  };
+
+  const mainMenuItems: MenuItem[] = [
+    {
+      key: "dashboard",
+      icon: <DashboardOutlined className="text-black group-hover:text-black" />,
+      label: "Dashboard",
+    },
+    {
+      key: "savings",
+      icon: <WalletOutlined className="text-black group-hover:text-black" />,
+      label: "Savings",
+    },
+    {
+      key: "expenses",
+      icon: <DollarOutlined className="text-black group-hover:text-black" />,
+      label: "Expenses",
+      children: [
+        {
+          key: "add-expense",
+          icon: (
+            <PlusCircleOutlined className="text-black group-hover:text-black" />
+          ),
+          label: "Add Expense",
+        },
+        {
+          key: "overview",
+          icon: (
+            <AreaChartOutlined className="text-black group-hover:text-black" />
+          ),
+          label: "Overview",
+        },
+      ],
+    },
   ];
 
-  return (
-    <div className="relative">
-      {/* Drawer */}
-      <div
-        className="h-lvh bg-white shadow-lg transform transition-all duration-300 ease-in-out"
-        style={{
-          width: open ? 'auto' : 'fit-content', 
-          transitionProperty: 'width, transform',
-          transitionDuration: '300ms',
-          transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
-        {/* Header with toggle button */}
-        <div className="h-16 flex items-center justify-between px-4 relative">
-          {open && <span className="text-[#BFA55E] font-semibold">Menu</span>}
-          <div className={`${open ? 'absolute right-4' : 'flex justify-center w-full'}`}>
-            <button
-              onClick={() => setOpen(!open)}
-              className={`
-                p-2 rounded-full 
-                bg-[#BFA55E] hover:bg-[#A88F4C] text-white
-                transition-all duration-300 ease-in-out
-              `}
-              aria-label="toggle menu"
-            >
-              {open ? <ChevronLeft size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
-        </div>
+  const logoutItem: MenuItem = {
+    key: "logout",
+    icon: <LogoutOutlined className="text-black group-hover:text-black" />,
+    label: "Logout",
+    className: "mt-auto hover:bg-black hover:text-white",
+  };
 
-        {/* Menu Items */}
-        <div className="overflow-hidden ">
-          {menuItems.map((item) => (
-            <div
-              key={item.title}
-              className={`
-                w-full
-                ${open ? 'px-2 py-2' : 'px-0 py-2'}
-              `}
-            >
-              <button
-                className={`
-                  w-full h-full flex items-center p-1
-                  hover:bg-[#BFA55E]/10 group
-                  transition-all duration-200 ease-in-out rounded-lg
-                  ${open ? 'px-3' : 'justify-center'}
-                `}
-              >
-                <span
-                  className={`
-                    text-[#BFA55E] transition-all duration-200 ease-in-out
-                    ${open ? 'mr-3' : ''}
-                    ${!open ? 'transform group-hover:scale-110' : ''}
-                  `}
-                >
-                  {item.icon}
-                </span>
-                <span
-                  className={`
-                    whitespace-nowrap text-gray-700 font-medium
-                    transition-all duration-300 ease-in-out
-                    ${open ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-4 hidden'}
-                  `}
-                >
-                  {item.title}
-                </span>
-              </button>
-            </div>
-          ))}
-        </div>
-      </div>
+  return (
+    <div
+      className={`h-screen bg-white border-r border-gray-200 transition-all duration-300 ${
+        collapsed ? "w-20" : "w-64"
+      } flex flex-col`}
+    >
+      <Button
+        type="text"
+        onClick={toggleCollapsed}
+        className={`m-4 border border-gray-200 rounded ${
+          collapsed ? "w-12" : "w-auto"
+        }`}
+      >
+        {collapsed ? (
+          <MenuUnfoldOutlined className="text-black" />
+        ) : (
+          <MenuFoldOutlined className="text-black" />
+        )}
+      </Button>
+      <Menu
+        onClick={(e) => handleMenuCick(e)}
+        selectedKeys={[getSelectedKey()]}
+        mode="inline"
+        theme="light"
+        inlineCollapsed={collapsed}
+        openKeys={openKeys}
+        onOpenChange={(keys) => setOpenKeys(keys)}
+        items={mainMenuItems}
+        className="border-none bg-white flex-1 flex flex-col
+          [&_.ant-menu-item-selected]:bg-black
+          [&_.ant-menu-item]:text-black
+          [&_.ant-menu-submenu-title]:text-black
+          [&_.ant-menu-submenu]:text-black
+          [&_.ant-menu-item-selected_.anticon]:text-white
+          [&_.ant-menu-item-selected:hover]:bg-black
+          [&_.ant-menu-item-selected]:!text-white
+          [&_.ant-menu-item-selected>span]:!text-white
+          [&_.ant-menu-submenu-selected>.ant-menu-submenu-title]:text-black
+          [&_.ant-menu-submenu-selected>.ant-menu-submenu-title_.anticon]:text-black"
+      />
+      <Menu
+        onClick={(e) => handleMenuCick(e)}
+        mode="inline"
+        theme="light"
+        inlineCollapsed={collapsed}
+        items={[logoutItem]}
+        className="border-none bg-white border-t border-gray-200
+          [&_.ant-menu-item]:text-black
+          [&_.ant-menu-item]:bg-white
+          [&_.ant-menu-item-selected]:bg-white
+          [&_.ant-menu-item-selected_.anticon]:text-black
+          [&_.ant-menu-item-selected]:!text-black
+          [&_.ant-menu-item-selected>span]:!text-black
+          [&_.ant-menu-item:hover]:bg-black
+          [&_.ant-menu-item:hover_.anticon]:text-white
+          [&_.ant-menu-item:hover]:!text-white
+          [&_.ant-menu-item:hover>span]:!text-white"
+      />
     </div>
   );
 };
