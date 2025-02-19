@@ -2,6 +2,20 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
+// Define the expected response type from the backend
+interface LoginResponse {
+  user?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    username: string;
+    email: string;
+    createdAt: Date | string; // Allow both Date and string
+  };
+  token?: string;
+  error?: string;
+}
+
 const LoginForm = () => {
   const navigate = useNavigate();
   const { setAuthData } = useAuth();
@@ -17,7 +31,6 @@ const LoginForm = () => {
     setError(null);
 
     try {
-      console.log("Sending login request with username:", username);
       const response = await fetch("http://localhost:3000/auth/login", {
         method: "POST",
         headers: {
@@ -30,24 +43,32 @@ const LoginForm = () => {
       });
 
       const data = await response.json();
-      console.log("Response status:", response.status);
-      console.log("Response ok:", response.ok);
-      console.log("Full response data:", data);
-      console.log("User data present:", !!data.user);
 
-      if (response.ok && data.user) {
-        console.log("Login successful, user data:", data.user);
-        console.log("Token present:", !!data.token);
-        setAuthData(data.user, data.token || "", remember);
-        console.log("Auth data set, navigating to home...");
-        navigate("/home");
+      if (response.ok && data.user && data.token) {
+        // Convert the createdAt to string if it's a Date
+        const user = {
+          ...data.user,
+          createdAt:
+            typeof data.user.createdAt === "string"
+              ? data.user.createdAt
+              : new Date(data.user.createdAt).toISOString(),
+        };
+
+        // Pass the remember state
+        setAuthData(user, data.token, remember);
+
+        // Get the redirect path from location state or default to home
+        const location = window.location as any;
+        const from = location.state?.from?.pathname || "/home";
+        navigate(from, { replace: true });
       } else {
-        console.log("Login failed, error:", data.error);
         setError(data.error || "Invalid credentials");
       }
     } catch (error) {
       console.error("Login error:", error);
       setError("Connection error. Please check if the server is running.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,7 +85,7 @@ const LoginForm = () => {
           htmlFor="username"
           className="block text-sm font-medium text-gray-700 mb-1"
         >
-          Username or Email
+          Username
         </label>
         <input
           id="username"
@@ -72,7 +93,7 @@ const LoginForm = () => {
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black transition-colors"
-          placeholder="Enter your username or email"
+          placeholder="Enter your username"
           required
         />
       </div>

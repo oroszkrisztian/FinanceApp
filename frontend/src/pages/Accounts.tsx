@@ -1,17 +1,24 @@
+// src/pages/Accounts.tsx
 import React from "react";
-import SideBar from "../components/SideBar"; // Import your Sidebar
+import TopBar from "../components/accounts/TopBar";
 
 const Accounts: React.FC = () => {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-gray-50 flex-col">
+      <TopBar
+        title="Accounts"
+        pageType="accounts"
+        searchPlaceholder="Search accounts..."
+        buttonText="Add Account"
+        onSearch={(value) => console.log("Searching accounts:", value)}
+        onButtonClick={() => console.log("Add Account Clicked")}
+      />
+
       {/* Main Content Area */}
-      <div className="flex-1  ">
-        {" "}
-        {/* Adjust margin-left to prevent overlap */}
-        <h1 className="text-2xl font-bold mb-4">
-          Welcome to the Accounts page!
-        </h1>
-        <p>This is your Accounts page .</p>
+      <div className="flex-1 px-6 py-8">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-gray-600">This is your Accounts page.</p>
+        </div>
       </div>
     </div>
   );

@@ -42,12 +42,18 @@ const SideBar: React.FC = () => {
   const getSelectedKey = () => {
     const path = location.pathname;
     switch (path) {
-      case "/home": return "dashboard";
-      case "/accounts": return "accounts";
-      case "/transactions": return "transactions";
-      case "/savings": return "savings";
-      case "/settings": return "settings";
-      default: return "";
+      case "/home":
+        return "dashboard";
+      case "/accounts":
+        return "accounts";
+      case "/transactions":
+        return "transactions";
+      case "/savings":
+        return "savings";
+      case "/settings":
+        return "settings";
+      default:
+        return "";
     }
   };
 
@@ -113,7 +119,6 @@ const SideBar: React.FC = () => {
     key: "logout",
     icon: <LogoutOutlined />,
     label: "Logout",
-    className: "mt-auto",
   };
 
   const toggleCollapsed = () => {
@@ -125,31 +130,34 @@ const SideBar: React.FC = () => {
       theme={{
         algorithm: theme.defaultAlgorithm,
         token: {
-          colorPrimary: "#1E293B",
-          colorText: "#0F172A",
-          colorBgContainer: "#F8FAFC",
+          colorPrimary: "#000000",
+          colorText: "#FFFFFF",
+          colorBgContainer: "#000000",
           borderRadius: 8,
         },
         components: {
           Menu: {
-            itemSelectedColor: "#FFFFFF",
+            itemSelectedColor: "#000000",
             itemHoverColor: "#1E293B",
-            itemHoverBg: "#CBD5E1",
-            itemSelectedBg: "#000000",
+            itemHoverBg: "#FFFFFF",
+            itemSelectedBg: "#FFFFFF",
             darkItemSelectedColor: "#FFFFFF",
           },
         },
       }}
     >
       <div
-        className={`h-screen border-r transition-all duration-300 ${
-          collapsed ? "w-20" : "w-64"
-        } flex flex-col bg-white`}
-      >
+        style={{ borderRight: "none" }}
+        className={`h-screen transition-all duration-300 flex flex-col bg-black ${
+          collapsed ? "w-20" : "w-44"
+        } border-r border-gray-200`}
+      >   
+
+        
         <Button
           type="text"
           onClick={toggleCollapsed}
-          className={`m-4 border rounded ${collapsed ? "w-12" : "w-auto"}`}
+          className="m-4 border rounded underline"
         >
           {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
         </Button>
@@ -163,6 +171,8 @@ const SideBar: React.FC = () => {
           openKeys={openKeys}
           onOpenChange={(keys) => setOpenKeys(keys)}
           items={mainMenuItems}
+          style={{ borderRight: "none" }}
+          className="flex-grow"
         />
 
         <Menu
@@ -171,6 +181,7 @@ const SideBar: React.FC = () => {
           theme="light"
           inlineCollapsed={collapsed}
           items={[logoutItem]}
+          style={{ borderRight: "none" }}
         />
       </div>
     </ConfigProvider>

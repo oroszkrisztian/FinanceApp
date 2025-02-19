@@ -1,6 +1,14 @@
 import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+
+// Page imports
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import HomePage from "./pages/HomePage";
@@ -10,7 +18,11 @@ import Accounts from "./pages/Accounts";
 import Settings from "./pages/Settings";
 import SideBar from "./components/SideBar";
 
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
@@ -28,15 +40,41 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   );
 };
 
+const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated } = useAuth();
+  const location = useLocation();
+
+  if (isAuthenticated) {
+    const from = location.state?.from?.pathname || "/home";
+    return <Navigate to={from} replace />;
+  }
+
+  return <>{children}</>;
+};
+
 const App: React.FC = () => {
   return (
     <AuthProvider>
       <Router>
         <Routes>
           {/* Public routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
-          
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <LoginPage />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/signup"
+            element={
+              <PublicRoute>
+                <SignupPage />
+              </PublicRoute>
+            }
+          />
+
           {/* Protected routes */}
           <Route
             path="/home"
@@ -46,7 +84,6 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          
           <Route
             path="/savings"
             element={
@@ -55,7 +92,6 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          
           <Route
             path="/transactions"
             element={
@@ -64,7 +100,6 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          
           <Route
             path="/accounts"
             element={
@@ -73,7 +108,6 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          
           <Route
             path="/settings"
             element={
@@ -84,16 +118,10 @@ const App: React.FC = () => {
           />
 
           {/* Root redirect */}
-          <Route
-            path="/"
-            element={<Navigate to="/home" replace />}
-          />
-
+          <Route path="/" element={<Navigate to="/home" replace />} />
+          
           {/* Catch all route */}
-          <Route
-            path="*"
-            element={<Navigate to="/home" replace />}
-          />
+          <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
       </Router>
     </AuthProvider>
