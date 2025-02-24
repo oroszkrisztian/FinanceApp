@@ -2,19 +2,6 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 
-// Define the expected response type from the backend
-interface LoginResponse {
-  user?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    username: string;
-    email: string;
-    createdAt: Date | string; // Allow both Date and string
-  };
-  token?: string;
-  error?: string;
-}
 
 const LoginForm = () => {
   const navigate = useNavigate();

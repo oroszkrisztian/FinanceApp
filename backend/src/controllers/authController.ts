@@ -5,7 +5,7 @@ import { AuthService } from "../services/authService";
 class AuthError extends Error {
   constructor(message: string) {
     super(message);
-    this.name = 'AuthError';
+    this.name = "AuthError";
   }
 }
 
@@ -33,11 +33,14 @@ export class AuthController {
   async register(c: Context) {
     try {
       const data = await c.req.json();
-      const user = await this.authService.register(data);
-      return c.json({
-        message: "Registration successful",
-        user
-      }, 201);
+      const result = await this.authService.register(data);
+      return c.json(
+        {
+          message: "Registration successful",
+          ...result,
+        },
+        201
+      );
     } catch (error) {
       console.error("Registration error:", error);
       if (error instanceof AuthError || error instanceof Error) {

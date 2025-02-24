@@ -93,10 +93,10 @@ const SideBar: React.FC = () => {
       icon: <DashboardOutlined />,
       label: "Dashboard",
     },
-    {
+    { 
       key: "accounts",
       icon: <BankOutlined />,
-      label: "Accounts",
+      label: "Recuring payments",
     },
     {
       key: "transactions",
@@ -149,7 +149,7 @@ const SideBar: React.FC = () => {
       <div
         style={{ borderRight: "none" }}
         className={`h-screen transition-all duration-300 flex flex-col bg-black ${
-          collapsed ? "w-20" : "w-44"
+          collapsed ? "w-20" : "w-48"
         } border-r border-gray-200`}
       >   
 

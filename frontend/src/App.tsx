@@ -14,7 +14,7 @@ import SignupPage from "./pages/SignupPage";
 import HomePage from "./pages/HomePage";
 import Savings from "./pages/Savings";
 import Transactions from "./pages/Transactions";
-import Accounts from "./pages/Accounts";
+import Accounts from "./pages/Payments";
 import Settings from "./pages/Settings";
 import SideBar from "./components/SideBar";
 

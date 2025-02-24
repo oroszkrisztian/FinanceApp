@@ -1,17 +1,47 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from "../context/AuthContext";
-import TopBar from "../components/accounts/TopBar";
+import TopBar from "../components/TopBar";
+import { Fund } from "../types/funds";
 
-const HomePage: React.FC = () => {
+const HomePage = () => {
   const { user } = useAuth();
+  const [funds, setFunds] = useState<Fund[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const getFunds = async () => {
+      setLoading(true);
+      setError(null);
+
+      const url = `http://localhost:3000/fund/funds?userId=${user?.id}`;
+      console.log("URL:", url);
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log("Funds data:", data); // Log the data here
+        if (response.ok) {
+          setFunds(data);
+        } else {
+          setError(data.error || "Failed to load funds");
+        }
+      } catch (error) {
+        console.error("Error loading funds:", error);
+        setError("Failed to load funds");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user?.id) {
+      getFunds();
+    }
+  }, [user]);
 
   return (
     <div className="flex-row min-h-screen bg-white">
-      {/* Use the TopBar with the title set to "Dashboard" */}
-      <TopBar
-        title="Dashboard"
-        pageType="dashboard"
-      />
+      <TopBar title="Dashboard" pageType="dashboard" />
 
       <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6">
         <h2 className="text-xl font-semibold mb-3">User Information</h2>
@@ -29,7 +59,20 @@ const HomePage: React.FC = () => {
         </div>
       </div>
 
-      <p>This is your dashboard where you can manage your application.</p>
+      <h2 className="text-xl font-semibold mb-3">Funds</h2>
+      {loading ? (
+        <p>Loading funds...</p>
+      ) : error ? (
+        <p>Error loading funds: {error}</p>
+      ) : (
+        <ul>
+          {funds.map((fund) => (
+            <li key={fund.id}>
+              {fund.name} - {fund.amount} {fund.currency.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 };

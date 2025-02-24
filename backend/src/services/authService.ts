@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
 import { UserRepository } from "../repositories/userRepository";
-import { LoginCredentials, RegisterData } from "../types/user";
+import { LoginCredentials, RegisterData, User } from "../types/user";
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -12,33 +12,38 @@ export class AuthService {
 
   async login(credentials: LoginCredentials) {
     const user = await this.userRepository.findByUsername(credentials.username);
-    
+
     if (!user) {
       throw new Error("Invalid username or password");
     }
 
-    const isValidPassword = await bcrypt.compare(credentials.password, user.password);
-    
+    const isValidPassword = await bcrypt.compare(
+      credentials.password,
+      user.password
+    );
+
     if (!isValidPassword) {
       throw new Error("Invalid username or password");
     }
 
-    const token = sign(
-      { userId: user.id, username: user.username },
-      process.env.JWT_SECRET || 'your-secret-key',
-      { expiresIn: '24h' }
-    );
-
+    const token = this.generateToken(user);
     const { password: _, ...userWithoutPassword } = user;
-    
+
     return {
       user: userWithoutPassword,
-      token
+      token,
     };
   }
 
   async register(data: RegisterData) {
-    if (!data.firstName || !data.lastName || !data.username || !data.email || !data.password) {
+    if (
+      !data.firstName ||
+      !data.lastName ||
+      !data.username ||
+      !data.email ||
+      !data.password ||
+      !data.fund
+    ) {
       throw new Error("All fields are required");
     }
 
@@ -57,14 +62,26 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    
+
     const newUser = await this.userRepository.create({
       ...data,
-      password: hashedPassword
+      password: hashedPassword,
     });
 
+    const token = this.generateToken(newUser);
     const { password: _, ...userWithoutPassword } = newUser;
-    
-    return userWithoutPassword;
+
+    return {
+      user: userWithoutPassword,
+      token,
+    };
+  }
+
+  private generateToken(user: User) {
+    return sign(
+      { userId: user.id, username: user.username },
+      process.env.JWT_SECRET || "your-secret-key",
+      { expiresIn: "24h" }
+    );
   }
 }

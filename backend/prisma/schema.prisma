@@ -7,66 +7,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Service {
-  id           Int           @id @default(autoincrement())
-  name         String
-  transactions Transaction[]
-}
-
-model TransactionType {
-  id           Int           @id @default(autoincrement())
-  name         String
-  in_or_out    Boolean
-  transactions Transaction[]
-}
-
 model Currency {
-  id       Int       @id @default(autoincrement())
-  name     String
-  accounts Account[]
+  id    Int     @id @default(autoincrement())
+  name  String
+  bills Bill[]
+  funds Fund[]
 }
 
-model Transaction {
-  id                 Int             @id @default(autoincrement())
-  recipientAccountId Int
-  senderAccountId    Int
-  typeId             Int
-  amount             Decimal         @db.Decimal(15, 2)
-  createdAt          DateTime        @default(now())
-  description        String?
-  serviceId          Int?
-  recipientAccount   Account         @relation("ReceivedTransactions", fields: [recipientAccountId], references: [id])
-  senderAccount      Account         @relation("SentTransactions", fields: [senderAccountId], references: [id])
-  service            Service?        @relation(fields: [serviceId], references: [id])
-  type               TransactionType @relation(fields: [typeId], references: [id])
+model Bill {
+  id                Int      @id @default(autoincrement())
+  name             String
+  date             DateTime
+  cost             Decimal  @db.Decimal(15, 2)
+  currencyId       Int
+  userId           Int
+  emailNotification Boolean  @default(false)
+  automaticPayment Boolean  @default(false)
+  currency         Currency @relation(fields: [currencyId], references: [id])
+  user             User     @relation(fields: [userId], references: [id])
 
-  @@index([recipientAccountId], map: "Transaction_recipientAccountId_fkey")
-  @@index([senderAccountId], map: "Transaction_senderAccountId_fkey")
-  @@index([serviceId], map: "Transaction_serviceId_fkey")
-  @@index([typeId], map: "Transaction_typeId_fkey")
+  @@index([currencyId], map: "Bill_currencyId_fkey")
+  @@index([userId], map: "Bill_userId_fkey")
 }
 
-model Account {
-  id                   Int           @id @default(autoincrement())
-  ownerId              Int
-  currencyId           Int
-  name                 String
-  currency             Currency      @relation(fields: [currencyId], references: [id])
-  owner                User          @relation(fields: [ownerId], references: [id])
-  receivedTransactions Transaction[] @relation("ReceivedTransactions")
-  sentTransactions     Transaction[] @relation("SentTransactions")
+model Fund {
+  id         Int      @id @default(autoincrement())
+  name       String   
+  amount     Decimal  @db.Decimal(15, 2)
+  currencyId Int
+  userId     Int
+  currency   Currency @relation(fields: [currencyId], references: [id])
+  user       User     @relation(fields: [userId], references: [id])
 
-  @@index([currencyId], map: "Account_currencyId_fkey")
-  @@index([ownerId], map: "Account_ownerId_fkey")
+  @@index([currencyId], map: "Fund_currencyId_fkey")
+  @@index([userId], map: "Fund_userId_fkey")
 }
 
 model User {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   firstName String
   lastName  String
-  username  String    @unique
-  email     String    @unique
+  username  String   @unique
+  email     String   @unique
   password  String
-  createdAt DateTime  @default(now())
-  accounts  Account[]
+  createdAt DateTime @default(now())
+  bills     Bill[]
+  funds     Fund[]
 }

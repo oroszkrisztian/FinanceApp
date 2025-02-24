@@ -3,6 +3,10 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import auth from './routes/auth';
+import currencies from "./routes/currencies";
+import fund from "./routes/fund"
+import payment from "./routes/payments"
+
 
 const app = new Hono();
 const port = parseInt(process.env.PORT || "3000");
@@ -17,8 +21,13 @@ app.use('*', cors({
 
 app.use("*", logger());
 
-// Mount auth routes
+// Mount routes
 app.route('/auth', auth);
+app.route('/currencies', currencies);
+//funds
+app.route('/fund',fund);
+//payments
+app.route('/payment',payment)
 
 // Health check
 app.get("/", (c) => c.text("Server is running"));

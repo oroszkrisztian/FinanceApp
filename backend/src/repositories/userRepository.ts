@@ -10,7 +10,7 @@ export class UserRepository {
 
   async findByUsername(username: string) {
     return await this.prisma.user.findUnique({
-      where: { username }
+      where: { username },
     });
   }
 
@@ -23,8 +23,31 @@ export class UserRepository {
   }
 
   async create(data: RegisterData) {
-    return await this.prisma.user.create({
-      data
+    return await this.prisma.$transaction(async (prisma) => {
+      // Create  user
+      const user = await prisma.user.create({
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          username: data.username,
+          email: data.email,
+          password: data.password,
+        },
+      });
+
+      // Create initial fund
+      if (data.fund) {
+        await prisma.fund.create({
+          data: {
+            name : data.fund.name,
+            amount: data.fund.amount,
+            currencyId: data.fund.currencyId,
+            userId: user.id,
+          },
+        });
+      }
+
+      return user;
     });
   }
 }
