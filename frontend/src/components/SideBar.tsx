@@ -72,8 +72,8 @@ const SideBar: React.FC = () => {
       case "dashboard":
         navigate("/home");
         break;
-      case "accounts":
-        navigate("/accounts");
+      case "payments":
+        navigate("/payments");
         break;
       case "transactions":
         navigate("/transactions");
@@ -94,7 +94,7 @@ const SideBar: React.FC = () => {
       label: "Dashboard",
     },
     { 
-      key: "accounts",
+      key: "payments",
       icon: <BankOutlined />,
       label: "Recuring payments",
     },

@@ -16,7 +16,9 @@ import Savings from "./pages/Savings";
 import Transactions from "./pages/Transactions";
 import Accounts from "./pages/Payments";
 import Settings from "./pages/Settings";
+import Profile from "./pages/ProfilePage"; // Import the Profile component
 import SideBar from "./components/SideBar";
+import TopBar from "./components/TopBar"; // Import the TopBar component
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -26,6 +28,25 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
 
+  const getTitle = (pathname: string) => {
+    switch (pathname) {
+      case "/home":
+        return "Home";
+      case "/savings":
+        return "Savings";
+      case "/transactions":
+        return "Transactions";
+      case "/payments":
+        return "Payments";
+      case "/settings":
+        return "Settings";
+      case "/profile":
+        return "Profile";
+      default:
+        return "My App";
+    }
+  };
+
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
@@ -33,9 +54,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return (
     <div className="flex h-screen w-full">
       <SideBar />
-      <main className="flex-1 overflow-auto">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col overflow-auto">
+        <TopBar title={getTitle(location.pathname)} />{" "}
+        {/* Pass the dynamic title */}
+        <main className="flex-1 overflow-auto ">{children}</main>
+      </div>
     </div>
   );
 };
@@ -101,7 +124,7 @@ const App: React.FC = () => {
             }
           />
           <Route
-            path="/accounts"
+            path="/payments"
             element={
               <ProtectedRoute>
                 <Accounts />
@@ -116,10 +139,18 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Root redirect */}
           <Route path="/" element={<Navigate to="/home" replace />} />
-          
+
           {/* Catch all route */}
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>

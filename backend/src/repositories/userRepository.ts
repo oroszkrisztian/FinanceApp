@@ -35,17 +35,7 @@ export class UserRepository {
         },
       });
 
-      // Create initial fund
-      if (data.fund) {
-        await prisma.fund.create({
-          data: {
-            name : data.fund.name,
-            amount: data.fund.amount,
-            currencyId: data.fund.currencyId,
-            userId: user.id,
-          },
-        });
-      }
+    
 
       return user;
     });

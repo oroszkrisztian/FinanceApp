@@ -13,10 +13,8 @@ import {
 import type { Dayjs } from "dayjs";
 import { useAuth } from "../../context/AuthContext";
 
-interface Currency {
-  id: number;
-  name: string;
-}
+
+
 
 interface AddPaymentFormValues {
   onClose: () => void;
@@ -24,25 +22,12 @@ interface AddPaymentFormValues {
 
 const AddPaymentForm: React.FC<AddPaymentFormValues> = ({ onClose }) => {
   const { user } = useAuth();
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
+  
   const [date, setDate] = useState<Dayjs | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const fetchCurrencies = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/currencies");
-        const data: Currency[] = await response.json();
-        setCurrencies(data);
-      } catch (error) {
-        console.error("Failed to fetch currencies:", error);
-        setError("Failed to load currencies");
-      }
-    };
-
-    fetchCurrencies();
-  }, []);
+  
 
   const handleSubmit = async (values: any) => {
     setLoading(true);
@@ -122,11 +107,7 @@ const AddPaymentForm: React.FC<AddPaymentFormValues> = ({ onClose }) => {
             rules={[{ required: true }]}
           >
             <Select className="w-full border border-black rounded-lg">
-              {currencies.map((currency) => (
-                <Select.Option key={currency.id} value={currency.id}>
-                  {currency.name}
-                </Select.Option>
-              ))}
+              
             </Select>
           </Form.Item>
           <Form.Item label="Date" name="date" rules={[{ required: true }]}>

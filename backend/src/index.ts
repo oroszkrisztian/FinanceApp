@@ -3,10 +3,8 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import auth from './routes/auth';
-import currencies from "./routes/currencies";
-import fund from "./routes/fund"
-import payment from "./routes/payments"
-
+import accounts from "./routes/accounts";
+import 'dotenv/config';
 
 const app = new Hono();
 const port = parseInt(process.env.PORT || "3000");
@@ -23,11 +21,8 @@ app.use("*", logger());
 
 // Mount routes
 app.route('/auth', auth);
-app.route('/currencies', currencies);
-//funds
-app.route('/fund',fund);
-//payments
-app.route('/payment',payment)
+app.route("/accounts", accounts);
+
 
 // Health check
 app.get("/", (c) => c.text("Server is running"));

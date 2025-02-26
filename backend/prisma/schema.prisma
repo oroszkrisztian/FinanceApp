@@ -7,50 +7,187 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Currency {
-  id    Int     @id @default(autoincrement())
-  name  String
-  bills Bill[]
-  funds Fund[]
-}
-
-model Bill {
-  id                Int      @id @default(autoincrement())
-  name             String
-  date             DateTime
-  cost             Decimal  @db.Decimal(15, 2)
-  currencyId       Int
-  userId           Int
-  emailNotification Boolean  @default(false)
-  automaticPayment Boolean  @default(false)
-  currency         Currency @relation(fields: [currencyId], references: [id])
-  user             User     @relation(fields: [userId], references: [id])
-
-  @@index([currencyId], map: "Bill_currencyId_fkey")
-  @@index([userId], map: "Bill_userId_fkey")
-}
-
-model Fund {
-  id         Int      @id @default(autoincrement())
-  name       String   
-  amount     Decimal  @db.Decimal(15, 2)
-  currencyId Int
-  userId     Int
-  currency   Currency @relation(fields: [currencyId], references: [id])
-  user       User     @relation(fields: [userId], references: [id])
-
-  @@index([currencyId], map: "Fund_currencyId_fkey")
-  @@index([userId], map: "Fund_userId_fkey")
-}
-
 model User {
-  id        Int      @id @default(autoincrement())
-  firstName String
-  lastName  String
-  username  String   @unique
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  bills     Bill[]
-  funds     Fund[]
+  id                      Int                     @id @default(autoincrement())
+  firstName               String
+  lastName                String
+  username                String                  @unique
+  email                   String                  @unique
+  password                String
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  deletedAt               DateTime?
+
+  accounts                Account[] 
+  transactions            Transaction[]
+  budgets                 Budget[]
+  recurringFundsAndBills  RecurringFundAndBill[]
+  customCategories        CustomCategory[] 
+}
+
+model CustomCategory {
+  id              Int                     @id @default(autoincrement())
+  name            String                  @unique
+  userId          Int
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  deletedAt       DateTime?
+
+  user            User                    @relation(fields: [userId], references: [id])
+  budgets         Budget[]       
+  recurringBills  RecurringFundAndBill[]  @relation("CustomCategoryRecurringBills")
+
+  @@index([userId])
+  Transaction Transaction[]
+}
+
+model Budget {
+  id                Int             @id @default(autoincrement())
+  name              String
+  limitAmount       Float
+  currentSpent      Float           @default(0)
+  customCategoryId  Int?
+  userId            Int
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  deletedAt         DateTime?
+  currency          CurrencyType
+
+  user              User            @relation(fields: [userId], references: [id]) 
+  customCategory    CustomCategory? @relation(fields: [customCategoryId], references: [id]) 
+  transactions      Transaction[]  
+
+  @@index([userId])
+}
+
+model Account {
+  id                      Int                     @id @default(autoincrement())
+  name                    String
+  description             String?
+  userId                  Int
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
+  isDefault               Boolean                 @default(false)
+  deletedAt               DateTime?
+  type                    AccountType
+  currency                CurrencyType
+  savingAccount           SavingAccount?
+
+  user                    User                    @relation(fields: [userId], references: [id])
+  transactionsFrom        Transaction[]           @relation("FromAccount") 
+  transactionsTo          Transaction[]           @relation("ToAccount")
+  recurringFundsAndBills  RecurringFundAndBill[]  @relation("AccountRecurringFunds")
+
+  @@index([userId])
+  RecurringFundAndBill RecurringFundAndBill[]
+}
+
+model RecurringFundAndBill {
+  id                  Int               @id @default(autoincrement())
+  name                String
+  amount              Float
+  description         String?
+  accountId           Int
+  startDate           DateTime
+  frequency           Frequency
+  isActive            Boolean           @default(true)
+  emailNotification   Boolean           @default(false)
+  notificationDay     Int?
+  automaticAddition   Boolean           @default(false)
+  lastExecution       DateTime?
+  nextExecution       DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  deletedAt           DateTime?
+  type                PaymentType
+  currency            CurrencyType
+  customCategoryId    Int? 
+
+  account             Account           @relation(fields: [accountId], references: [id])
+  customCategory      CustomCategory?   @relation(fields: [customCategoryId], references: [id], name: "CustomCategoryRecurringBills")
+  transactions        Transaction[]     @relation("RecurringFundTransactions")
+
+  @@index([accountId])
+  @@index([customCategoryId]) 
+  Account Account[] @relation("AccountRecurringFunds")
+  User User[]
+}
+
+model Transaction {
+  id                  Int                     @id @default(autoincrement())
+  amount              Float
+  date                DateTime                @default(now())
+  name                String
+  description         String?
+  type                TransactionType
+  customCategoryId    Int?
+  fromAccountId       Int?  
+  toAccountId         Int?
+  savingAccountId     Int?
+  recurringFundId     Int?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  deletedAt           DateTime?
+
+  fromAccount         Account?                @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
+  toAccount           Account?                @relation(name: "ToAccount", fields: [toAccountId], references: [id])
+  customCategory      CustomCategory?         @relation(fields: [customCategoryId], references: [id])
+  savingAccount       SavingAccount?          @relation(name: "SavingsGoalTransactions", fields: [savingAccountId], references: [id])
+  recurringFund       RecurringFundAndBill?   @relation(name: "RecurringFundTransactions", fields: [recurringFundId], references: [id])
+
+  @@index([customCategoryId])
+  Budget Budget[]
+  User User[]
+}
+
+model SavingAccount {
+  id              Int             @id @default(autoincrement())
+  accountId       Int             @unique
+  targetAmount    Float
+  startDate       DateTime        @default(now())
+  targetDate      DateTime?
+  description     String?
+  isCompleted     Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+  currency        CurrencyType
+
+  transactions    Transaction[]    @relation("SavingsGoalTransactions")
+  account         Account    @relation(fields: [accountId], references: [id])
+}
+
+enum Frequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+  CUSTOM
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum CurrencyType {
+  RON
+  HUF
+  EUR
+  USD
+  GBP
+  CHF
+}
+
+enum PaymentType {
+  EXPENSE
+  INCOME
+}
+
+enum AccountType {
+  DEFAULT
+  SAVINGS
 }

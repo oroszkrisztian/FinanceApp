@@ -1,5 +1,6 @@
 import React from "react";
-import SideBar from "../components/SideBar"; // Import your Sidebar
+
+import TopBar from "../components/TopBar";
 
 const Settings: React.FC = () => {
   return (

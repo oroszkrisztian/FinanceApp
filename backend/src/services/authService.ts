@@ -1,7 +1,8 @@
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
-import { UserRepository } from "../repositories/userRepository";
+
 import { LoginCredentials, RegisterData, User } from "../types/user";
+import { UserRepository } from "../repositories/userRepository";
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -41,8 +42,7 @@ export class AuthService {
       !data.lastName ||
       !data.username ||
       !data.email ||
-      !data.password ||
-      !data.fund
+      !data.password 
     ) {
       throw new Error("All fields are required");
     }

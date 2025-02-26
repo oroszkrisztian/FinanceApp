@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Currency } from "../types/currency";
-
-
 
 interface SignupFormValues {
   firstName: string;
@@ -12,9 +9,6 @@ interface SignupFormValues {
   email: string;
   password: string;
   confirmPassword: string;
-  fundName: string;
-  fundAmount: string;
-  currencyId: string;
 }
 
 const SignupForm = () => {
@@ -22,7 +16,6 @@ const SignupForm = () => {
   const { setAuthData } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [currencies, setCurrencies] = useState<Currency[]>([]);
 
   const [formData, setFormData] = useState<SignupFormValues>({
     firstName: "",
@@ -31,32 +24,7 @@ const SignupForm = () => {
     email: "",
     password: "",
     confirmPassword: "",
-    fundName: "",
-    fundAmount: "",
-    currencyId: "",
   });
-
-  useEffect(() => {
-    // Fetch available currencies
-    const fetchCurrencies = async () => {
-      try {
-        const response = await fetch("http://localhost:3000/currencies");
-        const data = await response.json();
-        setCurrencies(data);
-        if (data.length > 0) {
-          setFormData((prev) => ({
-            ...prev,
-            currencyId: data[0].id.toString(),
-          }));
-        }
-      } catch (error) {
-        console.error("Failed to fetch currencies:", error);
-        setError("Failed to load currencies");
-      }
-    };
-
-    fetchCurrencies();
-  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -76,19 +44,11 @@ const SignupForm = () => {
       return;
     }
 
-    if (
-      isNaN(Number(formData.fundAmount)) ||
-      Number(formData.fundAmount) <= 0
-    ) {
-      setError("Please enter a valid fund amount");
-      return;
-    }
-
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch("http://localhost:3000/app/register", {
+      const response = await fetch("http://localhost:3000/auth/register", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -99,11 +59,6 @@ const SignupForm = () => {
           username: formData.username,
           email: formData.email,
           password: formData.password,
-          fund: {
-            name : String(formData.fundName),
-            amount: Number(formData.fundAmount),
-            currencyId: Number(formData.currencyId),
-          },
         }),
       });
 
@@ -131,8 +86,7 @@ const SignupForm = () => {
         </div>
       )}
 
-      {/* Two Column Layout for Personal Info and Fund Setup */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+      
         {/* Personal Info Column */}
         <div className="space-y-3">
           <h3 className="text-lg font-medium text-gray-900">
@@ -268,78 +222,9 @@ const SignupForm = () => {
           </div>
         </div>
 
-        {/* Fund Setup Column */}
-        <div className="space-y-3">
-          <h3 className="text-lg font-medium text-gray-900">
-            Initial Fund Setup
-          </h3>
-
-          <div>
-            <label
-              htmlFor="fundName"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Name
-            </label>
-            <input id="fundName"
-            name="fundName"
-            type="string"
-            required
-            value={formData.fundName}
-            onChange={handleChange}
-            className="mt-1 w-full px-3 py-1.5 border border-gray-300 rounded-lg 
-                       focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-              placeholder="Monthly Salary"
-             />
-          </div>
-
-          <div>
-            <label
-              htmlFor="fundAmount"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Initial Amount
-            </label>
-            <input
-              id="fundAmount"
-              name="fundAmount"
-              type="number"
-              step="0.01"
-              required
-              min="0"
-              value={formData.fundAmount}
-              onChange={handleChange}
-              className="mt-1 w-full px-3 py-1.5 border border-gray-300 rounded-lg 
-                       focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-              placeholder="0.00"
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="currencyId"
-              className="block text-sm font-medium text-gray-700"
-            >
-              Currency
-            </label>
-            <select
-              id="currencyId"
-              name="currencyId"
-              required
-              value={formData.currencyId}
-              onChange={handleChange}
-              className="mt-1 w-full px-3 py-1.5 border border-gray-300 rounded-lg 
-                       focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-            >
-              {currencies.map((currency) => (
-                <option key={currency.id} value={currency.id}>
-                  {currency.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      </div>
+       
+        
+    
 
       {/* Submit Button */}
       <div className="pt-4">

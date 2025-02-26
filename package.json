@@ -12,6 +12,7 @@
     "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^6.4.4",
     "@mui/material": "^6.4.4",
+    "@tanstack/react-query": "^5.66.9",
     "@toolpad/core": "^0.12.0",
     "antd": "^5.24.1",
     "react-mui-sidebar": "^1.5.9"

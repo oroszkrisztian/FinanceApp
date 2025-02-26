@@ -1,7 +1,7 @@
 import { Context } from "hono";
 import { AuthService } from "../services/authService";
 
-// Define custom error types
+
 class AuthError extends Error {
   constructor(message: string) {
     super(message);
