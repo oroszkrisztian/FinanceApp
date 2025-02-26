@@ -1,15 +1,16 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { fetchAccounts } from "../services/accountService"; // Import the service function
+import { fetchAccounts } from "../services/accountService";
 import { AccountType } from "../interfaces/enums";
+import "../globals.css";
+
 
 const ProfilePage = () => {
   const { user } = useAuth();
-  const [accounts, setAccounts] = useState<any[]>([]); // Replace `any` with your Account interface
+  const [accounts, setAccounts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user accounts on component mount
   useEffect(() => {
     const fetchUserAccounts = async () => {
       if (!user?.id) return;
@@ -29,7 +30,6 @@ const ProfilePage = () => {
     fetchUserAccounts();
   }, [user?.id]);
 
-  // Filter accounts by type
   const defaultAccounts = accounts.filter(
     (account) => account.type === AccountType.DEFAULT
   );
@@ -38,13 +38,13 @@ const ProfilePage = () => {
   );
 
   return (
-    <div className="flex-row min-h-screen bg-white">
-      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6">
+    <div className="flex-row min-h-screen bg-white p-6">
+      {/* User Information Section */}
+      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6 fade-in-left">
         <h2 className="text-xl font-semibold mb-3">User Information</h2>
         <div className="space-y-2">
           <p>
-            <span className="font-medium">Name:</span> {user?.firstName}{" "}
-            {user?.lastName}
+            <span className="font-medium">Name:</span> {user?.firstName} {user?.lastName}
           </p>
           <p>
             <span className="font-medium">Username:</span> {user?.username}
@@ -55,7 +55,8 @@ const ProfilePage = () => {
         </div>
       </div>
 
-      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6">
+      {/* Default Accounts Section */}
+      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6 fade-in-left">
         <h2 className="text-xl font-semibold mb-3">Default Accounts</h2>
         {isLoading ? (
           <p>Loading accounts...</p>
@@ -66,32 +67,19 @@ const ProfilePage = () => {
         ) : (
           <div className="space-y-4">
             {defaultAccounts.map((account) => (
-              <div
-                key={account.id}
-                className="p-4 bg-white rounded-lg shadow-sm border border-gray-200"
-              >
-                <p>
-                  <span className="font-medium">Account Name:</span>{" "}
-                  {account.name}
-                </p>
-                <p>
-                  <span className="font-medium">Type:</span> Default Account
-                </p>
-                <p>
-                  <span className="font-medium">Currency:</span>{" "}
-                  {account.currency}
-                </p>
-                <p>
-                  <span className="font-medium">Description:</span>{" "}
-                  {account.description || "N/A"}
-                </p>
+              <div key={account.id} className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <p><span className="font-medium">Account Name:</span> {account.name}</p>
+                <p><span className="font-medium">Type:</span> Default Account</p>
+                <p><span className="font-medium">Currency:</span> {account.currency}</p>
+                <p><span className="font-medium">Description:</span> {account.description || "N/A"}</p>
               </div>
             ))}
           </div>
         )}
       </div>
 
-      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6">
+      {/* Savings Accounts Section */}
+      <div className="bg-gray-50 p-6 rounded-lg shadow-sm mb-6 fade-in-left">
         <h2 className="text-xl font-semibold mb-3">Savings Accounts</h2>
         {isLoading ? (
           <p>Loading accounts...</p>
@@ -101,10 +89,7 @@ const ProfilePage = () => {
           <div>
             <p>No savings accounts found.</p>
             <button
-              onClick={() => {
-                // Add logic to open a modal or navigate to create a savings account
-                alert("Redirect to create savings account page");
-              }}
+              onClick={() => alert("Redirect to create savings account page")}
               className="mt-4 px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
               Create Savings Account
@@ -113,30 +98,13 @@ const ProfilePage = () => {
         ) : (
           <div className="space-y-4">
             {savingAccounts.map((account) => (
-              <div
-                key={account.id}
-                className="p-4 bg-white rounded-lg shadow-sm border border-gray-200"
-              >
-                <p>
-                  <span className="font-medium">Account Name:</span>{" "}
-                  {account.name}
-                </p>
-                <p>
-                  <span className="font-medium">Type:</span> Savings Account
-                </p>
-                <p>
-                  <span className="font-medium">Currency:</span>{" "}
-                  {account.currency}
-                </p>
-                <p>
-                  <span className="font-medium">Description:</span>{" "}
-                  {account.description || "N/A"}
-                </p>
+              <div key={account.id} className="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+                <p><span className="font-medium">Account Name:</span> {account.name}</p>
+                <p><span className="font-medium">Type:</span> Savings Account</p>
+                <p><span className="font-medium">Currency:</span> {account.currency}</p>
+                <p><span className="font-medium">Description:</span> {account.description || "N/A"}</p>
                 {account.savingAccount && (
-                  <p>
-                    <span className="font-medium">Target Amount:</span>{" "}
-                    {account.savingAccount.targetAmount}
-                  </p>
+                  <p><span className="font-medium">Target Amount:</span> {account.savingAccount.targetAmount}</p>
                 )}
               </div>
             ))}

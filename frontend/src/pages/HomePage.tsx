@@ -2,7 +2,8 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { Account } from "../interfaces/Account";
 import CreateDefaultAccountPopup from "../components/accounts/CreateDefaultAccountPopup";
-import { fetchAccounts } from "../services/accountService"; // Import the service
+import { fetchAccounts } from "../services/accountService";
+import { motion } from "framer-motion";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -19,8 +20,6 @@ const HomePage = () => {
       if (user?.id) {
         setLoading(true);
         setError(null);
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
 
         try {
           const data = await fetchAccounts(user.id, signal);
@@ -68,7 +67,12 @@ const HomePage = () => {
     <div className="flex flex-col min-h-screen bg-white">
       {accounts.length === 0 ? (
         <div className="flex flex-grow items-center justify-center bg-white">
-          <div className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-gray-700">
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.5, ease: "easeOut", bounce: 0.4, type: "spring" }}
+            className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-gray-700"
+          >
             <h2 className="text-xl font-semibold mb-3 text-white">
               No Accounts Found
             </h2>
@@ -81,14 +85,15 @@ const HomePage = () => {
             >
               Create Account
             </button>
-          </div>
+          </motion.div>
         </div>
       ) : (
         <div className="p-6">
-          {accounts.map((account) => (
+          {accounts.map((account, index) => (
             <div
               key={account.id}
-              className="bg-gray-50 p-4 rounded-lg shadow-sm mb-4"
+              className="bg-gray-50 p-4 rounded-lg shadow-sm mb-4 animate-fade-in"
+              style={{ animationDelay: `${index * 0.1}s` }}
             >
               <p>
                 <span className="font-medium">Account ID:</span> {account.id}
@@ -111,7 +116,6 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Modal for creating account */}
       {isModalOpen && (
         <CreateDefaultAccountPopup setIsModalOpen={setIsModalOpen} />
       )}
