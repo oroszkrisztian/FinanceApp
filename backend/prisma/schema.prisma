@@ -105,7 +105,7 @@ model RecurringFundAndBill {
 
   account             Account           @relation(fields: [accountId], references: [id])
   customCategory      CustomCategory?   @relation(fields: [customCategoryId], references: [id], name: "CustomCategoryRecurringBills")
-  transactions        Transaction[]     @relation("RecurringFundTransactions")
+  
 
   @@index([accountId])
   @@index([customCategoryId]) 
@@ -123,8 +123,6 @@ model Transaction {
   customCategoryId    Int?
   fromAccountId       Int?  
   toAccountId         Int?
-  savingAccountId     Int?
-  recurringFundId     Int?
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
   deletedAt           DateTime?
@@ -132,8 +130,6 @@ model Transaction {
   fromAccount         Account?                @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount           Account?                @relation(name: "ToAccount", fields: [toAccountId], references: [id])
   customCategory      CustomCategory?         @relation(fields: [customCategoryId], references: [id])
-  savingAccount       SavingAccount?          @relation(name: "SavingsGoalTransactions", fields: [savingAccountId], references: [id])
-  recurringFund       RecurringFundAndBill?   @relation(name: "RecurringFundTransactions", fields: [recurringFundId], references: [id])
 
   @@index([customCategoryId])
   Budget Budget[]
@@ -146,16 +142,13 @@ model SavingAccount {
   targetAmount    Float
   startDate       DateTime        @default(now())
   targetDate      DateTime?
-  description     String?
   isCompleted     Boolean         @default(false)
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  deletedAt       DateTime?
-  currency        CurrencyType
 
-  transactions    Transaction[]    @relation("SavingsGoalTransactions")
-  account         Account    @relation(fields: [accountId], references: [id])
+  account         Account         @relation(fields: [accountId], references: [id])
+
+  
 }
+
 
 enum Frequency {
   DAILY

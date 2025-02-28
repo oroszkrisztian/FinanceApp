@@ -1,27 +1,32 @@
 import { useState } from "react";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
+import { createSavingAccount } from "../../services/accountService";
 
 interface CreateSavingAccountPopupProps {
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupProps) => {
+const CreateSavingAccountPopup = ({
+  setIsModalOpen,
+}: CreateSavingAccountPopupProps) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    accountType: AccountType.SAVINGS, // Default account type is SAVINGS
-    currency: CurrencyType.USD, // Default currency from enum
-    targetAmount: 0, // Saving account-specific field
-    startDate: new Date().toISOString().split("T")[0], // Default to today's date
-    targetDate: "", // Optional target date
+    accountType: AccountType.SAVINGS,
+    currency: CurrencyType.RON,
+    targetAmount: 0,
+    startDate: new Date().toISOString().split("T")[0],
+    targetDate: "",
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -39,36 +44,22 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
         throw new Error("User not found. Please log in again.");
       }
 
-      // Call your API endpoint
-      const response = await fetch(`http://localhost:3000/accounts/insertSaving?userId=${user.id}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          accountType: formData.accountType,
-          currencyType: formData.currency,
-          name: formData.name,
-          description: formData.description,
-          targetAmount: parseFloat(formData.targetAmount.toString()), // Ensure it's a number
-          startDate: formData.startDate,
-          targetDate: formData.targetDate || null, // Send null if targetDate is empty
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to create saving account');
-      }
-
-      const data = await response.json();
-      console.log("Saving account created successfully:", data);
-      setIsModalOpen(false); // Close the modal after successful submission
-
-      // Refresh the page to show the new account
+      const data = await createSavingAccount(
+        user.id,
+        formData.accountType,
+        formData.currency,
+        formData.name,
+        formData.description,
+        Number(formData.targetAmount),
+        new Date(formData.targetDate)
+      );
+      console.log("Saving created successfully:", data);
+      setIsModalOpen(false);
       window.location.reload();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       console.error("Error creating saving account:", err);
     } finally {
       setIsLoading(false);
@@ -80,7 +71,9 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
       {/* Modal */}
       <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
         <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-          <h2 className="text-xl font-semibold mb-4">Create New Saving Account</h2>
+          <h2 className="text-xl font-semibold mb-4">
+            Create New Saving Account
+          </h2>
           {error && (
             <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
               {error}
@@ -89,7 +82,10 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Account Name
               </label>
               <input
@@ -105,7 +101,10 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
 
             {/* Description Field */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Description (Optional)
               </label>
               <input
@@ -120,7 +119,10 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
 
             {/* Currency Field */}
             <div>
-              <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="currency"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Currency
               </label>
               <select
@@ -141,7 +143,10 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
 
             {/* Target Amount Field */}
             <div>
-              <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="targetAmount"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Target Amount
               </label>
               <input
@@ -156,25 +161,12 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
               />
             </div>
 
-            {/* Start Date Field */}
-            <div>
-              <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
-                Start Date
-              </label>
-              <input
-                type="date"
-                id="startDate"
-                name="startDate"
-                value={formData.startDate}
-                onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
-                required
-              />
-            </div>
-
             {/* Target Date Field */}
             <div>
-              <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700">
+              <label
+                htmlFor="targetDate"
+                className="block text-sm font-medium text-gray-700"
+              >
                 Target Date (Optional)
               </label>
               <input
@@ -202,7 +194,7 @@ const CreateSavingAccountPopup = ({ setIsModalOpen }: CreateSavingAccountPopupPr
                 className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating...' : 'Create'}
+                {isLoading ? "Creating..." : "Create"}
               </button>
             </div>
           </form>

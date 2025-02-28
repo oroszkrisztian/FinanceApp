@@ -37,7 +37,7 @@ const CreateDefaultAccountPopup = ({ setIsModalOpen }: CreateDefaultAccountPopup
         throw new Error("User not found. Please log in again.");
       }
       
-      // Use the service function to create the account
+      
       const data = await createDefaultAccount({
         userId: user.id,
         accountType: formData.accountType,
