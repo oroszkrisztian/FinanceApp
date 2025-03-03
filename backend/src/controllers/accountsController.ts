@@ -33,7 +33,7 @@ export class AccountsController {
     }
   }
 
-  async createDEfaultAccount(
+  async createDefaultAccount(
     c: Context,
     userId: number,
     accountType: AccountType,
@@ -111,7 +111,53 @@ export class AccountsController {
       return c.json(accounts);
     } catch (error) {
       console.error("Search account error:", error);
-      throw error; 
+      throw error;
     }
   }
+
+  async deleteDefaultAccount(c: Context, userId: number, accountId: number) {
+    try {
+      if (!userId) {
+        throw new Error("User id not found");
+      }
+      await this.accountService.deleteDefaultAccount(userId, accountId);
+      return c.json({ message: "Account deleted successfully" });
+    } catch (error) {
+      console.error("Delete account error:", error);
+      throw error;
+    }
+  }
+
+  async editDefaultAccount(
+    c: Context,
+    userId: number,
+    accountId: number,
+    name: string,
+    description: string,
+    currency: CurrencyType,
+    accountType: AccountType,
+    amount?: number 
+  ) {
+    try {
+      if (!userId) {
+        throw new Error("User id not found");
+      }
+      
+      await this.accountService.editDefaultAccount(
+        userId,
+        accountId,
+        name,
+        description,
+        currency,
+        accountType,
+        amount 
+      );
+      
+      return c.json({ message: "Account edited successfully" });
+    } catch (error) {
+      console.error("Edit account error:", error);
+      throw error;
+    }
+  }
+
 }

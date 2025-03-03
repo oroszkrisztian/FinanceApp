@@ -78,4 +78,38 @@ export class AccountsService {
       throw new Error("Failed to search accounts");
     }
   }
+
+  async deleteDefaultAccount(userId: number, accountId: number) {
+    try {
+      await this.accountRepo.deleteDefaultAccount(userId, accountId);
+    } catch (error) {
+      console.error("Error in AccountsService.deleteAccount:", error);
+      throw new Error("Failed to delete account");
+    }
+  }
+
+  async editDefaultAccount(
+    userId: number,
+    accountId: number,
+    name: string,
+    description: string,
+    currency: CurrencyType,
+    accountType: AccountType,
+    amount?: number // Add optional amount parameter
+  ) {
+    try {
+      await this.accountRepo.editDefaultAccount(
+        userId,
+        accountId,
+        name,
+        description,
+        currency,
+        accountType,
+        amount
+      );
+    } catch (error) {
+      console.error("Error in AccountsService.editDefaultAccount:", error);
+      throw new Error("Failed to edit account");
+    }
+  }
 }

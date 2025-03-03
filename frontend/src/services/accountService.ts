@@ -144,7 +144,7 @@ export const fetchSavings = async (
     console.error("Error fetching savings:", error);
     throw error;
   }
-}
+};
 
 export const searchAccount = async (
   userId: number,
@@ -163,10 +163,80 @@ export const searchAccount = async (
     }
 
     const data = await response.json();
-    console.log("Backend response:", data); 
+    console.log("Backend response:", data);
     return data;
   } catch (error) {
     console.error("Error searching accounts:", error);
+    throw error;
+  }
+};
+
+export const deleteDefaultAccount = async (
+  userId: number,
+  accountId: number
+) => {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/accounts/deleteDefaultAccount?userId=${userId}&accountId=${accountId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to delete account");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error deleting account:", err);
+    throw err;
+  }
+};
+
+export const editDefaultAccount = async (
+  userId: number,
+  accountId: number,
+  requestData: {
+    name: string;
+    description: string;
+    currency: CurrencyType;
+    accountType: AccountType;
+    amount?: number; 
+  }
+) => {
+  try {
+    console.log("Should update to amount" + requestData.amount);
+    const { name, description, currency, accountType, amount } = requestData;
+
+    const response = await fetch(
+      `http://localhost:3000/accounts/editDefaultAccount?userId=${userId}&accountId=${accountId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          description,
+          currency,
+          accountType,
+          
+          ...(amount !== undefined && { amount }),
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to update account");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error editing account:", error);
     throw error;
   }
 };

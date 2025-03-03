@@ -63,11 +63,12 @@ model Budget {
 model Account {
   id                      Int                     @id @default(autoincrement())
   name                    String
+  amount                  Float                   @default(0)
   description             String?
   userId                  Int
   createdAt               DateTime                @default(now())
   updatedAt               DateTime                @updatedAt
-  isDefault               Boolean                 @default(false)
+  isDefault                 Boolean                 @default(false)
   deletedAt               DateTime?
   type                    AccountType
   currency                CurrencyType
@@ -123,17 +124,19 @@ model Transaction {
   customCategoryId    Int?
   fromAccountId       Int?  
   toAccountId         Int?
+  userId              Int
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
   deletedAt           DateTime?
 
+  user                User                    @relation(fields: [userId], references: [id])
   fromAccount         Account?                @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount           Account?                @relation(name: "ToAccount", fields: [toAccountId], references: [id])
   customCategory      CustomCategory?         @relation(fields: [customCategoryId], references: [id])
 
+  @@index([userId])
   @@index([customCategoryId])
   Budget Budget[]
-  User User[]
 }
 
 model SavingAccount {
@@ -145,10 +148,7 @@ model SavingAccount {
   isCompleted     Boolean         @default(false)
 
   account         Account         @relation(fields: [accountId], references: [id])
-
-  
 }
-
 
 enum Frequency {
   DAILY

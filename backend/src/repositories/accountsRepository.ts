@@ -16,6 +16,8 @@ export class AccountsRepository {
     });
   }
 
+  
+
   async getUserSavingAccounts(userId: number) {
     const savingAccount = await this.prisma.account.findMany({
       where: {
@@ -91,20 +93,59 @@ export class AccountsRepository {
   }
 
   async searchAccountByString(userId: number, searchString: string) {
+    return await this.prisma.account.findMany({
+      where: {
+        userId: userId,
+        type: AccountType.SAVINGS,
+        name: {
+          contains: searchString,
+        },
+      },
+      include: {
+        savingAccount: true,
+      },
+    });
+  }
+
+  async deleteDefaultAccount(userId: number, accountId: number) {
+    return await this.prisma.account.delete({
+      where: {
+        id: accountId,
+        userId: userId,
+        type: AccountType.DEFAULT,
+      },
+    });
+  }
+
+  async editDefaultAccount(
+    userId: number,
+    accountId: number,
+    name: string,
+    description: string,
+    currency: CurrencyType,
+    accountType: AccountType,
+    amount?: number
+  ) {
     
-      return await this.prisma.account.findMany({
-        where: {
-          userId: userId,
-          type: AccountType.SAVINGS, 
-          name: {
-            contains: searchString,
-            
-          },
-        },
-        include: {
-          savingAccount: true, 
-        },
-      });
-   
+    const updateData: any = {
+      name: name,
+      description: description,
+      currency: currency,
+      updatedAt: new Date(),
+    };
+    
+    
+    if (amount !== undefined) {
+      updateData.amount = amount;
+    }
+    
+    return await this.prisma.account.update({
+      where: {
+        id: accountId,
+        userId: userId,
+        type: accountType,
+      },
+      data: updateData,
+    });
   }
 }

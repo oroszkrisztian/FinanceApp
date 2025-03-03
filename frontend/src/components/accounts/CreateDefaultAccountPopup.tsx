@@ -5,9 +5,13 @@ import { createDefaultAccount } from "../../services/accountService";
 
 interface CreateDefaultAccountPopupProps {
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onAccountCreated?: () => void;
 }
 
-const CreateDefaultAccountPopup = ({ setIsModalOpen }: CreateDefaultAccountPopupProps) => {
+const CreateDefaultAccountPopup = ({ 
+  setIsModalOpen, 
+  onAccountCreated 
+}: CreateDefaultAccountPopupProps) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
@@ -37,7 +41,6 @@ const CreateDefaultAccountPopup = ({ setIsModalOpen }: CreateDefaultAccountPopup
         throw new Error("User not found. Please log in again.");
       }
       
-      
       const data = await createDefaultAccount({
         userId: user.id,
         accountType: formData.accountType,
@@ -47,10 +50,13 @@ const CreateDefaultAccountPopup = ({ setIsModalOpen }: CreateDefaultAccountPopup
       });
 
       console.log("Account created successfully:", data);
-      setIsModalOpen(false); 
       
-     
-      window.location.reload();
+      // Call the onAccountCreated callback if provided
+      if (onAccountCreated) {
+        onAccountCreated();
+      } else {
+        setIsModalOpen(false);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An unknown error occurred');
       console.error("Error creating account:", err);

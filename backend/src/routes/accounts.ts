@@ -48,7 +48,7 @@ accounts.post("/insertDefault", async (c) => {
       return c.json({ error: "Fill all necessary fields" }, 400);
     }
 
-    const account = await accountsController.createDEfaultAccount(
+    const account = await accountsController.createDefaultAccount(
       c,
       Number(userId),
       accountType,
@@ -133,10 +133,71 @@ accounts.get("/searchAccount", async (c) => {
       Number(userId),
       searchString
     );
-
-    
   } catch (error) {
     console.error("Error in /searchAccount route:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+accounts.delete("/deleteDefaultAccount", async (c) => {
+  try {
+    const userId = c.req.query("userId");
+    const accountId = c.req.query("accountId");
+
+    if (!userId || isNaN(Number(userId))) {
+      return c.json({ error: "Invalid or missing userId" }, 400);
+    }
+
+    if (!accountId || isNaN(Number(accountId))) {
+      return c.json({ error: "Invalid or missing accountId" }, 400);
+    }
+
+    await accountsController.deleteDefaultAccount(
+      c,
+      Number(userId),
+      Number(accountId)
+    );
+
+    return c.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error in /deleteAccount route:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+accounts.post("/editDefaultAccount", async (c) => {
+  try {
+    const userId = c.req.query("userId");
+    const accountId = c.req.query("accountId");
+    const body = await c.req.json();
+    const { name, description, currency, accountType, amount } = body;
+
+    if (!userId || isNaN(Number(userId))) {
+      return c.json({ error: "Invalid or missing userId" }, 400);
+    }
+
+    if (!accountId || isNaN(Number(accountId))) {
+      return c.json({ error: "Invalid or missing accountId" }, 400);
+    }
+
+    if (!name) {
+      return c.json({ error: "Name is required" }, 400);
+    }
+
+    await accountsController.editDefaultAccount(
+      c,
+      Number(userId),
+      Number(accountId),
+      name,
+      description || "",
+      currency,
+      accountType,
+      amount 
+    );
+
+    return c.json({ message: "Account edited successfully" });
+  } catch (error) {
+    console.error("Error in /editDefaultAccount route:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });

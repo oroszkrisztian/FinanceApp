@@ -4,7 +4,6 @@ import { SavingAccount } from "./SavingAccount";
 import { Transaction } from "./Transaction";
 import { User } from "./User";
 
-
 export interface Account {
   id: number;
   name: string;
@@ -21,4 +20,5 @@ export interface Account {
   transactionsFrom: Transaction[];
   transactionsTo: Transaction[];
   recurringFundsAndBills: RecurringFundAndBill[];
+  amount: number;
 }
