@@ -118,9 +118,10 @@ model Transaction {
   id                  Int                     @id @default(autoincrement())
   amount              Float
   date                DateTime                @default(now())
-  name                String
+  name                String?
   description         String?
   type                TransactionType
+  currency            CurrencyType
   customCategoryId    Int?
   fromAccountId       Int?  
   toAccountId         Int?

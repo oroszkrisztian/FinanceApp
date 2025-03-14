@@ -1,3 +1,4 @@
+// Modified SideBar.tsx
 import React, { useState, useEffect } from "react";
 import { Button, Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -33,11 +34,22 @@ const SideBar: React.FC = () => {
 
   const [collapsed, setCollapsed] = useState(initialCollapsedState);
   const [openKeys, setOpenKeys] = useState<string[]>(initialOpenKeysState);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
     localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
     localStorage.setItem("sidebar-open-keys", JSON.stringify(openKeys));
   }, [collapsed, openKeys]);
+  
+  // Handle resize events to detect mobile vs desktop
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const getSelectedKey = () => {
     const path = location.pathname;
@@ -147,13 +159,17 @@ const SideBar: React.FC = () => {
       }}
     >
       <div
-        style={{ borderRight: "none" }}
-        className={`h-screen transition-all duration-300 flex flex-col bg-black ${
+        style={{ 
+          borderRight: "none",
+          position: isMobile ? "fixed" : "relative", 
+          zIndex: 1000, 
+          height: "100vh",
+          transition: "width 0.3s ease"
+        }}
+        className={`flex flex-col bg-black ${
           collapsed ? "w-20" : "w-48"
         } border-r border-gray-200`}
       >   
-
-        
         <Button
           type="text"
           onClick={toggleCollapsed}

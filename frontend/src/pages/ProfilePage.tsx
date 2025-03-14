@@ -340,7 +340,7 @@ const ProfilePage: React.FC = () => {
                       />
                     </svg>
                     <span className="font-semibold">
-                      {account.amount} {account.currency}
+                      {account.amount.toFixed(2)} {account.currency}
                     </span>
                   </div>
 

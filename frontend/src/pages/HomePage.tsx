@@ -4,6 +4,7 @@ import { Account } from "../interfaces/Account";
 import CreateDefaultAccountPopup from "../components/accounts/CreateDefaultAccountPopup";
 import { fetchAccounts } from "../services/accountService";
 import { motion } from "framer-motion";
+import EmptyState from "../components/EmptyState";
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -67,25 +68,12 @@ const HomePage = () => {
     <div className="flex flex-col min-h-screen bg-white">
       {accounts.length === 0 ? (
         <div className="flex flex-grow items-center justify-center bg-white">
-          <motion.div
-            initial={{ opacity: 0, y: 50, scale: 0.8 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            transition={{ duration: 0.5, ease: "easeOut", bounce: 0.4, type: "spring" }}
-            className="bg-gray-900 p-6 rounded-lg shadow-lg text-center border border-gray-700"
-          >
-            <h2 className="text-xl font-semibold mb-3 text-white">
-              No Accounts Found
-            </h2>
-            <p className="text-gray-300">
-              Please create an account to get started.
-            </p>
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="mt-4 px-4 py-2 bg-white text-black font-semibold rounded hover:bg-gray-200 transition-colors"
-            >
-              Create Account
-            </button>
-          </motion.div>
+         <EmptyState
+          title="No Accounts Found"
+          description="You don't have any accounts yet."
+          buttonText="Add Account"
+          onClick={() => setIsModalOpen(true)}
+        />
         </div>
       ) : (
         <div className="p-6">

@@ -1,2 +1,0 @@
--- AlterTable
-ALTER TABLE `Account` ADD COLUMN `amount` DOUBLE NOT NULL DEFAULT 0;

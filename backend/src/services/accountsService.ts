@@ -95,7 +95,7 @@ export class AccountsService {
     description: string,
     currency: CurrencyType,
     accountType: AccountType,
-    amount?: number // Add optional amount parameter
+    amount?: number 
   ) {
     try {
       await this.accountRepo.editDefaultAccount(
@@ -110,6 +110,33 @@ export class AccountsService {
     } catch (error) {
       console.error("Error in AccountsService.editDefaultAccount:", error);
       throw new Error("Failed to edit account");
+    }
+  }
+
+  async editSavingAccount(
+    userId: number,
+    accountId: number,
+    name: string,
+    description: string,
+    currency: CurrencyType,
+    accountType: AccountType,
+    targetAmount: number,
+    targetDate: Date
+  ) {
+    try {
+      await this.accountRepo.editSavingAccount(
+        userId,
+        accountId,
+        name,
+        description,
+        currency,
+        accountType,
+        targetAmount,
+        targetDate
+      );
+    } catch (error) {
+      console.error("Error in AccountsService.editSavingAccount:", error);
+      throw new Error("Failed to edit saving account");
     }
   }
 }

@@ -160,4 +160,38 @@ export class AccountsController {
     }
   }
 
+  async editSavingAccount(
+    c: Context,
+    userId: number,
+    accountId: number,
+    name: string,
+    description: string,
+    currency: CurrencyType,
+    accountType: AccountType,
+    targetAmount: number,
+    targetDate: Date
+  ) {
+    try {
+      if (!userId) {
+        throw new Error("User id not found");
+      }
+      
+      await this.accountService.editSavingAccount(
+        userId,
+        accountId,
+        name,
+        description,
+        currency,
+        accountType,
+        targetAmount,
+        targetDate
+      );
+      
+      return c.json({ message: "Account edited successfully" });
+    } catch (error) {
+      console.error("Edit account error:", error);
+      throw error;
+    }
+  }
+
 }

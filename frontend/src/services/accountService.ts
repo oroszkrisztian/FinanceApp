@@ -204,7 +204,7 @@ export const editDefaultAccount = async (
     description: string;
     currency: CurrencyType;
     accountType: AccountType;
-    amount?: number; 
+    amount?: number;
   }
 ) => {
   try {
@@ -223,9 +223,48 @@ export const editDefaultAccount = async (
           description,
           currency,
           accountType,
-          
+
           ...(amount !== undefined && { amount }),
         }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to update account");
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error editing account:", error);
+    throw error;
+  }
+};
+
+export const editSavingAccount = async (
+  userId: number,
+  accountId: number,
+  requestData: {
+    name: string;
+    description: string;
+    currency: CurrencyType;
+    savingAccount: {
+      update: {
+        targetAmount: number;
+        targetDate: string; 
+      };
+    };
+  }
+) => {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/accounts/editSavingAccount?userId=${userId}&accountId=${accountId}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData), 
       }
     );
 

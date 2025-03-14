@@ -16,8 +16,6 @@ export class AccountsRepository {
     });
   }
 
-  
-
   async getUserSavingAccounts(userId: number) {
     const savingAccount = await this.prisma.account.findMany({
       where: {
@@ -126,19 +124,17 @@ export class AccountsRepository {
     accountType: AccountType,
     amount?: number
   ) {
-    
     const updateData: any = {
       name: name,
       description: description,
       currency: currency,
       updatedAt: new Date(),
     };
-    
-    
+
     if (amount !== undefined) {
       updateData.amount = amount;
     }
-    
+
     return await this.prisma.account.update({
       where: {
         id: accountId,
@@ -146,6 +142,41 @@ export class AccountsRepository {
         type: accountType,
       },
       data: updateData,
+    });
+  }
+
+  async editSavingAccount(
+    userId: number,
+    accountId: number,
+    name: string,
+    description: string,
+    currency: CurrencyType,
+    accountType: AccountType,
+    targetAmount: number,
+    targetDate: Date
+  ) {
+    await this.prisma.account.update({
+      where: {
+        id: accountId,
+        userId: userId,
+        type: accountType,
+      },
+      data: {
+        name,
+        description,
+        currency,
+        updatedAt: new Date(),
+      },
+    });
+
+    return await this.prisma.savingAccount.update({
+      where: {
+        accountId: accountId,
+      },
+      data: {
+        targetAmount: targetAmount,
+        targetDate: targetDate,
+      },
     });
   }
 }

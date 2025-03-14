@@ -51,7 +51,7 @@ const CreateDefaultAccountPopup = ({
 
       console.log("Account created successfully:", data);
       
-      // Call the onAccountCreated callback if provided
+      
       if (onAccountCreated) {
         onAccountCreated();
       } else {

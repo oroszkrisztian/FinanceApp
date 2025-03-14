@@ -50,6 +50,7 @@ CREATE TABLE `Budget` (
 CREATE TABLE `Account` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `name` VARCHAR(191) NOT NULL,
+    `amount` DOUBLE NOT NULL DEFAULT 0,
     `description` VARCHAR(191) NULL,
     `userId` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
@@ -95,16 +96,19 @@ CREATE TABLE `Transaction` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `amount` DOUBLE NOT NULL,
     `date` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-    `name` VARCHAR(191) NOT NULL,
+    `name` VARCHAR(191) NULL,
     `description` VARCHAR(191) NULL,
     `type` ENUM('INCOME', 'EXPENSE', 'TRANSFER') NOT NULL,
+    `currency` ENUM('RON', 'HUF', 'EUR', 'USD', 'GBP', 'CHF') NOT NULL,
     `customCategoryId` INTEGER NULL,
     `fromAccountId` INTEGER NULL,
     `toAccountId` INTEGER NULL,
+    `userId` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
     `deletedAt` DATETIME(3) NULL,
 
+    INDEX `Transaction_userId_idx`(`userId`),
     INDEX `Transaction_customCategoryId_idx`(`customCategoryId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
@@ -149,15 +153,6 @@ CREATE TABLE `_RecurringFundAndBillToUser` (
     INDEX `_RecurringFundAndBillToUser_B_index`(`B`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
--- CreateTable
-CREATE TABLE `_TransactionToUser` (
-    `A` INTEGER NOT NULL,
-    `B` INTEGER NOT NULL,
-
-    UNIQUE INDEX `_TransactionToUser_AB_unique`(`A`, `B`),
-    INDEX `_TransactionToUser_B_index`(`B`)
-) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-
 -- AddForeignKey
 ALTER TABLE `CustomCategory` ADD CONSTRAINT `CustomCategory_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -175,6 +170,9 @@ ALTER TABLE `RecurringFundAndBill` ADD CONSTRAINT `RecurringFundAndBill_accountI
 
 -- AddForeignKey
 ALTER TABLE `RecurringFundAndBill` ADD CONSTRAINT `RecurringFundAndBill_customCategoryId_fkey` FOREIGN KEY (`customCategoryId`) REFERENCES `CustomCategory`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_userId_fkey` FOREIGN KEY (`userId`) REFERENCES `User`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `Transaction` ADD CONSTRAINT `Transaction_fromAccountId_fkey` FOREIGN KEY (`fromAccountId`) REFERENCES `Account`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
@@ -205,9 +203,3 @@ ALTER TABLE `_RecurringFundAndBillToUser` ADD CONSTRAINT `_RecurringFundAndBillT
 
 -- AddForeignKey
 ALTER TABLE `_RecurringFundAndBillToUser` ADD CONSTRAINT `_RecurringFundAndBillToUser_B_fkey` FOREIGN KEY (`B`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `_TransactionToUser` ADD CONSTRAINT `_TransactionToUser_A_fkey` FOREIGN KEY (`A`) REFERENCES `Transaction`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE `_TransactionToUser` ADD CONSTRAINT `_TransactionToUser_B_fkey` FOREIGN KEY (`B`) REFERENCES `User`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;

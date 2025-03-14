@@ -33,6 +33,11 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   const [fetchingRates, setFetchingRates] = useState<boolean>(true);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
 
+  const parseNumberInput = (value: string) => {
+    if (!value) return NaN;
+    return parseFloat(value.toString().replace(',', '.'));
+  };
+
   useEffect(() => {
     const fetchExchangeRates = async () => {
       setFetchingRates(true);
@@ -43,17 +48,14 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
 
-        // Get the base currency from the XML
         const origCurrency =
           xmlDoc.getElementsByTagName("OrigCurrency")[0]?.textContent || "";
 
-        // Build the exchange rates object
         const ratesObj: ExchangeRates = {};
         const rateElements = xmlDoc.getElementsByTagName("Rate");
 
-        // Always set the base currency to 1
         if (origCurrency) {
-          ratesObj[origCurrency] = 1; // RON is the base currency with value 1
+          ratesObj[origCurrency] = 1;
         }
 
         for (let i = 0; i < rateElements.length; i++) {
@@ -69,7 +71,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
           }
         }
 
-        // If account currency isn't in the rates yet, add it
         if (!ratesObj[account.currency]) {
           console.warn(
             `Currency ${account.currency} not found in rates, using default 1:1 rate`
@@ -93,22 +94,24 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   useEffect(() => {
     if (
       Object.keys(rates).length === 0 ||
-      !amount ||
-      isNaN(parseFloat(amount))
+      !amount
     ) {
       setConvertedAmount(null);
       return;
     }
 
-    const numAmount = parseFloat(amount);
+    const numAmount = parseNumberInput(amount);
+    
+    if (isNaN(numAmount)) {
+      setConvertedAmount(null);
+      return;
+    }
 
-    // If same currency, no conversion needed
     if (currency === account.currency) {
       setConvertedAmount(numAmount);
       return;
     }
 
-    // Check if we have the necessary rates
     if (!rates[currency]) {
       setError(`Exchange rate for ${currency} not found.`);
       setConvertedAmount(null);
@@ -136,7 +139,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
         convertedValue = amountInRON / rates[account.currency];
       }
     } else {
-      // Fallback to the original calculation if base currency isn't RON
       convertedValue = (numAmount * rates[currency]) / rates[account.currency];
     }
 
@@ -156,7 +158,8 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
       return;
     }
 
-    const numAmount = parseFloat(amount);
+    const numAmount = parseNumberInput(amount);
+    
     if (isNaN(numAmount) || numAmount <= 0) {
       setError("Please enter a valid amount");
       return;
@@ -178,7 +181,8 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
         finalAmount,
         TransactionType.INCOME,
         Number(account.id),
-        null
+        null,
+        currency
       );
 
       setLoading(false);
@@ -286,24 +290,26 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
             >
               Amount<span className="text-blue-600">*</span>
             </label>
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <input
-                  type="number"
-                  id="amount"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                  placeholder="0.00"
-                  step="0.01"
-                  min="0.01"
-                  required
-                />
-              </div>
+            <div className="flex border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
+              <input
+                type="text"
+                id="amount"
+                value={amount}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const regex = /^[0-9]*([.,][0-9]*)?$/;
+                  if (value === '' || regex.test(value)) {
+                    setAmount(value);
+                  }
+                }}
+                className="flex-1 px-4 py-3 focus:outline-none rounded-l-lg"
+                placeholder="0,00"
+                required
+              />
               <select
                 value={currency}
                 onChange={(e) => setCurrency(e.target.value as CurrencyType)}
-                className="px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-black transition-all"
+                className="px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg"
               >
                 {Object.values(CurrencyType).map((curr) => (
                   <option key={curr} value={curr}>
@@ -314,7 +320,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
             </div>
           </div>
 
-          {/* Currency conversion information */}
           {currency !== account.currency &&
             amount &&
             !isNaN(parseFloat(amount)) && (
@@ -349,7 +354,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
                       Currency Conversion:
                     </p>
                     <p className="text-blue-900 text-lg font-medium">
-                      {parseFloat(amount).toFixed(2)} {currency} ={" "}
+                      {parseNumberInput(amount).toFixed(2)} {currency} ={" "}
                       {convertedAmount.toFixed(2)} {account.currency}
                     </p>
                     <div className="text-xs mt-2 text-blue-600 border-t border-blue-100 pt-2">
@@ -376,18 +381,18 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
               </div>
             )}
 
-          <div className="flex justify-end space-x-4 pt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={() => setIsAddFundsModalOpen(false)}
-              className="px-5 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-200 focus:outline-none focus:border-blue-500 focus:ring-0 transition-all duration-200"
               disabled={loading}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px]"
+              className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-800 to-black text-white rounded-lg hover:from-blue-700 hover:to-gray-900 hover:shadow-lg focus:outline-none focus:border-blue-500 focus:ring-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
               disabled={loading || fetchingRates}
             >
               {loading ? (

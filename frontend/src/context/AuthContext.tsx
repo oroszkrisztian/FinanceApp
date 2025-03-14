@@ -36,7 +36,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const loadStoredAuth = () => {
-      // Check both storages
+     
       const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
       const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
 
@@ -44,14 +44,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const userData: StoredUser = JSON.parse(userStr);
           setToken(storedToken);
-          // Convert the stored string date back to Date object
+          
           setUser({
             ...userData,
             createdAt: new Date(userData.createdAt)
           });
         } catch (error) {
           console.error('Error parsing stored auth data:', error);
-          // Clear both storages if there's an error
+      
           localStorage.removeItem('user');
           localStorage.removeItem('token');
           sessionStorage.removeItem('user');
@@ -66,12 +66,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const setAuthData = (userData: StoredUser, newToken: string, remember: boolean = true) => {
     const storage = remember ? localStorage : sessionStorage;
     
-    // Clear other storage to prevent conflicts
+    
     const otherStorage = remember ? sessionStorage : localStorage;
     otherStorage.removeItem('token');
     otherStorage.removeItem('user');
 
-    // Store in selected storage
+    
     storage.setItem('token', newToken);
     storage.setItem('user', JSON.stringify(userData));
 
@@ -86,7 +86,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
     setToken(null);
     
-    // Clear both storages on logout
+    
     localStorage.removeItem('user');
     localStorage.removeItem('token');
     sessionStorage.removeItem('user');

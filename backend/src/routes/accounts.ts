@@ -192,12 +192,64 @@ accounts.post("/editDefaultAccount", async (c) => {
       description || "",
       currency,
       accountType,
-      amount 
+      amount
     );
 
     return c.json({ message: "Account edited successfully" });
   } catch (error) {
     console.error("Error in /editDefaultAccount route:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+accounts.post("/editSavingAccount", async (c) => {
+  try {
+    const userId = c.req.query("userId");
+    const accountId = c.req.query("accountId");
+    const body = await c.req.json();
+    console.log("Request Body:", body);
+
+   
+    const { name, description, currency, accountType } = body;
+
+   
+    const targetAmount = body.savingAccount?.update?.targetAmount;
+    const targetDate = body.savingAccount?.update?.targetDate;
+
+    console.log("targetDate:", targetDate);
+
+    if (!userId || isNaN(Number(userId))) {
+      return c.json({ error: "Invalid or missing userId" }, 400);
+    }
+
+    if (!accountId || isNaN(Number(accountId))) {
+      return c.json({ error: "Invalid or missing accountId" }, 400);
+    }
+
+    if (!name) {
+      return c.json({ error: "Name is required" }, 400);
+    }
+
+  
+    if (targetDate === undefined) {
+      return c.json({ error: "Date is required" }, 400);
+    }
+
+    await accountsController.editSavingAccount(
+      c,
+      Number(userId),
+      Number(accountId),
+      name,
+      description || "",
+      currency,
+      accountType,
+      targetAmount,
+      new Date(targetDate) 
+    );
+
+    return c.json({ message: "Account edited successfully" });
+  } catch (error) {
+    console.error("Error in /editSavingAccount route:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
