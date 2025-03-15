@@ -21,15 +21,15 @@ const Transactions: React.FC = () => {
     const checkScreenSize = () => {
       setIsSmallScreen(window.innerWidth < 768);
     };
-    
+
     // Initial check
     checkScreenSize();
-    
+
     // Add event listener for resize
-    window.addEventListener('resize', checkScreenSize);
-    
+    window.addEventListener("resize", checkScreenSize);
+
     // Cleanup
-    return () => window.removeEventListener('resize', checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
   useEffect(() => {
@@ -62,7 +62,7 @@ const Transactions: React.FC = () => {
         }
 
         setTransactions(transactionsArray);
-        
+
         // Ensure a minimum loading time of 500ms for better UX
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(0, 500 - elapsedTime);
@@ -73,7 +73,7 @@ const Transactions: React.FC = () => {
       } catch (err) {
         console.error("Error fetching transactions:", err);
         setError("Failed to load transactions. Please try again later.");
-        
+
         // Ensure a minimum loading time of 500ms even on error
         const elapsedTime = Date.now() - startTime;
         const remainingTime = Math.max(0, 500 - elapsedTime);
@@ -90,7 +90,7 @@ const Transactions: React.FC = () => {
   const formatAmount = (amount: number) => {
     return amount.toFixed(2);
   };
-  
+
   const formatDate = (dateString: Date) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
@@ -135,7 +135,9 @@ const Transactions: React.FC = () => {
   if (safeTransactions.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
-        <h1 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Transactions</h1>
+        <h1 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">
+          Transactions
+        </h1>
         <div className="bg-white rounded-lg shadow p-4 md:p-8 text-center">
           <svg
             className="w-12 h-12 md:w-16 md:h-16 text-gray-400 mx-auto mb-3 md:mb-4"
@@ -150,16 +152,19 @@ const Transactions: React.FC = () => {
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
-          <h2 className="text-lg md:text-xl font-medium mb-2">No transactions yet</h2>
+          <h2 className="text-lg md:text-xl font-medium mb-2">
+            No transactions yet
+          </h2>
           <p className="text-gray-500 mb-4 md:mb-6 max-w-md mx-auto text-sm md:text-base">
             You haven't created any transactions yet. Start tracking your
             finances by adding your first transaction.
           </p>
-          <motion.button 
+          <motion.button
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
             transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            className="px-3 py-2 md:px-4 md:py-2 bg-blue-600 text-white text-sm md:text-base rounded-md hover:bg-blue-700 transition-colors">
+            className="px-3 py-2 md:px-4 md:py-2 bg-blue-600 text-white text-sm md:text-base rounded-md hover:bg-blue-700 transition-colors"
+          >
             Add Transaction
           </motion.button>
         </div>
@@ -168,22 +173,25 @@ const Transactions: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="felx-row min-h-screen bg-gray-50 over">
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
         {/* Header & Tabs */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="bg-white rounded-lg shadow mb-4 md:mb-8 overflow-hidden">
+          className="bg-white rounded-lg shadow mb-4 md:mb-8 overflow-hidden"
+        >
           {/* Navigation Tabs */}
           <div className="border-b border-gray-200">
-            <nav className={`flex -mb-px ${isSmallScreen ? 'w-full' : ''}`}>
+            <nav
+              className={`flex items-center -mb-px ${isSmallScreen ? "w-full" : ""}`}
+            >
               <motion.button
                 whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.03)" }}
                 whileTap={{ scale: 0.98 }}
                 className={`px-3 py-3 md:px-6 md:py-4 text-xs md:text-sm font-medium border-b-2 ${
-                  isSmallScreen ? 'flex-1 text-center' : ''
+                  isSmallScreen ? "flex-1 text-center" : ""
                 } ${
                   activeTab === "income"
                     ? "border-green-500 text-green-600"
@@ -193,12 +201,11 @@ const Transactions: React.FC = () => {
               >
                 Income
               </motion.button>
-
               <motion.button
                 whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.03)" }}
                 whileTap={{ scale: 0.98 }}
                 className={`px-3 py-3 md:px-6 md:py-4 text-xs md:text-sm font-medium border-b-2 ${
-                  isSmallScreen ? 'flex-1 text-center' : ''
+                  isSmallScreen ? "flex-1 text-center" : ""
                 } ${
                   activeTab === "expenses"
                     ? "border-red-500 text-red-600"
@@ -208,12 +215,11 @@ const Transactions: React.FC = () => {
               >
                 Expenses
               </motion.button>
-
               <motion.button
                 whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.03)" }}
                 whileTap={{ scale: 0.98 }}
                 className={`px-3 py-3 md:px-6 md:py-4 text-xs md:text-sm font-medium border-b-2 ${
-                  isSmallScreen ? 'flex-1 text-center' : ''
+                  isSmallScreen ? "flex-1 text-center" : ""
                 } ${
                   activeTab === "transfers"
                     ? "border-blue-500 text-blue-600"
@@ -223,6 +229,34 @@ const Transactions: React.FC = () => {
               >
                 Transfers
               </motion.button>
+              {/* Search Bar - Updated Size */}
+              <div className="relative ml-auto mr-4">
+                <input
+                  type="text"
+                  placeholder="Search..."
+                  className={`w-40 md:w-48 pl-8 pr-3 py-2  rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-gray-700 text-xs md:text-sm transition-all duration-100 ${
+                    activeTab === "income"
+                      ? "border border-green-300 focus:ring-green-500"
+                      : activeTab === "expenses"
+                        ? "border border-red-300 focus:ring-red-500"
+                        : "border border-blue-300 focus:ring-blue-500"
+                  }`}
+                />
+                <svg
+                  className="absolute left-2 top-2.5 h-4 w-4 text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              </div>
             </nav>
           </div>
 
@@ -232,19 +266,19 @@ const Transactions: React.FC = () => {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full py-2 bg-blue-600 text-white text-sm rounded-md flex justify-center items-center"
+                className="w-full py-2 bg-black text-white text-sm rounded-md flex justify-center items-center"
               >
-                <svg 
-                  className="w-4 h-4 mr-1" 
-                  fill="none" 
-                  stroke="currentColor" 
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
                   viewBox="0 0 24 24"
                 >
-                  <path 
-                    strokeLinecap="round" 
-                    strokeLinejoin="round" 
-                    strokeWidth={2} 
-                    d="M12 4v16m8-8H4" 
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
                   />
                 </svg>
                 Add New Transaction
@@ -254,13 +288,14 @@ const Transactions: React.FC = () => {
 
           {/* Transaction Table with Animation */}
           <AnimatePresence mode="wait">
-            <motion.div 
+            <motion.div
               key={activeTab}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="overflow-hidden">
+              className="overflow-hidden"
+            >
               <TransactionTable
                 transactions={getTransactionsToDisplay()}
                 formatAmount={formatAmount}
@@ -285,21 +320,25 @@ const Transactions: React.FC = () => {
             className="fixed bottom-6 right-6 z-10"
           >
             <motion.button
-              whileHover={{ scale: 1.05, boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)" }}
+              whileHover={{
+                scale: 1.05,
+                boxShadow:
+                  "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+              }}
               whileTap={{ scale: 0.95 }}
-              className="flex items-center justify-center w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="flex items-center justify-center w-14 h-14 rounded-full bg-black text-white shadow-lg hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-black-500"
             >
-              <svg 
-                className="w-6 h-6" 
-                fill="none" 
-                stroke="currentColor" 
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M12 4v16m8-8H4" 
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
                 />
               </svg>
             </motion.button>

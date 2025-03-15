@@ -37,6 +37,26 @@ const EditDefaultAccountPopup = ({
   const [fetchingRates, setFetchingRates] = useState<boolean>(true);
   const [convertedBalance, setConvertedBalance] = useState<number | null>(null);
 
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
+  ) => {
+    const { name, value } = e.target;
+
+    if (name === "targetAmount") {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
+  };
+
   useEffect(() => {
     if (account) {
       setFormData({
@@ -259,17 +279,17 @@ const EditDefaultAccountPopup = ({
             <div>
               <label
                 htmlFor="description"
-                className="block text-sm font-medium text-gray-700 mb-2"
+                className="block text-sm font-medium text-black mb-1"
               >
                 Description (Optional)
               </label>
-              <input
-                type="text"
+              <textarea
                 id="description"
                 name="description"
                 value={formData.description}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                onChange={handleChange}
+                rows={2}
+                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
               />
             </div>
 

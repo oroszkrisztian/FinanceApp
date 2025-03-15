@@ -1,8 +1,5 @@
-import { Account } from "./Account";
-import { CustomCategory } from "./CustomCategory";
 import { CurrencyType, TransactionType } from "./enums";
-import { RecurringFundAndBill } from "./RecurringFundAndBill";
-import { SavingAccount } from "./SavingAccount";
+
 
 
 export interface Transaction {

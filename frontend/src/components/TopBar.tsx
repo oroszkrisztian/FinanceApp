@@ -1,3 +1,4 @@
+// Modified TopBar component
 import React from "react";
 import { User, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -10,13 +11,13 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ title, collapsed, toggleSidebar }) => {
   const navigate = useNavigate();
-  
+
   const handleProfileClick = () => {
     navigate("/profile");
   };
 
   return (
-    <div className="bg-black h-14 flex items-center justify-between px-4 w-full">
+    <div className="bg-black h-14 flex items-center justify-between px-4 w-full shadow-md">
       {/* Left section with menu toggle */}
       <div className="flex items-center">
         <button
@@ -27,12 +28,12 @@ const TopBar: React.FC<TopBarProps> = ({ title, collapsed, toggleSidebar }) => {
           {collapsed ? <Menu size={20} /> : <X size={20} />}
         </button>
       </div>
-      
+
       {/* Center section with title */}
       <h1 className="text-2xl font-semibold text-white text-center flex-1">
         {title}
       </h1>
-      
+
       {/* Right section with profile */}
       <button
         onClick={handleProfileClick}

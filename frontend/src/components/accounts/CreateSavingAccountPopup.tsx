@@ -35,7 +35,7 @@ const CreateSavingAccountPopup = ({
   };
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
 
@@ -146,14 +146,13 @@ const CreateSavingAccountPopup = ({
             >
               Description (Optional)
             </label>
-            <input
-              type="text"
+            <textarea
               id="description"
               name="description"
               value={formData.description}
               onChange={handleInputChange}
+              rows={2}
               className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-              
             />
           </div>
 
@@ -175,7 +174,7 @@ const CreateSavingAccountPopup = ({
                 className="flex-1 px-4 py-3 focus:outline-none rounded-l-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 required
                 min="0"
-                step="0.01" 
+                step="0.01"
                 placeholder="0.00"
               />
               <select

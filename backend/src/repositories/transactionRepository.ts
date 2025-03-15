@@ -1,4 +1,6 @@
 import { CurrencyType, PrismaClient, TransactionType } from "@prisma/client";
+import axios from "axios";
+import { parseStringPromise } from "xml2js";
 
 export class TransactionRepository {
   private prisma: PrismaClient;
@@ -15,6 +17,65 @@ export class TransactionRepository {
     });
     console.log("Repository layer transactions:", allTransactions);
     return allTransactions;
+  }
+
+  async getExchangeRates() {
+    try {
+      // Initialize rates object
+      const rates: { [key: string]: number } = {};
+
+      // Always set RON to 1 as it's the base currency in the XML
+      rates["RON"] = 1;
+
+      // Fetch exchange rates
+      const response = await axios.get("http://localhost:3000/exchange-rates");
+      const xmlText = response.data;
+
+      // Parse XML to JSON using xml2js
+      const result = await parseStringPromise(xmlText, {
+        explicitArray: false,
+        mergeAttrs: false,
+      });
+
+      // Navigate through the structure to find the Cube and Rate elements
+      if (
+        result &&
+        result.DataSet &&
+        result.DataSet.Body &&
+        result.DataSet.Body.Cube &&
+        result.DataSet.Body.Cube.Rate
+      ) {
+        const rateElements = Array.isArray(result.DataSet.Body.Cube.Rate)
+          ? result.DataSet.Body.Cube.Rate
+          : [result.DataSet.Body.Cube.Rate];
+
+        for (const rate of rateElements) {
+          // Extract currency and value
+          if (rate && rate.$ && rate.$.currency) {
+            const currency = rate.$.currency;
+            const multiplier = rate.$.multiplier
+              ? parseInt(rate.$.multiplier)
+              : 1;
+            const value = parseFloat(rate._);
+
+            if (currency && !isNaN(value)) {
+              if (multiplier > 1) {
+                // If there's a multiplier (like for HUF, JPY), divide by multiplier
+                rates[currency] = value / multiplier;
+              } else {
+                rates[currency] = value;
+              }
+            }
+          }
+        }
+      }
+
+      console.log("Exchange rates fetched:", rates);
+      return rates;
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+      throw new Error("Failed to fetch exchange rates");
+    }
   }
 
   async addFundsDefaultAccount(
@@ -111,8 +172,32 @@ export class TransactionRepository {
       );
     }
 
-    if (fromAccount.amount < amount) {
-      throw new Error("Insufficient funds in the source account");
+    let amountToWithdraw = amount;
+
+    if (fromAccount.currency !== currency) {
+      const rates = await this.getExchangeRates();
+
+      if (!rates[fromAccount.currency]) {
+        throw new Error(`Exchange rate for ${fromAccount.currency} not found`);
+      }
+
+      if (!rates[currency]) {
+        throw new Error(`Exchange rate for ${currency} not found`);
+      }
+
+     
+      amountToWithdraw =
+        amount * (rates[currency] / rates[fromAccount.currency]);
+
+      console.log(
+        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`
+      );
+    }
+
+    if (fromAccount.amount < amountToWithdraw) {
+      throw new Error(
+        `Insufficient funds in source account. Available: ${fromAccount.amount} ${fromAccount.currency}, Required: ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`
+      );
     }
 
     return await this.prisma.$transaction(async (prisma) => {
@@ -138,7 +223,7 @@ export class TransactionRepository {
         },
         data: {
           amount: {
-            decrement: amount,
+            decrement: amountToWithdraw,
           },
         },
       });

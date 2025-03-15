@@ -17,6 +17,7 @@
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.6",
     "@types/node": "^22.13.4",
+    "@types/xml2js": "^0.4.14",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
@@ -25,9 +26,11 @@
   "dependencies": {
     "@hono/node-server": "^1.13.2",
     "@prisma/client": "^5.22.0",
+    "axios": "^1.8.3",
     "bcryptjs": "^2.4.3",
     "dotenv": "^16.4.7",
     "hono": "^4.6.6",
-    "jsonwebtoken": "^9.0.2"
+    "jsonwebtoken": "^9.0.2",
+    "xml2js": "^0.6.2"
   }
 }

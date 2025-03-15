@@ -1,20 +1,14 @@
 import React from "react";
-import TopBar from "../components/TopBar";
 
 import Utilzone from "../components/payments/UtilZone";
-
 
 const Payments: React.FC = () => {
   return (
     <div className="flex min-h-screen bg-gray-50">
       {/* Sidebar */}
-      
 
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col">
-       
-        
-
         {/* Utilzone with Search and Add Payment Button */}
         <div className="p-4 bg-white border-b border-gray-200">
           <Utilzone />
