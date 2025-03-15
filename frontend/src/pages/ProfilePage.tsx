@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
   deleteDefaultAccount,
-  fetchAccounts,
+  fetchDefaultAccounts,
 } from "../services/accountService";
 import { AccountType } from "../interfaces/enums";
 import { AnimatePresence, motion } from "framer-motion";
@@ -48,7 +48,7 @@ const ProfilePage: React.FC = () => {
     setError(null);
     const startTime: number = Date.now();
     try {
-      const defaultAccountsData: Account[] = await fetchAccounts(user.id);
+      const defaultAccountsData: Account[] = await fetchDefaultAccounts(user.id);
       const elapsedTime: number = Date.now() - startTime;
       const remainingTime: number = Math.max(0, 300 - elapsedTime);
       setAccounts(defaultAccountsData);

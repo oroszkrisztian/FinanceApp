@@ -2,8 +2,8 @@ import { useAuth } from "../context/AuthContext";
 import { useEffect, useState } from "react";
 import { Account } from "../interfaces/Account";
 import CreateDefaultAccountPopup from "../components/accounts/CreateDefaultAccountPopup";
-import { fetchAccounts } from "../services/accountService";
-import { motion } from "framer-motion";
+import { fetchAllAccounts } from "../services/accountService";
+
 import EmptyState from "../components/EmptyState";
 
 const HomePage = () => {
@@ -23,7 +23,7 @@ const HomePage = () => {
         setError(null);
 
         try {
-          const data = await fetchAccounts(user.id, signal);
+          const data = await fetchAllAccounts(user.id, signal);
           setAccounts(data);
         } catch (error) {
           if (error instanceof Error && error.name !== "AbortError") {

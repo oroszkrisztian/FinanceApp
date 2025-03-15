@@ -28,32 +28,37 @@ interface ProtectedRouteProps {
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   const location = useLocation();
+  
+
   const [collapsed, setCollapsed] = useState(() => {
     const savedState = localStorage.getItem("sidebar-collapsed");
-    return savedState ? JSON.parse(savedState) : true;
+    return savedState ? JSON.parse(savedState) : window.innerWidth < 768;
   });
+  
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-  // Listen for changes to sidebar-collapsed in localStorage
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedState = localStorage.getItem("sidebar-collapsed");
-      setCollapsed(savedState ? JSON.parse(savedState) : true);
-    };
-
-    window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
-  }, []);
-
-  // Handle resize events
+  
+  // Toggle sidebar function to pass to TopBar
+  const toggleSidebar = () => {
+    const newState = !collapsed;
+    setCollapsed(newState);
+    localStorage.setItem("sidebar-collapsed", JSON.stringify(newState));
+  };
+  
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      
+    
+      if (mobile && !collapsed) {
+        setCollapsed(true);
+        localStorage.setItem("sidebar-collapsed", JSON.stringify(true));
+      }
     };
 
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, []);
+  }, [collapsed]);
 
   const getTitle = (pathname: string) => {
     switch (pathname) {
@@ -78,17 +83,47 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
+  const contentMarginLeft = isMobile ? 0 : '5rem'; 
+
   return (
-    <div className="flex h-screen w-full">
-      <SideBar />
-      <div
-        className="flex-1 flex flex-col overflow-auto transition-all duration-300"
+    <div className="h-screen w-full overflow-hidden">
+      {/* Fixed TopBar at the top */}
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <TopBar 
+          title={getTitle(location.pathname)} 
+          collapsed={collapsed} 
+          toggleSidebar={toggleSidebar} 
+        />
+      </div>
+      
+      {/* Sidebar - with smooth animation - original positioning */}
+      <div 
+        className="fixed top-14 left-0 z-40 transition-all duration-300 ease-in-out"
         style={{
-          marginLeft: isMobile ? (collapsed ? "5rem" : "12rem") : 0,
+          transform: (collapsed && isMobile) ? 'translateX(-100%)' : 'translateX(0)',
+          width: collapsed ? '5rem' : '10rem'
         }}
       >
-        <TopBar title={getTitle(location.pathname)} />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <SideBar collapsed={collapsed} />
+      </div>
+      
+      {/* Main content - with adjusted margin for desktop closed sidebar */}
+      <div 
+        className="overflow-auto h-full pt-14 transition-all duration-300 ease-in-out"
+        style={{ 
+          marginLeft: contentMarginLeft,
+          width: isMobile ? '100%' : `calc(100% - ${contentMarginLeft})`,
+        }}
+      >
+        {/* Optional overlay when sidebar is open on mobile */}
+        {!collapsed && isMobile && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ease-in-out"
+            onClick={toggleSidebar}
+            style={{ top: "3.5rem" }} 
+          />
+        )}
+        {children}
       </div>
     </div>
   );

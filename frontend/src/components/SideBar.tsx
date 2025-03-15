@@ -1,11 +1,8 @@
-// Modified SideBar.tsx
 import React, { useState, useEffect } from "react";
 import { Button, Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
   DashboardOutlined,
   WalletOutlined,
   LogoutOutlined,
@@ -17,31 +14,27 @@ import type { MenuProps } from "antd";
 
 type MenuItem = Required<MenuProps>["items"][number];
 
-const SideBar: React.FC = () => {
+interface SideBarProps {
+  collapsed: boolean;
+}
+
+const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const savedCollapsedState = localStorage.getItem("sidebar-collapsed");
   const savedOpenKeysState = localStorage.getItem("sidebar-open-keys");
-
-  const initialCollapsedState = savedCollapsedState
-    ? JSON.parse(savedCollapsedState)
-    : true;
   const initialOpenKeysState = savedOpenKeysState
     ? JSON.parse(savedOpenKeysState)
     : [];
 
-  const [collapsed, setCollapsed] = useState(initialCollapsedState);
   const [openKeys, setOpenKeys] = useState<string[]>(initialOpenKeysState);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
-    localStorage.setItem("sidebar-collapsed", JSON.stringify(collapsed));
     localStorage.setItem("sidebar-open-keys", JSON.stringify(openKeys));
-  }, [collapsed, openKeys]);
+  }, [openKeys]);
   
-  // Handle resize events to detect mobile vs desktop
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
@@ -56,8 +49,8 @@ const SideBar: React.FC = () => {
     switch (path) {
       case "/home":
         return "dashboard";
-      case "/accounts":
-        return "accounts";
+      case "/payments":
+        return "payments";
       case "/transactions":
         return "transactions";
       case "/savings":
@@ -108,7 +101,7 @@ const SideBar: React.FC = () => {
     { 
       key: "payments",
       icon: <BankOutlined />,
-      label: "Recuring payments",
+      label: "Payments",
     },
     {
       key: "transactions",
@@ -133,9 +126,9 @@ const SideBar: React.FC = () => {
     label: "Logout",
   };
 
-  const toggleCollapsed = () => {
-    setCollapsed(!collapsed);
-  };
+  if (collapsed && isMobile) {
+    return null;
+  }
 
   return (
     <ConfigProvider
@@ -154,6 +147,7 @@ const SideBar: React.FC = () => {
             itemHoverBg: "#FFFFFF",
             itemSelectedBg: "#FFFFFF",
             darkItemSelectedColor: "#FFFFFF",
+            itemPaddingInline: collapsed ? 12 : 20, 
           },
         },
       }}
@@ -161,23 +155,13 @@ const SideBar: React.FC = () => {
       <div
         style={{ 
           borderRight: "none",
-          position: isMobile ? "fixed" : "relative", 
-          zIndex: 1000, 
-          height: "100vh",
-          transition: "width 0.3s ease"
+          height: "calc(100vh - 3.5rem)", 
+          width: "100%",
+          overflow: "hidden",
+          boxShadow: "2px 0 8px rgba(0,0,0,0.2)"
         }}
-        className={`flex flex-col bg-black ${
-          collapsed ? "w-20" : "w-48"
-        } border-r border-gray-200`}
+        className="flex flex-col bg-black border-r border-gray-200"
       >   
-        <Button
-          type="text"
-          onClick={toggleCollapsed}
-          className="m-4 border rounded underline"
-        >
-          {collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-        </Button>
-
         <Menu
           onClick={handleMenuClick}
           selectedKeys={[getSelectedKey()]}
@@ -187,7 +171,7 @@ const SideBar: React.FC = () => {
           openKeys={openKeys}
           onOpenChange={(keys) => setOpenKeys(keys)}
           items={mainMenuItems}
-          style={{ borderRight: "none" }}
+          style={{ borderRight: "none", marginTop: "1rem" }}
           className="flex-grow"
         />
 

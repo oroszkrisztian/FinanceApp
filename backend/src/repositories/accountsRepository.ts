@@ -7,6 +7,14 @@ export class AccountsRepository {
     this.prisma = new PrismaClient();
   }
 
+  async getUserAllAccount(userId: number) {
+    return await this.prisma.account.findMany({
+      where: {
+        userId: userId,
+      },
+    });
+  }
+
   async getUserDefaultAccounts(userId: number) {
     return await this.prisma.account.findMany({
       where: {

@@ -4,6 +4,22 @@ import { AccountsController } from "../controllers/accountsController";
 const accounts = new Hono();
 const accountsController = new AccountsController();
 
+
+accounts.get("/getAllAccounts", async (c) => {
+  try {
+    const userId = c.req.query("userId");
+
+    if (!userId || isNaN(Number(userId))) {
+      return c.json({ error: "Invalid or missing userId" }, 400);
+    }
+
+    return await accountsController.getAllAccounts(c, Number(userId));
+  } catch (error) {
+    console.error("Error in /getDefault route:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 accounts.get("/getDefault", async (c) => {
   try {
     const userId = c.req.query("userId");

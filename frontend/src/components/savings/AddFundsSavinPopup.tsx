@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import ErrorState from "../ErrorState";
 import { CurrencyType, TransactionType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
-import { fetchAccounts } from "../../services/accountService";
+import { fetchAllAccounts } from "../../services/accountService";
 import { Account } from "../../interfaces/Account";
 import { addFundsSaving } from "../../services/transactionService";
 import { Currency } from "lucide-react";
@@ -51,7 +51,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
 
       setLoadingAccounts(true);
       try {
-        const accounts = await fetchAccounts(user.id);
+        const accounts = await fetchAllAccounts(user.id);
         setDefaultAccounts(accounts);
       } catch (err) {
         console.error("Error loading accounts:", err);

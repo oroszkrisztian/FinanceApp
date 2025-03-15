@@ -7,6 +7,10 @@ export class AccountsService {
   constructor() {
     this.accountRepo = new AccountsRepository();
   }
+  async getAllAccounts(userId: number) {
+    const accounts = await this.accountRepo.getUserAllAccount(userId);
+    return accounts;
+  }
 
   async getDefaultAccounts(userId: number) {
     const accounts = await this.accountRepo.getUserDefaultAccounts(userId);

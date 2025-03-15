@@ -8,6 +8,18 @@ export class AccountsController {
     this.accountService = new AccountsService();
   }
 
+  async getAllAccounts(c: Context, userId: number) {
+    try {
+      if (!userId) {
+        throw "User id not found";
+      }
+      const accounts = await this.accountService.getAllAccounts(userId);
+      return c.json(accounts);
+    } catch (error) {
+      console.error("Get accounts error:", error);
+    }
+  }
+
   async getDefaultAccounts(c: Context, userId: number) {
     try {
       if (!userId) {

@@ -88,7 +88,36 @@ export const createSavingAccount = async (
   }
 };
 
-export const fetchAccounts = async (
+export const fetchAllAccounts = async (
+  userId: number,
+  signal?: AbortSignal
+): Promise<Account[]> => {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/accounts/getAllAccounts?userId=${userId}`,
+      { signal }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Failed to fetch accounts: ${errorText}`);
+    }
+
+    const data = await response.json();
+    console.log("Fetched accounts:", data);
+
+    if (!Array.isArray(data)) {
+      throw new Error("Invalid response format: Expected an array");
+    }
+    console.log("Fetched accounts:", data);
+    return data;
+  } catch (error) {
+    console.error("Error fetching accounts:", error);
+    throw error;
+  }
+};
+
+export const fetchDefaultAccounts = async (
   userId: number,
   signal?: AbortSignal
 ): Promise<Account[]> => {
