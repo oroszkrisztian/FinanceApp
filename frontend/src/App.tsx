@@ -9,7 +9,7 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import "./globals.css";
 
-// Page imports
+
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import HomePage from "./pages/HomePage";
@@ -36,7 +36,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
-  // Toggle sidebar function to pass to TopBar
+ 
   const toggleSidebar = () => {
     const newState = !collapsed;
     setCollapsed(newState);

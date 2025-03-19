@@ -1,7 +1,6 @@
-import React from "react";
+
 import LoginForm from "../components/LoginForm";
 import { motion } from "framer-motion";
-// Import images
 import testLogo from "../assets/testlogo.png";
 import moneyImage from "../assets/money.jpg";
 

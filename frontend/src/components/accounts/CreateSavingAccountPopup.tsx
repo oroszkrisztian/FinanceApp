@@ -1,63 +1,57 @@
 import React, { useState } from "react";
 import { motion } from "framer-motion";
-import { AccountType, CurrencyType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
 import { createSavingAccount } from "../../services/accountService";
-import ErrorState from "../ErrorState";
+import { CurrencyType, AccountType } from "../../interfaces/enums";
+import AnimatedModal from "../animations/BlurPopup";
 
 interface CreateSavingAccountPopupProps {
-  setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  isOpen: boolean;
+  onClose: () => void;
   onSuccess: () => void;
 }
 
-const CreateSavingAccountPopup = ({
-  setIsModalOpen,
+const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
+  isOpen,
+  onClose,
   onSuccess,
-}: CreateSavingAccountPopupProps) => {
+}) => {
   const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
+    currency: CurrencyType.EUR,
     accountType: AccountType.SAVINGS,
-    currency: CurrencyType.RON,
-    targetAmount: 0,
-    startDate: new Date().toISOString().split("T")[0],
+    targetAmount: "",
     targetDate: "",
   });
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const handleClickOutside = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      setIsModalOpen(false);
-    }
-  };
-
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  const handleChange = (
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
-    let processedValue = value;
-
-    if (name === "targetAmount") {
-      processedValue = value.replace(/,/g, ".");
-
-      if (isNaN(Number(processedValue))) {
-        return;
-      }
-    }
-
-    setFormData({
-      ...formData,
-      [name]: processedValue,
-    });
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
+      onClose();
+    }, 300);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
     setError(null);
 
     try {
@@ -75,74 +69,106 @@ const CreateSavingAccountPopup = ({
         new Date(formData.targetDate)
       );
       console.log("Saving created successfully:", data);
-      setIsLoading(false);
-      onSuccess();
-      setIsModalOpen(false);
+      setLoading(false);
+
+      if (onSuccess) {
+        onSuccess();
+      }
+
+      onClose();
     } catch (err) {
-      setIsLoading(false);
+      setLoading(false);
       setError(
         err instanceof Error ? err.message : "An unknown error occurred"
       );
       console.error("Error creating saving account:", err);
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  if (error) {
-    return <ErrorState error={error} />;
-  }
-
   return (
-    <motion.div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.2, ease: "easeInOut" } }}
-      onClick={handleClickOutside}
+    <AnimatedModal
+      isOpen={isOpen && !isClosing}
+      onClose={handleClose}
+      closeOnBackdropClick={true}
+      backdropBlur="sm"
+      animationDuration={300}
     >
-      <motion.div
-        className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative overflow-hidden border border-gray-200"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{
-          scale: 0.9,
-          opacity: 0,
-          transition: { duration: 0.2, ease: "easeInOut" },
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <h2 className="text-2xl font-bold text-black mb-6">
-          Create New Saving Account
-        </h2>
+      <div className="bg-white rounded-lg shadow-xl p-5">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <div className="bg-indigo-50 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+              <svg
+                className="w-5 h-5 text-indigo-600"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">
+                Create Savings Goal
+              </h2>
+              <p className="text-indigo-600 mt-1">Set up a new savings goal</p>
+            </div>
+          </div>
+        </div>
 
+        {/* Error message */}
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
+            <div className="flex">
+              <svg
+                className="h-5 w-5 mr-2 text-red-500"
+                fill="currentColor"
+                viewBox="0 0 20 20"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Name Field */}
+          {/* Name */}
           <div>
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-black mb-1"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Account Name
+              Account Name<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               id="name"
               name="name"
               value={formData.name}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
               required
-              placeholder="Ex:Bike"
             />
           </div>
 
-          {/* Description Field */}
+          {/* Description */}
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-black mb-1"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
               Description (Optional)
             </label>
@@ -150,39 +176,38 @@ const CreateSavingAccountPopup = ({
               id="description"
               name="description"
               value={formData.description}
-              onChange={handleInputChange}
+              onChange={handleChange}
               rows={2}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
             />
           </div>
 
-          {/* Target Amount with Currency Dropdown */}
+          {/* Target Amount */}
           <div>
             <label
               htmlFor="targetAmount"
-              className="block text-sm font-medium text-black mb-1"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Target Amount
+              Target Amount<span className="text-red-500">*</span>
             </label>
-            <div className="flex border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-black focus-within:border-transparent transition-all">
+            <div className="flex border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-600 focus-within:border-transparent transition-all">
               <input
-                type="text"
+                type="number"
                 id="targetAmount"
                 name="targetAmount"
                 value={formData.targetAmount}
-                onChange={handleInputChange}
-                className="flex-1 px-4 py-3 focus:outline-none rounded-l-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                required
+                onChange={handleChange}
                 min="0"
                 step="0.01"
-                placeholder="0.00"
+                className="flex-1 px-4 py-3 focus:outline-none rounded-l-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                required
               />
               <select
                 id="currency"
                 name="currency"
                 value={formData.currency}
-                onChange={handleInputChange}
-                className="px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg"
+                onChange={handleChange}
+                className="px-3 py-3 bg-indigo-50 text-indigo-700 focus:outline-none rounded-r-lg"
                 required
               >
                 {Object.values(CurrencyType).map((currency) => (
@@ -194,40 +219,42 @@ const CreateSavingAccountPopup = ({
             </div>
           </div>
 
-          {/* Target Date Field */}
+          {/* Target Date */}
           <div>
             <label
               htmlFor="targetDate"
-              className="block text-sm font-medium text-black mb-1"
+              className="block text-sm font-medium text-gray-700 mb-1"
             >
-              Target Date (Optional)
+              Target Date<span className="text-red-500">*</span>
             </label>
             <input
               type="date"
               id="targetDate"
               name="targetDate"
               value={formData.targetDate}
-              onChange={handleInputChange}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              onChange={handleChange}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
+              required
             />
           </div>
 
-          {/* Form Actions */}
-          <div className="flex gap-3 pt-2">
+          {/* Buttons */}
+          <div className="flex gap-3 pt-4 border-t border-gray-100 mt-4">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-100 focus:outline-none focus:border-black focus:ring-0 transition-all duration-200"
-              disabled={isLoading}
+              onClick={handleClose}
+              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all"
+              disabled={loading}
             >
               Cancel
             </button>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.98 }}
               type="submit"
-              className="flex-1 py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-none focus:border-white focus:ring-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
-              disabled={isLoading}
+              className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+              disabled={loading}
             >
-              {isLoading ? (
+              {loading ? (
                 <>
                   <svg
                     className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
@@ -252,13 +279,13 @@ const CreateSavingAccountPopup = ({
                   Creating...
                 </>
               ) : (
-                "Create"
+                "Create Goal"
               )}
-            </button>
+            </motion.button>
           </div>
         </form>
-      </motion.div>
-    </motion.div>
+      </div>
+    </AnimatedModal>
   );
 };
 

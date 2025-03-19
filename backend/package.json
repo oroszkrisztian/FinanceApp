@@ -10,6 +10,9 @@
     "test:db": "tsx src/db-test.ts",
     "create-test-user": "tsx src/scripts/create-test-user.ts"
   },
+  "prisma": {
+    "seed": "ts-node seed.ts"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",

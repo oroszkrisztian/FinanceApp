@@ -32,7 +32,7 @@ const LoginForm = () => {
       const data = await response.json();
 
       if (response.ok && data.user && data.token) {
-        // Convert the createdAt to string if it's a Date
+       
         const user = {
           ...data.user,
           createdAt:
@@ -41,10 +41,10 @@ const LoginForm = () => {
               : new Date(data.user.createdAt).toISOString(),
         };
 
-        // Pass the remember state
+        
         setAuthData(user, data.token, remember);
 
-        // Get the redirect path from location state or default to home
+      
         const location = window.location as any;
         const from = location.state?.from?.pathname || "/home";
         navigate(from, { replace: true });

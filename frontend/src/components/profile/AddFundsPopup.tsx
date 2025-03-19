@@ -35,7 +35,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
 
   const parseNumberInput = (value: string) => {
     if (!value) return NaN;
-    return parseFloat(value.toString().replace(',', '.'));
+    return parseFloat(value.toString().replace(",", "."));
   };
 
   useEffect(() => {
@@ -92,16 +92,13 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   }, [account.currency]);
 
   useEffect(() => {
-    if (
-      Object.keys(rates).length === 0 ||
-      !amount
-    ) {
+    if (Object.keys(rates).length === 0 || !amount) {
       setConvertedAmount(null);
       return;
     }
 
     const numAmount = parseNumberInput(amount);
-    
+
     if (isNaN(numAmount)) {
       setConvertedAmount(null);
       return;
@@ -159,7 +156,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
     }
 
     const numAmount = parseNumberInput(amount);
-    
+
     if (isNaN(numAmount) || numAmount <= 0) {
       setError("Please enter a valid amount");
       return;
@@ -298,7 +295,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
                 onChange={(e) => {
                   const value = e.target.value;
                   const regex = /^[0-9]*([.,][0-9]*)?$/;
-                  if (value === '' || regex.test(value)) {
+                  if (value === "" || regex.test(value)) {
                     setAmount(value);
                   }
                 }}
@@ -385,7 +382,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
             <button
               type="button"
               onClick={() => setIsAddFundsModalOpen(false)}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-200 focus:outline-none focus:border-blue-500 focus:ring-0 transition-all duration-200"
+              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-200 focus:outline-none focus:border-blue-500 focus:ring-0 "
               disabled={loading}
             >
               Cancel

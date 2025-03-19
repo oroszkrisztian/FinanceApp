@@ -91,8 +91,8 @@ const AddPaymentForm: React.FC<AddPaymentFormValues> = ({ onClose }) => {
           layout="vertical"
           onFinish={handleSubmit}
           initialValues={{
-            emailNotification: false, // Default value for emailNotification
-            automaticPayment: false, // Default value for automaticPayment
+            emailNotification: false, 
+            automaticPayment: false, 
           }}
         >
           <Form.Item label="Name" name="name" rules={[{ required: true }]}>

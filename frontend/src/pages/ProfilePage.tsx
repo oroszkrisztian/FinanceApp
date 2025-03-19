@@ -11,7 +11,7 @@ import LoadingState from "../components/LoadingState";
 import ErrorState from "../components/ErrorState";
 import CreateDefaultAccountPopup from "../components/accounts/CreateDefaultAccountPopup";
 import EditDefaultAccountPopup from "../components/accounts/EditDefaultAccountPopup";
-import AddFundsPopup from "../components/profile/AddFundsPopup"; // Import the new component
+import AddFundsPopup from "../components/profile/AddFundsPopup"; 
 import { Account } from "../interfaces/Account";
 import EmptyState from "../components/EmptyState";
 
@@ -379,12 +379,12 @@ const ProfilePage: React.FC = () => {
                           }
                           ref={(el: HTMLDivElement | null) => {
                             if (el) {
-                              // Calculate position before showing the element
+                             
                               const rect = el.getBoundingClientRect();
                               const spaceBelow =
                                 window.innerHeight - rect.bottom;
 
-                              // Set initial position before showing
+                             
                               if (spaceBelow < 100 && rect.top > 150) {
                                 el.style.bottom = "calc(100% + 8px)";
                                 el.style.top = "auto";
@@ -395,7 +395,7 @@ const ProfilePage: React.FC = () => {
                                 el.style.transformOrigin = "top right";
                               }
 
-                              // Show element after position is set
+                             
                               requestAnimationFrame(() => {
                                 el.style.opacity = "1";
                                 el.style.transition =

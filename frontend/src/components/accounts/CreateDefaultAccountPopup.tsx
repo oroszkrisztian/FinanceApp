@@ -23,7 +23,9 @@ const CreateDefaultAccountPopup = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -50,7 +52,6 @@ const CreateDefaultAccountPopup = ({
       });
 
       console.log("Account created successfully:", data);
-      
       
       if (onAccountCreated) {
         onAccountCreated();
@@ -79,8 +80,8 @@ const CreateDefaultAccountPopup = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Account Name
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+                Account Name<span className="text-blue-600">*</span>
               </label>
               <input
                 type="text"
@@ -88,29 +89,31 @@ const CreateDefaultAccountPopup = ({
                 name="name"
                 value={formData.name}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="e.g., Primary Account"
                 required
               />
             </div>
 
-            {/* Description Field */}
+            {/* Description Field - Updated to match AddFundsPopup */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
                 Description (Optional)
               </label>
-              <input
-                type="text"
+              <textarea
                 id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                placeholder="Add details about this account"
+                rows={3}
               />
             </div>
 
             {/* Currency Field */}
             <div>
-              <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
                 Currency
               </label>
               <select
@@ -118,7 +121,7 @@ const CreateDefaultAccountPopup = ({
                 name="currency"
                 value={formData.currency}
                 onChange={handleInputChange}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-black focus:border-black"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
               >
                 {Object.values(CurrencyType).map((currency) => (
@@ -130,21 +133,47 @@ const CreateDefaultAccountPopup = ({
             </div>
 
             {/* Form Actions */}
-            <div className="flex justify-end space-x-4">
+            <div className="flex gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="px-4 py-2 bg-gray-300 text-black rounded-lg hover:bg-gray-400 transition-colors"
+                className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-200 focus:outline-none focus:border-blue-500 focus:ring-0"
                 disabled={isLoading}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
+                className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-800 to-black text-white rounded-lg hover:from-blue-700 hover:to-gray-900 hover:shadow-lg focus:outline-none focus:border-blue-500 focus:ring-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
                 disabled={isLoading}
               >
-                {isLoading ? 'Creating...' : 'Create'}
+                {isLoading ? (
+                  <>
+                    <svg
+                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      ></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    Creating...
+                  </>
+                ) : (
+                  "Create Account"
+                )}
               </button>
             </div>
           </form>

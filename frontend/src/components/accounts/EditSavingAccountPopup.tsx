@@ -3,15 +3,16 @@ import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { CurrencyType, AccountType } from "../../interfaces/enums";
 import { editSavingAccount } from "../../services/accountService";
+import AnimatedModal from "../animations/BlurPopup";
+
+interface ExchangeRates {
+  [currency: string]: number;
+}
 
 interface EditSavingAccountPopupProps {
   setIsModalOpen: (isOpen: boolean) => void;
   account: any;
   onSuccess: () => void;
-}
-
-interface ExchangeRates {
-  [currency: string]: number;
 }
 
 const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
@@ -31,16 +32,14 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
     targetDate: "",
   });
 
-  const [originalCurrency, setOriginalCurrency] = useState<CurrencyType | "">(
-    ""
-  );
+  const [originalCurrency, setOriginalCurrency] = useState<CurrencyType | "">("");
   const [rates, setRates] = useState<ExchangeRates>({});
   const [fetchingRates, setFetchingRates] = useState<boolean>(true);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
 
   useEffect(() => {
     if (account) {
-      console.log("Account Data:", account);
       setFormData({
         name: account.name || "",
         description: account.description || "",
@@ -48,9 +47,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
         accountType: account.accountType || AccountType.SAVINGS,
         targetAmount: account.savingAccount?.targetAmount || "",
         targetDate: account.savingAccount?.targetDate
-          ? new Date(account.savingAccount.targetDate)
-              .toISOString()
-              .split("T")[0]
+          ? new Date(account.savingAccount.targetDate).toISOString().split("T")[0]
           : "",
       });
       setOriginalCurrency(account.currency || "");
@@ -63,10 +60,8 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
       try {
         const response = await fetch("http://localhost:3000/exchange-rates");
         const xmlText = await response.text();
-
         const parser = new DOMParser();
         const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-
         const ratesObj: ExchangeRates = {};
         const rateElements = xmlDoc.getElementsByTagName("Rate");
 
@@ -78,16 +73,11 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
             : 1;
           const value = parseFloat(element.textContent || "0") / multiplier;
 
-          if (currency && value) {
-            ratesObj[currency] = value;
-          }
+          if (currency && value) ratesObj[currency] = value;
         }
 
-        // Set base currency rate to 1
         Object.values(CurrencyType).forEach((curr) => {
-          if (!ratesObj[curr]) {
-            ratesObj[curr] = 1;
-          }
+          if (!ratesObj[curr]) ratesObj[curr] = 1;
         });
 
         setRates(ratesObj);
@@ -139,23 +129,13 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
   }, [formData.currency, originalCurrency, account, rates]);
 
   const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-
-    if (name === "targetAmount") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -164,27 +144,16 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
     setError(null);
 
     try {
-      if (!user?.id) {
-        throw new Error("User is not authenticated");
-      }
-
-      if (!formData.currency) {
-        throw new Error("Please select a currency");
-      }
-
-      if (formData.targetAmount === "") {
-        throw new Error("Please enter a target amount");
-      }
+      if (!user?.id) throw new Error("User is not authenticated");
+      if (!formData.currency) throw new Error("Please select a currency");
+      if (formData.targetAmount === "") throw new Error("Please enter a target amount");
 
       const updatedTargetAmount =
         formData.currency !== originalCurrency && convertedAmount !== null
           ? convertedAmount
           : parseFloat(formData.targetAmount as string);
 
-      const targetDate = new Date(
-        `${formData.targetDate}T00:00:00.000Z`
-      ).toISOString();
-      console.log("Frontend targetDate:", formData.targetDate);
+      const targetDate = new Date(`${formData.targetDate}T00:00:00.000Z`).toISOString();
       const requestData = {
         name: formData.name,
         description: formData.description,
@@ -200,52 +169,53 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
       await editSavingAccount(user.id, account.id, requestData);
       setLoading(false);
       onSuccess();
-      setIsModalOpen(false);
+      handleClose();
     } catch (err) {
       setLoading(false);
-      setError(
-        err instanceof Error ? err.message : "Failed to update savings account"
-      );
+      setError(err instanceof Error ? err.message : "Failed to update savings account");
     }
   };
 
-  const handleClickOutside = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      setIsClosing(false);
       setIsModalOpen(false);
-    }
+    }, 300);
   };
 
   return (
-    <motion.div
-      className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      onClick={handleClickOutside}
+    <AnimatedModal
+      isOpen={!isClosing}
+      onClose={handleClose}
+      closeOnBackdropClick={true}
+      backdropBlur="sm"
+      animationDuration={300}
     >
-      <motion.div
-        className="bg-white rounded-xl shadow-xl max-w-md w-full p-6 relative overflow-hidden border border-gray-200"
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.9, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className="bg-white rounded-lg shadow-xl p-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-black">
-              Edit Savings Account
-            </h2>
-            <p className="text-gray-800 mt-1">
-              Update your savings account details
-            </p>
+          <div className="flex items-center">
+            <div className="bg-indigo-50 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+              <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">Edit Savings Goal</h2>
+              <p className="text-indigo-600 mt-1">Update details for {account?.name}</p>
+            </div>
           </div>
         </div>
 
         {/* Error message */}
         {error && (
-          <div className="mb-6 p-4 bg-gray-100 border-l-4 border-red-500 text-black rounded-md">
+          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
             <div className="flex">
               <svg
                 className="h-5 w-5 mr-2 text-red-500"
@@ -267,11 +237,8 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Name */}
           <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-black mb-1"
-            >
-              Account Name<span className="text-black">*</span>
+            <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              Account Name<span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -279,17 +246,14 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
               required
             />
           </div>
 
           {/* Description */}
           <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-black mb-1"
-            >
+            <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description (Optional)
             </label>
             <textarea
@@ -298,20 +262,16 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
               value={formData.description}
               onChange={handleChange}
               rows={2}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
             />
           </div>
 
           {/* Target Amount */}
-
           <div>
-            <label
-              htmlFor="targetAmount"
-              className="block text-sm font-medium text-black mb-1"
-            >
+            <label htmlFor="targetAmount" className="block text-sm font-medium text-gray-700 mb-1">
               Target Amount
             </label>
-            <div className="flex border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-black focus-within:border-transparent transition-all">
+            <div className="flex border border-gray-300 rounded-lg focus-within:ring-2 focus-within:ring-indigo-600 focus-within:border-transparent transition-all">
               <input
                 type="number"
                 id="targetAmount"
@@ -321,10 +281,8 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                 min="0"
                 step="0.01"
                 className={`flex-1 px-4 py-3 focus:outline-none rounded-l-lg [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none ${
-                  formData.currency !== originalCurrency &&
-                  formData.currency &&
-                  !fetchingRates
-                    ? "bg-gray-100"
+                  formData.currency !== originalCurrency && formData.currency && !fetchingRates
+                    ? "bg-indigo-50"
                     : ""
                 }`}
                 required
@@ -334,7 +292,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                 name="currency"
                 value={formData.currency}
                 onChange={handleChange}
-                className="px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg"
+                className="px-3 py-3 bg-indigo-50 text-indigo-700 focus:outline-none rounded-r-lg"
                 required
               >
                 {Object.values(CurrencyType).map((currency) => (
@@ -344,26 +302,25 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                 ))}
               </select>
             </div>
-            {formData.currency !== originalCurrency &&
-              convertedAmount !== null && (
-                <p className="text-sm text-gray-700 mt-1 flex items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  Value converted from {originalCurrency} to {formData.currency}
-                </p>
-              )}
+            {formData.currency !== originalCurrency && convertedAmount !== null && (
+              <p className="text-sm text-indigo-600 mt-1 flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-1"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                Value converted from {originalCurrency} to {formData.currency}
+              </p>
+            )}
           </div>
 
           {/* Amount Conversion Information */}
@@ -371,9 +328,9 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
             formData.currency &&
             originalCurrency &&
             account.savingAccount?.targetAmount !== undefined && (
-              <div className="p-4 bg-gray-100 border border-gray-200 rounded-lg">
+              <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-lg">
                 {fetchingRates ? (
-                  <div className="flex items-center text-black">
+                  <div className="flex items-center text-indigo-700">
                     <svg
                       className="animate-spin mr-3 h-4 w-4"
                       xmlns="http://www.w3.org/2000/svg"
@@ -398,34 +355,29 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                   </div>
                 ) : convertedAmount !== null ? (
                   <div>
-                    <p className="font-semibold text-black mb-2">
+                    <p className="font-semibold text-indigo-700 mb-2">
                       Target Amount After Conversion:
                     </p>
-                    <p className="text-black text-lg font-medium">
-                      {account.savingAccount.targetAmount.toFixed(2)}{" "}
-                      {originalCurrency} = {convertedAmount.toFixed(2)}{" "}
-                      {formData.currency}
+                    <p className="text-indigo-700 text-lg font-medium">
+                      {account.savingAccount.targetAmount.toFixed(2)} {originalCurrency} ={" "}
+                      {convertedAmount.toFixed(2)} {formData.currency}
                     </p>
-                    <div className="text-xs mt-2 text-gray-700 border-t border-gray-200 pt-2">
+                    <div className="text-xs mt-2 text-indigo-700 border-t border-indigo-100 pt-2">
                       <p>
-                        Conversion path: {originalCurrency} →{" "}
-                        {formData.currency}
+                        Conversion path: {originalCurrency} → {formData.currency}
                       </p>
                       {rates[originalCurrency] && rates[formData.currency] && (
                         <p>
                           1 {originalCurrency} ={" "}
-                          {(
-                            rates[originalCurrency] / rates[formData.currency]
-                          ).toFixed(4)}{" "}
+                          {(rates[originalCurrency] / rates[formData.currency]).toFixed(4)}{" "}
                           {formData.currency}
                         </p>
                       )}
                     </div>
                   </div>
                 ) : (
-                  <p className="text-black">
-                    Unable to convert currencies. Please select a different
-                    currency.
+                  <p className="text-indigo-700">
+                    Unable to convert currencies. Please select a different currency.
                   </p>
                 )}
               </div>
@@ -433,10 +385,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
 
           {/* Target Date */}
           <div>
-            <label
-              htmlFor="targetDate"
-              className="block text-sm font-medium text-black mb-1"
-            >
+            <label htmlFor="targetDate" className="block text-sm font-medium text-gray-700 mb-1">
               Target Date
             </label>
             <input
@@ -445,7 +394,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
               name="targetDate"
               value={formData.targetDate}
               onChange={handleChange}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all"
               required
             />
           </div>
@@ -454,19 +403,17 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
           <div className="flex gap-3 pt-2">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-100 focus:outline-none focus:border-black focus:ring-0 transition-all duration-200"
+              onClick={handleClose}
+              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all"
               disabled={loading}
             >
               Cancel
             </button>
-            <button
+            <motion.button
+              whileTap={{ scale: 0.98 }}
               type="submit"
-              className="flex-1 py-2 px-4 bg-black text-white rounded-lg hover:bg-gray-800 focus:outline-none focus:border-white focus:ring-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
-              disabled={
-                loading ||
-                (formData.currency !== originalCurrency && fetchingRates)
-              }
+              className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
+              disabled={loading || (formData.currency !== originalCurrency && fetchingRates)}
             >
               {loading ? (
                 <>
@@ -497,11 +444,11 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
               ) : (
                 "Save Changes"
               )}
-            </button>
+            </motion.button>
           </div>
         </form>
-      </motion.div>
-    </motion.div>
+      </div>
+    </AnimatedModal>
   );
 };
 

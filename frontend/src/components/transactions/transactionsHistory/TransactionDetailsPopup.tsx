@@ -1,8 +1,9 @@
 import React from "react";
-import { Transaction } from "../../interfaces/Transaction";
-import { TransactionType } from "../../interfaces/enums";
-import { Account } from "../../interfaces/Account";
-import AnimatedModal from "../animations/BlurPopup";
+import { Account } from "../../../interfaces/Account";
+import { TransactionType } from "../../../interfaces/enums";
+import { Transaction } from "../../../interfaces/Transaction";
+import AnimatedModal from "../../animations/BlurPopup";
+
 
 interface TransactionDetailsPopupProps {
   transaction: Transaction;
@@ -21,7 +22,6 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
   onClose,
   isOpen,
 }) => {
-  // If transaction is not defined, don't render anything
   if (!transaction) return null;
 
   const getAccountName = (accountId: number | undefined) => {
@@ -99,8 +99,8 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
   const theme = getThemeColors();
 
   return (
-    <AnimatedModal 
-      isOpen={isOpen} 
+    <AnimatedModal
+      isOpen={isOpen}
       onClose={onClose}
       closeOnBackdropClick={true}
       backdropBlur="sm"
@@ -239,15 +239,17 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
                   {getTransactionTypeLabel(transaction.type)}
                 </div>
               </div>
-
-              <div>
-                <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Name
-                </p>
-                <p className="mt-1 text-sm font-medium text-gray-800">
-                  {transaction.name || "-"}
-                </p>
-              </div>
+              {transaction.type === TransactionType.EXPENSE ||
+                (transaction.type === TransactionType.INCOME && (
+                  <div>
+                    <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Name
+                    </p>
+                    <p className="mt-1 text-sm font-medium text-gray-800">
+                      {transaction.name || "-"}
+                    </p>
+                  </div>
+                ))}
 
               {transaction.fromAccountId && (
                 <div>

@@ -21,13 +21,10 @@ export class TransactionRepository {
 
   async getExchangeRates() {
     try {
-      // Initialize rates object
       const rates: { [key: string]: number } = {};
 
-      // Always set RON to 1 as it's the base currency in the XML
       rates["RON"] = 1;
 
-      // Fetch exchange rates
       const response = await axios.get("http://localhost:3000/exchange-rates");
       const xmlText = response.data;
 
@@ -37,7 +34,6 @@ export class TransactionRepository {
         mergeAttrs: false,
       });
 
-      // Navigate through the structure to find the Cube and Rate elements
       if (
         result &&
         result.DataSet &&
@@ -60,7 +56,6 @@ export class TransactionRepository {
 
             if (currency && !isNaN(value)) {
               if (multiplier > 1) {
-                // If there's a multiplier (like for HUF, JPY), divide by multiplier
                 rates[currency] = value / multiplier;
               } else {
                 rates[currency] = value;
@@ -185,7 +180,6 @@ export class TransactionRepository {
         throw new Error(`Exchange rate for ${currency} not found`);
       }
 
-     
       amountToWithdraw =
         amount * (rates[currency] / rates[fromAccount.currency]);
 

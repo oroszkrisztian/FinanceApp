@@ -27,17 +27,19 @@ model User {
 
 model CustomCategory {
   id              Int                     @id @default(autoincrement())
-  name            String                  @unique
-  userId          Int
+  name            String                  
+  userId          Int?                    
+  type            CategoryType            @default(USER)
   createdAt       DateTime                @default(now())
   updatedAt       DateTime                @updatedAt
   deletedAt       DateTime?
 
-  user            User                    @relation(fields: [userId], references: [id])
+  user            User?                   @relation(fields: [userId], references: [id])
   budgets         Budget[]       
   recurringBills  RecurringFundAndBill[]  @relation("CustomCategoryRecurringBills")
 
   @@index([userId])
+  @@unique([name, type])  
   Transaction Transaction[]
 }
 
@@ -184,4 +186,9 @@ enum PaymentType {
 enum AccountType {
   DEFAULT
   SAVINGS
+}
+
+enum CategoryType {
+  SYSTEM
+  USER
 }

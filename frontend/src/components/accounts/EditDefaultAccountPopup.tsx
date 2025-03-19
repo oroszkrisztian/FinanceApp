@@ -95,7 +95,7 @@ const EditDefaultAccountPopup = ({
           }
         }
 
-        // Set base currency rate to 1
+       
         Object.values(CurrencyType).forEach((curr) => {
           if (!ratesObj[curr]) {
             ratesObj[curr] = 1;

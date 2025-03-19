@@ -31,7 +31,7 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
       setTimeout(() => {
         setIsAnimatingOut(false);
         setShouldRender(false);
-      }, 150);
+      }, animationDuration);
     }
   }, [isOpen]);
 
@@ -43,21 +43,23 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
     }
   };
 
-  const blurClass = backdropBlur !== "none" ? `backdrop-blur-${backdropBlur}` : "";
+  const blurClass =
+    backdropBlur !== "none" ? `backdrop-blur-${backdropBlur}` : "";
 
   return (
     <div
       className={`fixed inset-0 z-50 flex items-center justify-center ${blurClass}
-        ${isAnimatingIn ? "bg-black bg-opacity-50" : ""}
-        ${isAnimatingOut ? "bg-black bg-opacity-0" : "bg-black bg-opacity-50"}
-        transition-all duration-${animationDuration} ease-in-out`}
+        transition-all duration-${animationDuration} ease-in-out
+        ${isAnimatingIn ? "bg-black/50" : "bg-black/0"}
+        ${isAnimatingOut ? "bg-black/0" : ""}`}
       onClick={handleBackdropClick}
     >
       <div
         className={`bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 overflow-hidden
-          transform transition-all duration-${animationDuration} ease-out
-          ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
-          ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}`}
+        transform transition-all duration-${animationDuration} ease-out
+        ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
+        ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
+          md:translate-x-5`}
       >
         {children}
       </div>

@@ -1,4 +1,3 @@
-// Modified TopBar component
 import React from "react";
 import { User, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";

@@ -19,7 +19,7 @@ export const getUserAllTransactions = async (userId: number) => {
     const responseText = await response.text();
     console.log("Raw response text:", responseText);
 
-    // Parse the response text manually to avoid any issues
+    
     let data;
     try {
       data = JSON.parse(responseText);
