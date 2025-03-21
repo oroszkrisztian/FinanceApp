@@ -1,12 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { deleteSavingAccount } from "../../services/accountService";
 import { useAuth } from "../../context/AuthContext";
 import AnimatedModal from "../animations/BlurPopup";
+import { Account } from "../../interfaces/Account";
 
 interface DeleteSavingAccountModalProps {
   isOpen: boolean;
   onClose: () => void;
+  accounts: Account[];
   accountId: number | null;
   accountName: string;
   onSuccess: () => void;
@@ -15,15 +17,19 @@ interface DeleteSavingAccountModalProps {
 const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
   isOpen,
   onClose,
+  accounts,
   accountId,
   accountName,
-  onSuccess
+  onSuccess,
 }) => {
   const { user } = useAuth();
+
   const [confirmText, setConfirmText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+
+  const account = accounts.find((acc) => acc.id === accountId);
 
   const handleClose = () => {
     setIsClosing(true);
@@ -35,12 +41,14 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
     }, 150);
   };
 
+  useEffect(() => {}, []);
+
   const handleConfirmDelete = async () => {
     if (confirmText !== "Delete" || !accountId || !user?.id) return;
-    
+
     setLoading(true);
     setError(null);
-    
+
     try {
       await deleteSavingAccount(user.id, accountId);
       setLoading(false);
@@ -48,7 +56,9 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
       handleClose();
     } catch (err) {
       setLoading(false);
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       console.error("Error deleting saving account:", err);
     }
   };
@@ -77,7 +87,7 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
           </svg>
           <h2 className="text-xl font-semibold">Delete Savings Goal</h2>
         </div>
-        
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
             <div className="flex">
@@ -96,16 +106,16 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
             </div>
           </div>
         )}
-        
+
         <div className="mb-6">
           <p className="text-gray-700 mb-4">
             Are you sure you want to delete the savings goal{" "}
-            <span className="font-semibold">{accountName}</span>? This action cannot be undone.
+            <span className="font-semibold">{accountName}</span>? This action
+            cannot be undone.
           </p>
           <p className="text-gray-700 mb-4">
             To confirm, please type{" "}
-            <span className="font-semibold text-red-600">Delete</span>{" "}
-            below:
+            <span className="font-semibold text-red-600">Delete</span> below:
           </p>
           <input
             type="text"
@@ -115,7 +125,15 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
             placeholder="Type 'Delete' to confirm"
           />
         </div>
-        
+
+        <div>
+          {!account?.savingAccount?.isCompleted && (
+            <p className="text-gray-700 mb-4">
+              goal not yet completed, implement where to send funds
+            </p>
+          )}
+        </div>
+
         <div className="flex justify-end space-x-4">
           <button
             type="button"

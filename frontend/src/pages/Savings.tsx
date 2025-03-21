@@ -611,6 +611,7 @@ const Savings: React.FC = () => {
         <DeleteSavingAccountModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
+          accounts={savingsAccounts}
           accountId={selectedAccount.id}
           accountName={selectedAccount.name}
           onSuccess={handleSuccess}
