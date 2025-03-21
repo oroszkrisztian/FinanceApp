@@ -92,6 +92,15 @@ export class AccountsService {
     }
   }
 
+  async deleteSavingAccount(userId: number, accountId: number) {
+    try {
+      await this.accountRepo.deleteSavingAccount(userId, accountId);
+    } catch (error) {
+      console.error("Error in AccountsService.deleteSavingAccount:", error);
+      throw new Error("Failed to delete saving account");
+    }
+  }
+
   async editDefaultAccount(
     userId: number,
     accountId: number,

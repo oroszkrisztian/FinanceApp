@@ -11,6 +11,7 @@ import SavingsEmptyState from "../components/savings/SavingsEmptyState";
 import ActiveSavingCard from "../components/savings/ActiveSavingCard";
 import CompletedSavingCard from "../components/savings/CompletedSavingCard";
 import { Account } from "../interfaces/Account";
+import DeleteSavingAccountModal from "../components/savings/DeletSavingPopup";
 
 type FilterOption = "all" | "active" | "completed";
 
@@ -27,6 +28,7 @@ const Savings: React.FC = () => {
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isAddFundsModalOpen, setIsAddFundsModalOpen] =
     useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [selectedSavingAccount, setSelectedSavingAccount] =
     useState<Account | null>(null);
   const [filterOption, setFilterOption] = useState<FilterOption>("all");
@@ -161,13 +163,14 @@ const Savings: React.FC = () => {
     };
   }, [filterMenuOpen]);
 
-  const handleDeleteRequest = (
-    accountId: number,
-    accountName: string
-  ): void => {
-    console.log("Delete account:", accountId, accountName);
-    setActiveMenu(null);
-  };
+  const handleDelete = (accountId: number): void => {
+    const account = savingsAccounts.find((acc) => acc.id === accountId);
+    if (account) {
+      setSelectedAccount(account);
+      setIsDeleteModalOpen(true);
+      setActiveMenu(null);
+    }
+  }
 
   const handleCreateSavings = (): void => {
     setIsCreateModalOpen(true);
@@ -418,10 +421,10 @@ const Savings: React.FC = () => {
       <div className="flex-1 overflow-auto" ref={contentAreaRef}>
         {/* Filter Loading */}
         {filterLoading && (
-          <div className="absolute inset-0 bg-white/80 flex justify-center items-center z-20 ">
-            <div className="flex flex-col items-center">
-              <div className="w-10 h-10 border-4 border-black-200 border-t-black-600 rounded-full animate-spin"></div>
-              <p className="mt-2 text-black-600 font-medium">
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex justify-center items-center z-20 transition-opacity duration-300 ease-in-out">
+            <div className="flex flex-col items-center bg-white/80 p-4 rounded-xl shadow-md">
+              <div className="w-10 h-10 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
+              <p className="mt-3 text-indigo-600 font-medium">
                 Filtering goals...
               </p>
             </div>
@@ -507,7 +510,7 @@ const Savings: React.FC = () => {
                           setActiveMenu={setActiveMenu}
                           onAddFunds={handleAddFunds}
                           onEdit={handleEdit}
-                          onDelete={handleDeleteRequest}
+                          onDelete={handleDelete}
                         />
                       ))}
                     </motion.div>
@@ -537,7 +540,7 @@ const Savings: React.FC = () => {
                           key={account.id}
                           account={account}
                           index={index}
-                          onDelete={handleDeleteRequest}
+                          onDelete={handleDelete}
                         />
                       ))}
                     </motion.div>
@@ -600,6 +603,16 @@ const Savings: React.FC = () => {
           isOpen={isAddFundsModalOpen}
           onClose={() => setIsAddFundsModalOpen(false)}
           account={selectedSavingAccount}
+          onSuccess={handleSuccess}
+        />
+      )}
+
+      {isDeleteModalOpen && selectedAccount && (
+        <DeleteSavingAccountModal
+          isOpen={isDeleteModalOpen}
+          onClose={() => setIsDeleteModalOpen(false)}
+          accountId={selectedAccount.id}
+          accountName={selectedAccount.name}
           onSuccess={handleSuccess}
         />
       )}

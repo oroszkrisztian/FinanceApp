@@ -181,6 +181,32 @@ accounts.delete("/deleteDefaultAccount", async (c) => {
   }
 });
 
+accounts.delete("/deleteSavingAccount", async (c) => {
+  try {
+    const userId = c.req.query("userId");
+    const accountId = c.req.query("accountId");
+
+    if (!userId || isNaN(Number(userId))) {
+      return c.json({ error: "Invalid or missing userId" }, 400);
+    }
+
+    if (!accountId || isNaN(Number(accountId))) {
+      return c.json({ error: "Invalid or missing accountId" }, 400);
+    }
+
+    await accountsController.deleteSavingAccount(
+      c,
+      Number(userId),
+      Number(accountId)
+    );
+
+    return c.json({ message: "Account deleted successfully" });
+  } catch (error) {
+    console.error("Error in /deleteAccount route:", error);
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 accounts.post("/editDefaultAccount", async (c) => {
   try {
     const userId = c.req.query("userId");

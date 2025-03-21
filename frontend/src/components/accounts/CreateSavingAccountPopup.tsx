@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { createSavingAccount } from "../../services/accountService";
@@ -20,6 +20,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -46,7 +47,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
     setTimeout(() => {
       setIsClosing(false);
       onClose();
-    }, 300);
+    }, 150);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -87,13 +88,22 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
     }
   };
 
+  useEffect(() => {
+    const hasFormChanged =
+      formData.name.trim() !== "" &&
+      formData.targetAmount.toString().trim() !== "" &&
+      formData.targetDate.trim() !== "";
+
+    setHasChanges(hasFormChanged);
+  }, [formData]);
+
   return (
     <AnimatedModal
       isOpen={isOpen && !isClosing}
       onClose={handleClose}
       closeOnBackdropClick={true}
       backdropBlur="sm"
-      animationDuration={300}
+      animationDuration={150}
     >
       <div className="bg-white rounded-lg shadow-xl p-5">
         {/* Header */}
@@ -252,7 +262,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
               whileTap={{ scale: 0.98 }}
               type="submit"
               className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-              disabled={loading}
+              disabled={loading || !hasChanges}
             >
               {loading ? (
                 <>

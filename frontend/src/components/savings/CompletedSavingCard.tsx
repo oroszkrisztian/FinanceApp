@@ -135,7 +135,7 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
             className="flex-1 py-2 bg-green-50 text-red-700 rounded-lg hover:bg-red-100 focus:outline-none transition-colors text-sm font-medium border border-red-200"
             onClick={() => onDelete(account.id, account.name)}
           >
-            Delete Account
+            Delete Goal
           </button>
         </div>
       </div>

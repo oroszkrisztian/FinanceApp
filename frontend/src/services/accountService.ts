@@ -225,6 +225,28 @@ export const deleteDefaultAccount = async (
   }
 };
 
+export const deleteSavingAccount = async (userId: number, accountId: number) => {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/accounts/deleteSavingAccount?userId=${userId}&accountId=${accountId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to delete account");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error deleting account:", err);
+    throw err;
+  }
+};
+
 export const editDefaultAccount = async (
   userId: number,
   accountId: number,

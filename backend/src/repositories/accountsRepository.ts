@@ -123,6 +123,22 @@ export class AccountsRepository {
     });
   }
 
+  async deleteSavingAccount(userId: number, accountId: number) {
+    await this.prisma.savingAccount.deleteMany({
+      where: {
+        accountId: accountId,
+      },
+    });
+
+    return await this.prisma.account.delete({
+      where: {
+        id: accountId,
+        userId: userId,
+        type: AccountType.SAVINGS,
+      },
+    });
+  }
+
   async editDefaultAccount(
     userId: number,
     accountId: number,
