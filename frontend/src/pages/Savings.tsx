@@ -25,7 +25,6 @@ const Savings: React.FC = () => {
   const [isAddFundsModalOpen, setIsAddFundsModalOpen] = useState(false);
   const [selectedSavingAccount, setSelectedSavingAccount] = useState<any>(null);
 
-  // Fetch savings accounts
   const fetchSavingAccounts = async () => {
     if (!user?.id) return;
 
@@ -136,20 +135,20 @@ const Savings: React.FC = () => {
       return 0;
     }
 
-    // Calculate percentage based on current amount and target amount
-    const currentAmount = account.amount || 0;
-    const targetAmount = account.savingAccount.targetAmount || 0;
-
+    
     if (account.savingAccount.isCompleted) {
       return 100;
     }
+
+    const currentAmount = account.amount || 0;
+    const targetAmount = account.savingAccount.targetAmount || 0;
 
     if (targetAmount <= 0) {
       return 0;
     }
 
     const percentage = (currentAmount / targetAmount) * 100;
-    return Math.min(Math.floor(percentage), 99); // Cap at 99% if not completed
+    return Math.min(parseFloat(percentage.toFixed(2)), 99.99);
   };
 
   if (loading) {
@@ -162,7 +161,6 @@ const Savings: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50">
-      {/* Only show the Fixed Header with Search and Add Button when accounts exist */}
       {!loading && savingsAccounts.length > 0 && (
         <div className="sticky top-0 z-10 p-4 md:p-6 pb-2">
           <motion.div
@@ -310,7 +308,7 @@ const Savings: React.FC = () => {
                         {/* Wave background at bottom with indigo loading effect */}
                         <div className="absolute bottom-0 left-0 right-0 h-24 z-0 overflow-hidden">
                           <div
-                            className="absolute bottom-0 left-0 w-full h-full bg-indigo-300 z-0"
+                            className="absolute bottom-0 left-0 w-full h-full bg-green-300 z-0"
                             style={{
                               opacity: 0.3,
                               clipPath:
@@ -339,7 +337,7 @@ const Savings: React.FC = () => {
                           ></div>
                         </div>
 
-                        {/* Card content with higher z-index to appear above the background */}
+                        {/* Card content  */}
                         <div className="relative z-10">
                           <h3 className="text-xl font-bold mb-3 text-gray-900">
                             {account.name || "Unnamed Account"}
@@ -382,7 +380,9 @@ const Savings: React.FC = () => {
                                     <span className="font-medium">
                                       Progress
                                     </span>
-                                    <span>{completionPercentage}%</span>
+                                    <span>
+                                      {completionPercentage.toFixed(2)}%
+                                    </span>
                                   </div>
                                   <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
                                     <div

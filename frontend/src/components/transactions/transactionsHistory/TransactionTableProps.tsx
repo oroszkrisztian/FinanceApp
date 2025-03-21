@@ -174,7 +174,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   <div
                     className={`text-base font-semibold ${getAmountColor(transaction.type)}`}
                   >
-                    {formatAmount(transaction.amount)} {transaction.currency}
+                    → {formatAmount(transaction.amount)} {transaction.currency} 
                   </div>
                 </div>
 

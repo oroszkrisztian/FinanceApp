@@ -182,7 +182,7 @@ const ProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-r from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-r from-gray-50 to-gray-100 p-8 pb-20">
       {/* Header Section */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
