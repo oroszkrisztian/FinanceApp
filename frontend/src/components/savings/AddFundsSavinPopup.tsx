@@ -302,12 +302,12 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       backdropBlur="sm"
       animationDuration={300}
     >
-      <div className="bg-white rounded-lg shadow-xl p-5">
-        <div className="flex items-center justify-between mb-6">
+      <div className="bg-white rounded-lg shadow-xl p-4 sm:p-5 max-w-md mx-auto w-full max-h-[90vh] overflow-y-auto">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 sm:mb-6">
           <div className="flex items-center">
-            <div className="bg-indigo-50 w-10 h-10 rounded-full flex items-center justify-center mr-3">
+            <div className="bg-indigo-50 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mr-3 flex-shrink-0">
               <svg
-                className="w-5 h-5 text-indigo-600"
+                className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -321,34 +321,36 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               </svg>
             </div>
             <div>
-              <h2 className="text-xl font-semibold text-gray-900">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 break-words">
                 Add Funds to {account?.name || "Account"}
               </h2>
-              <p className="text-sm text-gray-600 mt-0.5">
-                Current balance: {
-                  sourceAccountCurrency && sourceAccountCurrency !== account?.currency
+              <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
+                Current balance:{" "}
+                {sourceAccountCurrency &&
+                sourceAccountCurrency !== account?.currency
                   ? getDisplayAmount(account?.amount || 0, account?.currency)
-                  : `${account?.amount?.toFixed(2) || "0.00"} ${account?.currency || "USD"}`
-                }
+                  : `${account?.amount?.toFixed(2) || "0.00"} ${account?.currency || "USD"}`}
               </p>
-              {/* Display the target amount */}
               {account?.savingAccount?.targetAmount !== undefined && (
-                <p className="text-sm text-gray-600 mt-0.5">
-                  Target amount: {
-                    sourceAccountCurrency && sourceAccountCurrency !== account?.currency
-                    ? getDisplayAmount(account.savingAccount.targetAmount, account?.currency)
-                    : `${account.savingAccount.targetAmount.toFixed(2)} ${account?.currency || "USD"}`
-                  }
+                <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
+                  Target amount:{" "}
+                  {sourceAccountCurrency &&
+                  sourceAccountCurrency !== account?.currency
+                    ? getDisplayAmount(
+                        account.savingAccount.targetAmount,
+                        account?.currency
+                      )
+                    : `${account.savingAccount.targetAmount.toFixed(2)} ${account?.currency || "USD"}`}
                 </p>
               )}
             </div>
           </div>
-          <div className="bg-indigo-50 px-3 py-1 rounded-full text-indigo-800 text-sm font-medium">
+          <div className="inline-block bg-indigo-50 px-2 py-1 sm:px-3 sm:py-1 rounded-full text-indigo-800 text-xs sm:text-sm font-medium self-start sm:self-center">
             {displayCurrency || account?.currency || "USD"}
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           <div>
             <label
               htmlFor="sourceAccount"
@@ -360,7 +362,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               id="sourceAccount"
               value={selectedSourceAccount || ""}
               onChange={(e) => setSelectedSourceAccount(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm sm:text-base"
               required
               disabled={loadingAccounts}
             >
@@ -385,10 +387,10 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
 
           {selectedSourceAccount &&
             sourceAccountCurrency != account?.currency && (
-              <div className="mt-2 text-sm text-gray-600">
+              <div className="mt-1 text-xs sm:text-sm text-gray-600">
                 <span className="flex items-center">
                   <svg
-                    className="w-4 h-4 mr-1 text-indigo-500"
+                    className="w-3 h-3 sm:w-4 sm:h-4 mr-1 text-indigo-500"
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -424,25 +426,13 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                   const regex = /^[0-9]*([.,][0-9]*)?$/;
                   if (value === "" || regex.test(value)) setAmount(value);
                 }}
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
-                placeholder={
-                  account?.savingAccount?.targetAmount !== undefined
-                    ? sourceAccountCurrency && sourceAccountCurrency !== account.currency
-                      ? `Remaining: ${convertAmount(
-                          account.savingAccount.targetAmount - (account.amount || 0),
-                          account.currency,
-                          sourceAccountCurrency
-                        ).toFixed(2)} ${sourceAccountCurrency}`
-                      : `Remaining: ${(
-                          account.savingAccount.targetAmount -
-                          (account.amount || 0)
-                        ).toFixed(2)} ${account?.currency}`
-                    : "0.00"
-                }
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-sm sm:text-base"
+                placeholder={"0.00"}
+                autoComplete="off"
                 required
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <span className="text-gray-500">
+                <span className="text-gray-500 text-sm">
                   {sourceAccountCurrency || account?.currency}
                 </span>
               </div>
@@ -451,8 +441,9 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
             {sourceAccountCurrency &&
               sourceAccountCurrency !== account?.currency &&
               !isNaN(parseNumberInput(amountTransfer)) && (
-                <p className="text-sm text-gray-600 mt-1">
-                  This equals {convertAmount(
+                <p className="text-xs sm:text-sm text-gray-600 mt-1">
+                  This equals{" "}
+                  {convertAmount(
                     parseNumberInput(amountTransfer),
                     sourceAccountCurrency,
                     account.currency
@@ -462,19 +453,46 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               )}
           </div>
 
+          {selectedSourceAccount !== undefined && (
+            <div className="mb-2 p-2 bg-indigo-50 border border-indigo-100 rounded-lg text-xs sm:text-sm text-center">
+              <p className="text-indigo-600 font-medium">
+                {sourceAccountCurrency &&
+                sourceAccountCurrency !== account.currency
+                  ? convertAmount(
+                      Math.max(
+                        0,
+                        account.savingAccount.targetAmount -
+                          account.amount -
+                          getTargetAmount()
+                      ),
+                      account.currency,
+                      sourceAccountCurrency
+                    ).toFixed(2)
+                  : Math.max(
+                      0,
+                      account.savingAccount.targetAmount -
+                        account.amount -
+                        getTargetAmount()
+                    ).toFixed(2)}{" "}
+                {sourceAccountCurrency || account.currency} more needed to reach
+                target
+              </p>
+            </div>
+          )}
+
           {selectedSourceAccount && sourceAccount && (
-            <div className="mt-4">
-              <div className="text-sm font-medium text-gray-700 mb-2">
+            <div className="mt-2 sm:mt-4">
+              <div className="text-xs sm:text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                 Transaction Summary
               </div>
 
               {targetCheck?.exceeded &&
               sourceAccountNewBalance !== null &&
               sourceAccountNewBalance > 0 ? (
-                <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm">
-                  <div className="flex items-center text-yellow-700 font-medium mb-1.5">
+                <div className="p-2 sm:p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs sm:text-sm">
+                  <div className="flex items-center text-yellow-700 font-medium mb-1 sm:mb-1.5">
                     <svg
-                      className="w-4 h-4 mr-1.5"
+                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -486,7 +504,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                     </svg>
                     Target amount will be exceeded
                   </div>
-                  <div className="ml-5.5">
+                  <div className="ml-4 sm:ml-5.5">
                     <p className="text-gray-700 mt-1">
                       <span className="font-medium text-indigo-600">
                         Max allowed to add:{" "}
@@ -494,7 +512,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                           ? (targetCheck.maxAllowedToAdd ?? 0).toFixed(2)
                           : (
                               targetCheck.maxAllowedToAddInSourceCurrency ?? 0
-                            ).toFixed(4)}{" "}
+                            ).toFixed(2)}{" "}
                         {sourceAccountCurrency}
                       </span>
                     </p>
@@ -502,10 +520,10 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                 </div>
               ) : sourceAccountNewBalance !== null &&
                 sourceAccountNewBalance <= 0 ? (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm">
-                  <div className="flex items-center text-red-700 font-medium mb-1.5">
+                <div className="p-2 sm:p-3 bg-red-50 border border-red-200 rounded-lg text-xs sm:text-sm">
+                  <div className="flex items-center text-red-700 font-medium mb-1 sm:mb-1.5">
                     <svg
-                      className="w-4 h-4 mr-1.5"
+                      className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5"
                       fill="currentColor"
                       viewBox="0 0 20 20"
                     >
@@ -517,7 +535,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                     </svg>
                     Insufficient balance
                   </div>
-                  <div className="ml-5.5">
+                  <div className="ml-4 sm:ml-5.5">
                     <p className="text-gray-700">
                       Available in {sourceAccount.name}:{" "}
                       {sourceAccount.amount?.toFixed(2)} {sourceAccountCurrency}
@@ -531,37 +549,40 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                     </p>
                   </div>
                 </div>
-              ) : sourceAccountNewBalance !== null &&
-                sourceAccountNewBalance > 0 ? (
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg text-sm">
-                  <div className="flex justify-between py-1.5 border-b border-gray-100">
+              ) : amountTransfer &&
+                !isNaN(parseNumberInput(amountTransfer)) &&
+                sourceAccountNewBalance !== null ? (
+                <div className="p-2 sm:p-3 bg-gray-50 border border-gray-200 rounded-lg text-xs sm:text-sm">
+                  <div className="flex justify-between py-1 sm:py-1.5 border-b border-gray-100">
                     <span className="text-gray-600">Will withdraw:</span>
                     <span className="font-medium text-gray-900">
                       {withdrawAmount.toFixed(2)} {sourceAccountCurrency}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1.5 border-b border-gray-100">
-                    <span className="text-gray-600">{sourceAccount.name}:</span>
+                  <div className="flex justify-between py-1 sm:py-1.5 border-b border-gray-100">
+                    <span className="text-gray-600 truncate pr-2">
+                      {sourceAccount.name}:
+                    </span>
                     <span className="font-medium text-gray-900">
                       {sourceAccount.amount?.toFixed(2)} →{" "}
                       {sourceAccountNewBalance.toFixed(2)}{" "}
                       {sourceAccountCurrency}
                     </span>
                   </div>
-                  <div className="flex justify-between py-1.5">
-                    <span className="text-gray-600">{account.name}:</span>
+                  <div className="flex justify-between py-1 sm:py-1.5">
+                    <span className="text-gray-600 truncate pr-2">
+                      {account.name}:
+                    </span>
                     <span className="font-medium text-indigo-600">
                       {(account.amount || 0).toFixed(2)} →{" "}
-                      {(newTargetBalance || 0).toFixed(2)}{" "}
-                      {account.currency}
+                      {(newTargetBalance || 0).toFixed(2)} {account.currency}
                     </span>
                   </div>
 
-                  {/* Exchange rate information */}
                   {sourceAccountCurrency &&
                     account?.currency &&
                     sourceAccountCurrency !== account.currency && (
-                      <div className="mt-2 px-1 py-1.5 bg-indigo-50 border border-indigo-100 rounded text-xs text-indigo-700">
+                      <div className="mt-1 sm:mt-2 px-1 py-1 sm:py-1.5 bg-indigo-50 border border-indigo-100 rounded text-xs text-indigo-700">
                         Exchange rate: 1 {sourceAccountCurrency} ={" "}
                         {(
                           rates[sourceAccountCurrency] /
@@ -572,40 +593,18 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                     )}
                 </div>
               ) : (
-                <div className="p-3 bg-gray-100 border border-gray-200 rounded-lg text-sm text-center">
+                <div className="p-2 sm:p-3 bg-gray-100 border border-gray-200 rounded-lg text-xs sm:text-sm text-center">
                   <p>Enter an amount to see transaction details</p>
-                  {account?.savingAccount?.targetAmount &&
-                    account.amount !== undefined && (
-                      <p className="mt-1 text-indigo-600 font-medium">
-                        {sourceAccountCurrency &&
-                        sourceAccountCurrency !== account.currency
-                          ? convertAmount(
-                              Math.max(
-                                0,
-                                account.savingAccount.targetAmount -
-                                  account.amount
-                              ),
-                              account.currency,
-                              sourceAccountCurrency
-                            ).toFixed(2)
-                          : Math.max(
-                              0,
-                              account.savingAccount.targetAmount -
-                                account.amount
-                            ).toFixed(2)}{" "}
-                        {sourceAccountCurrency || account.currency} more needed
-                      </p>
-                    )}
                 </div>
               )}
             </div>
           )}
 
-          <div className="flex gap-3 pt-2 border-t border-gray-100 mt-4">
+          <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={handleClose}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-gray-500 focus:ring-opacity-50 transition-colors text-sm font-medium"
+              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-transparent transition-all"
               disabled={loading}
             >
               Cancel
@@ -613,7 +612,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
             <motion.button
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:ring-opacity-50 transition-colors disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center text-sm font-medium"
+              className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
               disabled={
                 loading ||
                 fetchingRates ||
@@ -625,7 +624,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               {loading ? (
                 <>
                   <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    className="animate-spin -ml-1 mr-1 sm:mr-2 h-3 w-3 sm:h-4 sm:w-4 text-white"
                     xmlns="http://www.w3.org/2000/svg"
                     fill="none"
                     viewBox="0 0 24 24"

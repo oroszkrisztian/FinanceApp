@@ -50,7 +50,7 @@ const Transactions: React.FC = () => {
       setAccountsLoading(true);
 
       try {
-        const accountsData = await fetchAllAccounts(user.id);
+        const accountsData : Account[] = await fetchAllAccounts(user.id);
         setAccounts(Array.isArray(accountsData) ? accountsData : []);
       } catch (err) {
         console.error("Error fetching accounts:", err);
@@ -72,7 +72,7 @@ const Transactions: React.FC = () => {
       setLoading(true);
 
       try {
-        const data = await getUserAllTransactions(user.id);
+        const data : Transaction = await getUserAllTransactions(user.id);
 
         let transactionsArray: Transaction[] = [];
 

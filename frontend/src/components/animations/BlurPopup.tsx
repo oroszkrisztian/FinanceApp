@@ -14,7 +14,7 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
   onClose,
   children,
   closeOnBackdropClick = true,
-  backdropBlur = "sm",
+  backdropBlur = "ml",
   animationDuration = 300,
 }) => {
   const [isAnimatingIn, setIsAnimatingIn] = useState(false);
@@ -55,11 +55,11 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white rounded-lg shadow-xl w-full max-w-lg mx-4 overflow-hidden
-        transform transition-all duration-${animationDuration} ease-out
-        ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
-        ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
-          md:translate-x-5`}
+        className={`bg-white rounded-lg shadow-xl  max-w-md mx-auto overflow-hidden max-h-[90vh] w-11/12
+    transform transition-all duration-${animationDuration} ease-out
+    ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
+    ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
+    md:translate-x-10`}
       >
         {children}
       </div>
