@@ -1,3 +1,4 @@
+//import { console } from "inspector";
 import { CurrencyType, TransactionType } from "../interfaces/enums";
 
 export const getUserAllTransactions = async (userId: number) => {
@@ -9,7 +10,7 @@ export const getUserAllTransactions = async (userId: number) => {
       {
         method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ userId }),
       }
@@ -19,7 +20,6 @@ export const getUserAllTransactions = async (userId: number) => {
     const responseText = await response.text();
     console.log("Raw response text:", responseText);
 
-    
     let data;
     try {
       data = JSON.parse(responseText);
@@ -132,6 +132,48 @@ export const addFundsSaving = async (
     return data;
   } catch (err) {
     console.error("Error adding funds to savings account:", err);
+    throw err;
+  }
+};
+
+export const addFundsDefault = async (
+  userId: number,
+  amount: number,
+  fromSavingId: number,
+  toAccountId: number,
+  type: TransactionType,
+  currency: CurrencyType
+) => {
+  try {
+    const response = await fetch(
+      "http://localhost:3000/transaction/addFundDefault",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          amount,
+          fromSavingId,
+          toAccountId,
+          type,
+          currency,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || "Failed to add funds to default account"
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error adding funds to default account:", err);
     throw err;
   }
 };

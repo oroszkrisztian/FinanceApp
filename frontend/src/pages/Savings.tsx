@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { fetchSavings, searchAccount } from "../services/accountService";
+import { fetchDefaultAccounts, fetchSavings, searchAccount } from "../services/accountService";
 import { motion, AnimatePresence } from "framer-motion";
 import CreateSavingAccountPopup from "../components/accounts/CreateSavingAccountPopup";
 import EditSavingAccountPopup from "../components/accounts/EditSavingAccountPopup";
@@ -36,6 +36,38 @@ const Savings: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const contentAreaRef = useRef<HTMLDivElement>(null);
   const [filterLoading, setFilterLoading] = useState<boolean>(false);
+  const [defaultAccounts, setDefaultAccounts] = useState<Account[]>([]);
+
+  const fetchDefaultAccountsFr = async (): Promise<void> => {
+    if (!user?.id) return;
+
+    const startTime = Date.now();
+    setLoading(true);
+
+    try {
+      const data: Account[] = await fetchDefaultAccounts(user.id);
+      setDefaultAccounts(data);
+     
+
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 500 - elapsedTime);
+
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingTime);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to fetch savings accounts"
+      );
+
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 500 - elapsedTime);
+
+      setTimeout(() => {
+        setLoading(false);
+      }, remainingTime);
+    }
+  };
 
   const fetchSavingAccounts = async (): Promise<void> => {
     if (!user?.id) return;
@@ -70,6 +102,7 @@ const Savings: React.FC = () => {
 
   useEffect(() => {
     fetchSavingAccounts();
+    fetchDefaultAccountsFr();
   }, [user?.id]);
 
   useEffect(() => {
@@ -187,6 +220,7 @@ const Savings: React.FC = () => {
 
   const handleSuccess = (): void => {
     fetchSavingAccounts();
+    fetchDefaultAccountsFr();
   };
 
   const displayAccounts = getFilteredAccounts();
@@ -612,6 +646,7 @@ const Savings: React.FC = () => {
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
           accounts={savingsAccounts}
+          defaultAccounts={defaultAccounts}
           accountId={selectedAccount.id}
           accountName={selectedAccount.name}
           onSuccess={handleSuccess}

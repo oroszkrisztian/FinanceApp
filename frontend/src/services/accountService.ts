@@ -225,7 +225,7 @@ export const deleteDefaultAccount = async (
   }
 };
 
-export const deleteSavingAccount = async (userId: number, accountId: number) => {
+export const deleteSavingAccount = async (userId: number, accountId: number, p0: number | undefined) => {
   try {
     const response = await fetch(
       `http://localhost:3000/accounts/deleteSavingAccount?userId=${userId}&accountId=${accountId}`,

@@ -4,10 +4,13 @@ import { useAuth } from "../../context/AuthContext";
 import { CurrencyType, AccountType } from "../../interfaces/enums";
 import { editSavingAccount } from "../../services/accountService";
 import AnimatedModal from "../animations/BlurPopup";
-
-interface ExchangeRates {
-  [currency: string]: number;
-}
+import { 
+  ExchangeRates, 
+  fetchExchangeRates, 
+  convertAmount, 
+  getExchangeRate,
+  validateCurrencyConversion
+} from "../../services/exchangeRateService";
 
 interface EditSavingAccountPopupProps {
   setIsModalOpen: (isOpen: boolean) => void;
@@ -61,32 +64,11 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
   }, [account]);
 
   useEffect(() => {
-    const fetchExchangeRates = async () => {
+    const loadExchangeRates = async () => {
       setFetchingRates(true);
       try {
-        const response = await fetch("http://localhost:3000/exchange-rates");
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-        const ratesObj: ExchangeRates = {};
-        const rateElements = xmlDoc.getElementsByTagName("Rate");
-
-        for (let i = 0; i < rateElements.length; i++) {
-          const element = rateElements[i];
-          const currency = element.getAttribute("currency") || "";
-          const multiplier = element.getAttribute("multiplier")
-            ? parseInt(element.getAttribute("multiplier") || "1")
-            : 1;
-          const value = parseFloat(element.textContent || "0") / multiplier;
-
-          if (currency && value) ratesObj[currency] = value;
-        }
-
-        Object.values(CurrencyType).forEach((curr) => {
-          if (!ratesObj[curr]) ratesObj[curr] = 1;
-        });
-
-        setRates(ratesObj);
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
       } catch (err) {
         console.error("Error fetching exchange rates:", err);
         setError("Could not fetch exchange rates. Please try again later.");
@@ -95,7 +77,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
       }
     };
 
-    fetchExchangeRates();
+    loadExchangeRates();
   }, []);
 
   useEffect(() => {
@@ -111,21 +93,26 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
       return;
     }
 
-    if (!rates[formData.currency]) {
-      setError(`Exchange rate for ${formData.currency} not found.`);
-      setConvertedAmount(null);
-      return;
-    }
+    const validation = validateCurrencyConversion(
+      originalCurrency,
+      formData.currency,
+      rates
+    );
 
-    if (!rates[originalCurrency]) {
-      setError(`Exchange rate for ${originalCurrency} not found.`);
+    if (!validation.valid) {
+      setError(validation.error || "Currency conversion error");
       setConvertedAmount(null);
       return;
     }
 
     const targetAmount = account.savingAccount.targetAmount;
-    const convertedValue =
-      (targetAmount * rates[originalCurrency]) / rates[formData.currency];
+    const convertedValue = convertAmount(
+      targetAmount,
+      originalCurrency,
+      formData.currency,
+      rates
+    );
+    
     setConvertedAmount(convertedValue);
 
     setFormData((prev) => ({
@@ -420,8 +407,10 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                       {rates[originalCurrency] && rates[formData.currency] && (
                         <p>
                           1 {originalCurrency} ={" "}
-                          {(
-                            rates[originalCurrency] / rates[formData.currency]
+                          {getExchangeRate(
+                            originalCurrency,
+                            formData.currency,
+                            rates
                           ).toFixed(4)}{" "}
                           {formData.currency}
                         </p>

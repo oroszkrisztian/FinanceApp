@@ -251,4 +251,123 @@ export class TransactionRepository {
       return transaction;
     });
   }
+
+  async addFundsDefault(
+    userId: number,
+    amount: number,
+    fromSavingId: number,
+    toAccountId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
+    // Find the source savings account
+    const fromAccount = await this.prisma.account.findFirst({
+      where: {
+        id: fromSavingId,
+        userId,
+        type: "SAVINGS",
+        deletedAt: null,
+      },
+      include: {
+        savingAccount: true,
+      },
+    });
+
+    if (!fromAccount) {
+      throw new Error(
+        "Source savings account not found or doesn't belong to the user"
+      );
+    }
+
+    // Find the destination default account
+    const toAccount = await this.prisma.account.findFirst({
+      where: {
+        id: toAccountId,
+        userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!toAccount) {
+      throw new Error(
+        "Destination account not found or doesn't belong to the user"
+      );
+    }
+
+    // Calculate correct amount to withdraw from savings account
+    // If currencies don't match, convert the amount to the source account's currency
+    let amountToWithdraw = amount;
+
+    if (fromAccount.currency !== currency) {
+      const rates = await this.getExchangeRates();
+      if (!rates[fromAccount.currency]) {
+        throw new Error(`Exchange rate for ${fromAccount.currency} not found`);
+      }
+      if (!rates[currency]) {
+        throw new Error(`Exchange rate for ${currency} not found`);
+      }
+
+      // Convert the amount from destination currency to source currency
+      amountToWithdraw =
+        amount * (rates[currency] / rates[fromAccount.currency]);
+      console.log(
+        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency} for withdrawal`
+      );
+    }
+
+    // Check if there are sufficient funds in the savings account
+    if (fromAccount.amount < amountToWithdraw) {
+      throw new Error(
+        `Insufficient funds in savings account. Available: ${fromAccount.amount} ${fromAccount.currency}, Required: ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`
+      );
+    }
+
+    // Execute the transaction within a database transaction
+    return await this.prisma.$transaction(async (prisma) => {
+      // Create transaction record
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId,
+          amount,
+          type,
+          fromAccountId: fromSavingId,
+          toAccountId: toAccountId,
+          currency,
+        },
+        include: {
+          fromAccount: true,
+          toAccount: true,
+          customCategory: true,
+        },
+      });
+
+      // Update the source savings account (decrease amount)
+      await prisma.account.update({
+        where: {
+          id: fromSavingId,
+        },
+        data: {
+          amount: {
+            decrement: amountToWithdraw,
+          },
+        },
+      });
+
+      // Update the destination default account (increase amount)
+      console.log("Adding funds to default account:", toAccountId);
+      console.log("amount:", amount);
+      await prisma.account.update({
+        where: {
+          id: toAccountId,
+        },
+        data: {
+          amount: {
+            increment: amount,
+          },
+        },
+      });
+
+      return transaction;
+    });
+  }
 }

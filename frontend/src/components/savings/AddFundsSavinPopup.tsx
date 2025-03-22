@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import ErrorState from "../ErrorState";
-import { CurrencyType, TransactionType } from "../../interfaces/enums";
+import { TransactionType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
 import { fetchDefaultAccounts } from "../../services/accountService";
 import { Account } from "../../interfaces/Account";
 import { addFundsSaving } from "../../services/transactionService";
 import AnimatedModal from "../animations/BlurPopup";
-
-interface ExchangeRates {
-  [key: string]: number;
-}
+import { ExchangeRates, fetchExchangeRates, convertAmount } from "../../services/exchangeRateService";
 
 interface AddFundsPopupProps {
   isOpen: boolean;
@@ -65,32 +62,11 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
   }, [user?.id]);
 
   useEffect(() => {
-    const fetchExchangeRates = async () => {
+    const loadExchangeRates = async () => {
       setFetchingRates(true);
       try {
-        const response = await fetch("http://localhost:3000/exchange-rates");
-        const xmlText = await response.text();
-        const parser = new DOMParser();
-        const xmlDoc = parser.parseFromString(xmlText, "text/xml");
-        const ratesObj: ExchangeRates = {};
-        const rateElements = xmlDoc.getElementsByTagName("Rate");
-        for (let i = 0; i < rateElements.length; i++) {
-          const element = rateElements[i];
-          const currency = element.getAttribute("currency") || "";
-          const multiplier = element.getAttribute("multiplier")
-            ? parseInt(element.getAttribute("multiplier") || "1")
-            : 1;
-          const value = parseFloat(element.textContent || "0") / multiplier;
-          if (currency && value) ratesObj[currency] = value;
-        }
-
-        ratesObj["RON"] = 1;
-
-        Object.values(CurrencyType).forEach((curr) => {
-          if (!ratesObj[curr]) ratesObj[curr] = 1;
-        });
-
-        setRates(ratesObj);
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
       } catch (err) {
         console.error("Error fetching exchange rates:", err);
         setError("Could not fetch exchange rates. Please try again later.");
@@ -98,7 +74,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
         setFetchingRates(false);
       }
     };
-    fetchExchangeRates();
+    loadExchangeRates();
   }, []);
 
   useEffect(() => {
@@ -116,24 +92,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
     }
   }, [selectedSourceAccount, defaultAccounts, account?.currency]);
 
-  const convertAmount = (
-    amount: number,
-    fromCurrency: string,
-    toCurrency: string
-  ): number => {
-    if (fromCurrency === toCurrency) return amount;
-    if (!rates[fromCurrency] || !rates[toCurrency]) return amount;
-
-    if (fromCurrency === "RON") {
-      return amount / rates[toCurrency];
-    } else if (toCurrency === "RON") {
-      return amount * rates[fromCurrency];
-    } else {
-      const amountInRON = amount * rates[fromCurrency];
-      return amountInRON / rates[toCurrency];
-    }
-  };
-
   const getTargetAmount = (): number => {
     if (!amountTransfer || !sourceAccountCurrency || !account?.currency)
       return 0;
@@ -146,7 +104,8 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       return convertAmount(
         amountValue,
         sourceAccountCurrency,
-        account.currency
+        account.currency,
+        rates
       );
     }
   };
@@ -184,14 +143,15 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       const maxAllowedToAdd = Math.max(0, targetAmount - currentAmount);
 
       const excessInSourceCurrency = sourceAccountCurrency
-        ? convertAmount(excessAmount, account.currency, sourceAccountCurrency)
+        ? convertAmount(excessAmount, account.currency, sourceAccountCurrency, rates)
         : excessAmount;
 
       const maxAllowedInSourceCurrency = sourceAccountCurrency
         ? convertAmount(
             maxAllowedToAdd,
             account.currency,
-            sourceAccountCurrency
+            sourceAccountCurrency,
+            rates
           )
         : maxAllowedToAdd;
 
@@ -214,11 +174,10 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
     (acc) => acc.id === selectedSourceAccount
   );
   const withdrawAmount = getWithdrawAmount();
-  //const targetAmount = getTargetAmount();
 
   const getDisplayAmount = (amount: number, fromCurrency: string): string => {
     if (sourceAccountCurrency && sourceAccountCurrency !== fromCurrency) {
-      return `${convertAmount(amount, fromCurrency, sourceAccountCurrency).toFixed(2)} ${sourceAccountCurrency}`;
+      return `${convertAmount(amount, fromCurrency, sourceAccountCurrency, rates).toFixed(2)} ${sourceAccountCurrency}`;
     } else {
       return `${amount.toFixed(2)} ${fromCurrency}`;
     }
@@ -261,7 +220,8 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       const convertedAmount = convertAmount(
         amountToAdd,
         sourceAccount.currency,
-        account.currency
+        account.currency,
+        rates
       );
 
       await addFundsSaving(
@@ -449,7 +409,8 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                   {convertAmount(
                     parseNumberInput(amountTransfer),
                     sourceAccountCurrency,
-                    account.currency
+                    account.currency,
+                    rates
                   ).toFixed(2)}{" "}
                   {account.currency}
                 </p>
@@ -469,7 +430,8 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                           getTargetAmount()
                       ),
                       account.currency,
-                      sourceAccountCurrency
+                      sourceAccountCurrency,
+                      rates
                     ).toFixed(2)
                   : Math.max(
                       0,
@@ -624,35 +586,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                 targetCheck?.exceeded
               }
             >
-              {/* {loading ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : fetchingRates ? (
-                "Loading Rates..."
-              ) : ( */}
-                Add Funds  
-              {/* )} */}
+              Add Funds
             </motion.button>
           </div>
         </form>

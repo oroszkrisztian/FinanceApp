@@ -108,4 +108,42 @@ transaction.post("/addFundSaving", async (c) => {
   }
 });
 
+
+transaction.post("/addFundDefault", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, amount, fromSavingId, toAccountId, currency } = body;
+
+    if (!userId || !fromSavingId || !toAccountId) {
+      return c.json(
+        {
+          error:
+            "Missing required fields (userId, amount, fromSavingId, toAccountId)",
+        },
+        400
+      );
+    }
+
+    if (!currency) {
+      return c.json({
+        error: "Missing currency",
+      });
+    }
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return c.json({ error: "Amount must be a positive number" }, 400);
+    }
+
+    const result = await transactionController.addFundsDefault(c);
+
+    return result;
+  } catch (error) {
+    console.error("Error in /addFundDefault route:", error);
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 500);
+    }
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 export default transaction;

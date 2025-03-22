@@ -3,21 +3,17 @@ import { TransactionRepository } from "../repositories/transactionRepository";
 
 export class TransactionService {
   private transactionRepo: TransactionRepository;
-  
+
   constructor() {
     this.transactionRepo = new TransactionRepository();
   }
 
-
-  async getUserAllTransactions(
-    userId : number
-  ){
+  async getUserAllTransactions(userId: number) {
     try {
-      const allTransactions = await this.transactionRepo.getUserAllTransactions(
-        userId
-      )
+      const allTransactions =
+        await this.transactionRepo.getUserAllTransactions(userId);
       console.log("Service layer transactions:", allTransactions);
-      return allTransactions
+      return allTransactions;
     } catch (error) {
       console.error(
         "Error in TransactionService.getUserAllTransactions:",
@@ -26,7 +22,7 @@ export class TransactionService {
       throw new Error("Failed to add funds to default account");
     }
   }
-  
+
   async addFundsDefaultAccount(
     userId: number,
     name: string,
@@ -77,13 +73,32 @@ export class TransactionService {
       );
       return savingTransaction;
     } catch (error) {
-      console.error(
-        "Error in TransactionService.addFundsSaving:",
-        error
-      );
+      console.error("Error in TransactionService.addFundsSaving:", error);
       throw new Error("Failed to add funds to savings account");
     }
   }
 
-  
+  async addFundsDefault(
+    userId: number,
+    amount: number,
+    fromSavingId: number,
+    toAccountId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
+    try {
+      const defaultTransaction = await this.transactionRepo.addFundsDefault(
+        userId,
+        amount,
+        fromSavingId,
+        toAccountId,
+        type,
+        currency
+      );
+      return defaultTransaction;
+    } catch (error) {
+      console.error("Error in TransactionService.addFundsDefault:", error);
+      throw new Error("Failed to add funds to default account");
+    }
+  }
 }
