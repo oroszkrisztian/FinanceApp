@@ -32,3 +32,8 @@ export enum Frequency {
     DEFAULT = "DEFAULT",
     SAVINGS = "SAVINGS",
   }
+
+  export enum CategoryType {
+    SYSTEM = "SYSTEM",
+    USER = "USER",
+  }

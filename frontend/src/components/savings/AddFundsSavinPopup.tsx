@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import ErrorState from "../ErrorState";
 import { TransactionType } from "../../interfaces/enums";
@@ -7,7 +7,11 @@ import { fetchDefaultAccounts } from "../../services/accountService";
 import { Account } from "../../interfaces/Account";
 import { addFundsSaving } from "../../services/transactionService";
 import AnimatedModal from "../animations/BlurPopup";
-import { ExchangeRates, fetchExchangeRates, convertAmount } from "../../services/exchangeRateService";
+import {
+  ExchangeRates,
+  fetchExchangeRates,
+  convertAmount,
+} from "../../services/exchangeRateService";
 
 interface AddFundsPopupProps {
   isOpen: boolean;
@@ -27,6 +31,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [defaultAccounts, setDefaultAccounts] = useState<Account[]>([]);
+  const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
   const [selectedSourceAccount, setSelectedSourceAccount] = useState<
     number | null
   >(null);
@@ -38,6 +43,10 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
   >(null);
   const [isClosing, setIsClosing] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [showAccountDropdown, setShowAccountDropdown] =
+    useState<boolean>(false);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   const parseNumberInput = (value: string) => {
     if (!value) return NaN;
@@ -51,6 +60,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       try {
         const accounts = await fetchDefaultAccounts(user.id);
         setDefaultAccounts(accounts);
+        setFilteredAccounts(accounts);
       } catch (err) {
         console.error("Error loading accounts:", err);
         setError("Failed to load source accounts");
@@ -91,6 +101,52 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       setDisplayCurrency(account?.currency || null);
     }
   }, [selectedSourceAccount, defaultAccounts, account?.currency]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowAccountDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Filter accounts based on search input
+  useEffect(() => {
+    if (searchInput.trim() === "") {
+      setFilteredAccounts(defaultAccounts);
+    } else {
+      const filtered = defaultAccounts.filter((account) =>
+        account.name.toLowerCase().includes(searchInput.toLowerCase())
+      );
+      setFilteredAccounts(filtered);
+    }
+  }, [searchInput, defaultAccounts]);
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    setShowAccountDropdown(true);
+  };
+
+  const selectAccount = (accountId: number) => {
+    setSelectedSourceAccount(accountId);
+    setSearchInput("");
+    setShowAccountDropdown(false);
+  };
+
+  const clearSelectedAccount = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setSelectedSourceAccount(null);
+    setSearchInput("");
+  };
 
   const getTargetAmount = (): number => {
     if (!amountTransfer || !sourceAccountCurrency || !account?.currency)
@@ -143,7 +199,12 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       const maxAllowedToAdd = Math.max(0, targetAmount - currentAmount);
 
       const excessInSourceCurrency = sourceAccountCurrency
-        ? convertAmount(excessAmount, account.currency, sourceAccountCurrency, rates)
+        ? convertAmount(
+            excessAmount,
+            account.currency,
+            sourceAccountCurrency,
+            rates
+          )
         : excessAmount;
 
       const maxAllowedInSourceCurrency = sourceAccountCurrency
@@ -289,7 +350,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                   ? getDisplayAmount(account?.amount || 0, account?.currency)
                   : `${account?.amount?.toFixed(2) || "0.00"} ${account?.currency || "USD"}`}
               </p>
-              
             </div>
           </div>
         </div>
@@ -321,31 +381,139 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
             >
               Source Account<span className="text-red-500">*</span>
             </label>
-            <select
-              id="sourceAccount"
-              value={selectedSourceAccount || ""}
-              onChange={(e) => setSelectedSourceAccount(Number(e.target.value))}
-              className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-600 focus:border-transparent transition-all text-sm md:text-base"
-              required
-              disabled={loadingAccounts}
-            >
-              {loadingAccounts ? (
-                <option>Loading accounts...</option>
-              ) : defaultAccounts.length === 0 ? (
-                <option value="">No accounts available</option>
-              ) : (
-                <>
-                  <option value="" disabled hidden>
-                    Select an account
-                  </option>
-                  {defaultAccounts.map((acc) => (
-                    <option key={acc.id} value={acc.id}>
-                      {acc.name} ({acc.amount?.toFixed(2)} {acc.currency})
-                    </option>
-                  ))}
-                </>
+
+            {/* Searchable Account Selection */}
+            <div ref={searchRef} className="relative">
+              <div
+                className="flex items-center bg-white border border-gray-300 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-600 focus-within:border-transparent transition-all"
+                onClick={() => setShowAccountDropdown(!showAccountDropdown)}
+              >
+                <div className="px-3 text-gray-500">
+                  <svg
+                    className="h-5 w-5"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+
+                {selectedSourceAccount ? (
+                  <div className="flex-1 py-3 px-1">
+                    <span className="font-medium text-gray-900">
+                      {
+                        defaultAccounts.find(
+                          (acc) => acc.id === selectedSourceAccount
+                        )?.name
+                      }{" "}
+                      (
+                      {defaultAccounts
+                        .find((acc) => acc.id === selectedSourceAccount)
+                        ?.amount?.toFixed(2)}{" "}
+                      {
+                        defaultAccounts.find(
+                          (acc) => acc.id === selectedSourceAccount
+                        )?.currency
+                      }
+                      )
+                    </span>
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    className="flex-1 py-3 bg-transparent outline-none text-gray-900 font-medium"
+                    placeholder="Search accounts..."
+                    value={searchInput}
+                    onChange={handleSearchInputChange}
+                    onClick={() => setShowAccountDropdown(true)}
+                  />
+                )}
+
+                {(searchInput || selectedSourceAccount) && (
+                  <button
+                    type="button"
+                    className="px-3 text-gray-400 hover:text-gray-600"
+                    onClick={clearSelectedAccount}
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+
+                <div className="px-2 text-gray-400">
+                  <svg
+                    className={`w-4 h-4 transition-transform duration-200 ${showAccountDropdown ? "transform rotate-180" : ""}`}
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              {showAccountDropdown && (
+                <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-lg max-h-28 overflow-auto">
+                  {loadingAccounts ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      Loading accounts...
+                    </div>
+                  ) : filteredAccounts.length === 0 ? (
+                    <div className="px-3 py-2 text-sm text-gray-500">
+                      No matching accounts found
+                    </div>
+                  ) : (
+                    filteredAccounts.map((account, index) => (
+                      <div
+                        key={account.id}
+                        className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${
+                          selectedSourceAccount === account.id
+                            ? "bg-indigo-10t0"
+                            : ""
+                        } ${
+                          index === filteredAccounts.length - 1
+                            ? ""
+                            : "border-b border-gray-100"
+                        }`}
+                        onClick={() => selectAccount(account.id)}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="font-medium">{account.name}</span>
+                          <span className="text-xs text-gray-500">
+                            {account.amount !== undefined
+                              ? `${account.amount.toFixed(2)} ${account.currency}`
+                              : ""}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               )}
-            </select>
+            </div>
           </div>
 
           {selectedSourceAccount &&

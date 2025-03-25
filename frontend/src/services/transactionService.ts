@@ -1,4 +1,4 @@
-//import { console } from "inspector";
+
 import { CurrencyType, TransactionType } from "../interfaces/enums";
 
 export const getUserAllTransactions = async (userId: number) => {

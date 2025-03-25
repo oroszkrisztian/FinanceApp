@@ -14,6 +14,9 @@ export class TransactionRepository {
       where: {
         userId: userId,
       },
+      orderBy: {
+        createdAt: "desc",
+      }
     });
     console.log("Repository layer transactions:", allTransactions);
     return allTransactions;
@@ -260,7 +263,7 @@ export class TransactionRepository {
     type: TransactionType,
     currency: CurrencyType
   ) {
-    // Find the source savings account
+   
     const fromAccount = await this.prisma.account.findFirst({
       where: {
         id: fromSavingId,
@@ -279,7 +282,7 @@ export class TransactionRepository {
       );
     }
 
-    // Find the destination default account
+   
     const toAccount = await this.prisma.account.findFirst({
       where: {
         id: toAccountId,
@@ -294,8 +297,7 @@ export class TransactionRepository {
       );
     }
 
-    // Calculate correct amount to withdraw from savings account
-    // If currencies don't match, convert the amount to the source account's currency
+   
     let amountToWithdraw = amount;
 
     if (fromAccount.currency !== currency) {
@@ -307,7 +309,7 @@ export class TransactionRepository {
         throw new Error(`Exchange rate for ${currency} not found`);
       }
 
-      // Convert the amount from destination currency to source currency
+      
       amountToWithdraw =
         amount * (rates[currency] / rates[fromAccount.currency]);
       console.log(
@@ -315,16 +317,16 @@ export class TransactionRepository {
       );
     }
 
-    // Check if there are sufficient funds in the savings account
+    
     if (fromAccount.amount < amountToWithdraw) {
       throw new Error(
         `Insufficient funds in savings account. Available: ${fromAccount.amount} ${fromAccount.currency}, Required: ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`
       );
     }
 
-    // Execute the transaction within a database transaction
+   
     return await this.prisma.$transaction(async (prisma) => {
-      // Create transaction record
+      
       const transaction = await prisma.transaction.create({
         data: {
           userId,
@@ -341,7 +343,7 @@ export class TransactionRepository {
         },
       });
 
-      // Update the source savings account (decrease amount)
+      
       await prisma.account.update({
         where: {
           id: fromSavingId,
@@ -353,7 +355,7 @@ export class TransactionRepository {
         },
       });
 
-      // Update the destination default account (increase amount)
+     
       console.log("Adding funds to default account:", toAccountId);
       console.log("amount:", amount);
       await prisma.account.update({

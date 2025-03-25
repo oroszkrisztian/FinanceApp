@@ -48,20 +48,26 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex items-center justify-center ${blurClass}
-        transition-all duration-${animationDuration} ease-in-out
-        ${isAnimatingIn ? "bg-black/50" : "bg-black/0"}
-        ${isAnimatingOut ? "bg-black/0" : ""}`}
+      className={`fixed inset-0 z-10 flex items-center justify-center ${blurClass}
+          transition-all duration-${animationDuration} ease-in-out
+          ${isAnimatingIn ? "bg-black/50" : "bg-black/0"}
+          ${isAnimatingOut ? "bg-black/0" : ""}`}
       onClick={handleBackdropClick}
     >
-      <div
-        className={`bg-white rounded-lg shadow-xl  max-w-md mx-auto overflow-x-auto max-h-[90vh] w-11/12
-    transform transition-all duration-${animationDuration} ease-out
-    ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
-    ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
-    md:translate-x-10`}
-      >
-        {children}
+      <div className="relative w-full h-full flex items-center justify-center">
+        <div
+          className={`bg-white rounded-lg shadow-xl max-w-md mx-auto w-11/12
+              transform transition-all duration-${animationDuration} ease-out
+              ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
+              ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
+              md:translate-x-10`}
+          style={{
+            maxHeight: "90vh",
+            overflow: "auto",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );

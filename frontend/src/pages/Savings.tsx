@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { fetchDefaultAccounts, fetchSavings, searchAccount } from "../services/accountService";
+import { fetchDefaultAccounts, fetchSavings } from "../services/accountService";
 import { motion, AnimatePresence } from "framer-motion";
 import CreateSavingAccountPopup from "../components/accounts/CreateSavingAccountPopup";
 import EditSavingAccountPopup from "../components/accounts/EditSavingAccountPopup";
@@ -12,6 +12,7 @@ import ActiveSavingCard from "../components/savings/ActiveSavingCard";
 import CompletedSavingCard from "../components/savings/CompletedSavingCard";
 import { Account } from "../interfaces/Account";
 import DeleteSavingAccountModal from "../components/savings/DeletSavingPopup";
+import { createPortal } from "react-dom";
 
 type FilterOption = "all" | "active" | "completed";
 
@@ -24,7 +25,9 @@ const Savings: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+  const [selectedSearchResult, setSelectedSearchResult] = useState<Account | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
   const [isAddFundsModalOpen, setIsAddFundsModalOpen] =
     useState<boolean>(false);
@@ -33,25 +36,22 @@ const Savings: React.FC = () => {
     useState<Account | null>(null);
   const [filterOption, setFilterOption] = useState<FilterOption>("all");
   const [filterMenuOpen, setFilterMenuOpen] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const contentAreaRef = useRef<HTMLDivElement>(null);
   const [filterLoading, setFilterLoading] = useState<boolean>(false);
   const [defaultAccounts, setDefaultAccounts] = useState<Account[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const contentAreaRef = useRef<HTMLDivElement>(null);
 
   const fetchDefaultAccountsFr = async (): Promise<void> => {
     if (!user?.id) return;
-
     const startTime = Date.now();
     setLoading(true);
-
     try {
       const data: Account[] = await fetchDefaultAccounts(user.id);
       setDefaultAccounts(data);
-     
-
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, 500 - elapsedTime);
-
       setTimeout(() => {
         setLoading(false);
       }, remainingTime);
@@ -59,10 +59,8 @@ const Savings: React.FC = () => {
       setError(
         err instanceof Error ? err.message : "Failed to fetch savings accounts"
       );
-
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, 500 - elapsedTime);
-
       setTimeout(() => {
         setLoading(false);
       }, remainingTime);
@@ -71,18 +69,14 @@ const Savings: React.FC = () => {
 
   const fetchSavingAccounts = async (): Promise<void> => {
     if (!user?.id) return;
-
     const startTime = Date.now();
     setLoading(true);
-
     try {
       const data: Account[] = await fetchSavings(user.id);
       setSavingsAccounts(data);
       setFilteredAccounts(data);
-
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, 500 - elapsedTime);
-
       setTimeout(() => {
         setLoading(false);
       }, remainingTime);
@@ -90,10 +84,8 @@ const Savings: React.FC = () => {
       setError(
         err instanceof Error ? err.message : "Failed to fetch savings accounts"
       );
-
       const elapsedTime = Date.now() - startTime;
       const remainingTime = Math.max(0, 500 - elapsedTime);
-
       setTimeout(() => {
         setLoading(false);
       }, remainingTime);
@@ -106,27 +98,76 @@ const Savings: React.FC = () => {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!user?.id) return;
-
-    const delayDebounceFn = setTimeout(async () => {
-      try {
-        if (searchTerm.trim() === "") {
-          setFilteredAccounts(savingsAccounts);
-        } else {
-          const data: Account[] = await searchAccount(user.id, searchTerm);
-          setFilteredAccounts(data);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Failed to search savings accounts"
-        );
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchDropdown(false);
       }
-    }, 300);
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setFilterMenuOpen(false);
+      }
+    };
 
-    return () => clearTimeout(delayDebounceFn);
-  }, [searchTerm, user?.id, savingsAccounts]);
+    const handleScroll = () => {
+      setShowSearchDropdown(false);
+      setFilterMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    if (contentAreaRef.current) {
+      contentAreaRef.current.addEventListener("scroll", handleScroll, {
+        passive: true,
+      });
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll);
+      if (contentAreaRef.current) {
+        contentAreaRef.current.removeEventListener("scroll", handleScroll);
+      }
+    };
+  }, []);
+
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    setSelectedSearchResult(null);
+    setShowSearchDropdown(true);
+  };
+
+ 
+  useEffect(() => {
+    if (searchInput.trim() === "" && !selectedSearchResult) {
+      setFilteredAccounts(savingsAccounts);
+    } else if (selectedSearchResult) {
+      setFilteredAccounts([selectedSearchResult]);
+    } else {
+      const filtered = savingsAccounts.filter((account) =>
+        account.name.toLowerCase().includes(searchInput.toLowerCase())
+      );
+      setFilteredAccounts(filtered);
+    }
+  }, [searchInput, savingsAccounts, selectedSearchResult]);
+
+  const selectSearchResult = (account: Account) => {
+    setSelectedSearchResult(account);
+    setSearchInput("");
+    setShowSearchDropdown(false);
+    setFilteredAccounts([account]);
+  };
+
+  const clearSearch = () => {
+    setSearchInput("");
+    setSelectedSearchResult(null);
+    setFilteredAccounts(savingsAccounts);
+  };
 
   const handleEdit = (accountId: number): void => {
     const account = savingsAccounts.find((acc) => acc.id === accountId);
@@ -155,46 +196,10 @@ const Savings: React.FC = () => {
     setFilterLoading(true);
     setFilterOption(option);
     setFilterMenuOpen(false);
-
     setTimeout(() => {
       setFilterLoading(false);
     }, 500);
   };
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setFilterMenuOpen(false);
-      }
-    };
-
-    const handleScroll = () => {
-      setFilterMenuOpen(false);
-    };
-
-    if (filterMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      window.addEventListener("scroll", handleScroll, { passive: true });
-
-      if (contentAreaRef.current) {
-        contentAreaRef.current.addEventListener("scroll", handleScroll, {
-          passive: true,
-        });
-      }
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", handleScroll);
-
-      if (contentAreaRef.current) {
-        contentAreaRef.current.removeEventListener("scroll", handleScroll);
-      }
-    };
-  }, [filterMenuOpen]);
 
   const handleDelete = (accountId: number): void => {
     const account = savingsAccounts.find((acc) => acc.id === accountId);
@@ -203,7 +208,7 @@ const Savings: React.FC = () => {
       setIsDeleteModalOpen(true);
       setActiveMenu(null);
     }
-  }
+  };
 
   const handleCreateSavings = (): void => {
     setIsCreateModalOpen(true);
@@ -221,15 +226,18 @@ const Savings: React.FC = () => {
   const handleSuccess = (): void => {
     fetchSavingAccounts();
     fetchDefaultAccountsFr();
+    setSelectedSearchResult(null);
   };
 
   const displayAccounts = getFilteredAccounts();
   const activeAccounts = filteredAccounts.filter(
     (account) => !account.savingAccount?.isCompleted
   );
-
   const completedAccounts = filteredAccounts.filter(
     (account) => account.savingAccount?.isCompleted
+  );
+  const searchResults = savingsAccounts.filter((account) =>
+    account.name.toLowerCase().includes(searchInput.toLowerCase())
   );
 
   if (loading) {
@@ -242,7 +250,6 @@ const Savings: React.FC = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gradient-to-r from-indigo-50 via-purple-50 to-indigo-50">
-      {/* Header with Search and Filter */}
       {!loading && savingsAccounts.length > 0 && (
         <div className="sticky top-0 z-10 p-3 md:p-6 pb-2">
           <motion.div
@@ -251,34 +258,108 @@ const Savings: React.FC = () => {
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.1 }}
             className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-indigo-100"
           >
-            {/* Search and Filter Container */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full">
-              {/* Search Input */}
-              <div className="relative w-full sm:w-64 lg:w-80">
-                <input
-                  type="text"
-                  placeholder="Search goals..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-indigo-50 border border-indigo-200 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-gray-700"
-                />
-                <svg
-                  className="absolute left-3 top-3 h-5 w-5 text-indigo-400"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
+              {/* Search Component with Dropdown */}
+              <div ref={searchRef} className="relative w-full sm:w-64 lg:w-80">
+                <div 
+                  className="flex items-center bg-indigo-50 border border-indigo-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent"
+                  onClick={() => setShowSearchDropdown(true)}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  <div className="px-3 text-indigo-400">
+                    <svg 
+                      className="h-5 w-5" 
+                      xmlns="http://www.w3.org/2000/svg" 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+                  
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className="w-full py-2.5 bg-transparent outline-none text-gray-900 font-medium"
+                    placeholder="Search goals..."
+                    value={selectedSearchResult ? selectedSearchResult.name : searchInput}
+                    onChange={handleSearchInputChange}
+                    onClick={() => {
+                      setShowSearchDropdown(true);
+                      setSearchInput("");
+                    }}
                   />
-                </svg>
+                  
+                  {(searchInput || selectedSearchResult) && (
+                    <button
+                      type="button"
+                      className="px-3 text-indigo-400 hover:text-indigo-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearSearch();
+                      }}
+                    >
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  )}
+                  
+                  <div className="px-2 text-indigo-400">
+                    <svg 
+                      className={`w-4 h-4 transition-transform duration-200 ${showSearchDropdown ? 'transform rotate-180' : ''}`} 
+                      fill="none" 
+                      viewBox="0 0 24 24" 
+                      stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                </div>
+                
+                {showSearchDropdown && savingsAccounts.length > 0 && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-indigo-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {searchResults.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-500">
+                        No matching goals found
+                      </div>
+                    ) : (
+                      searchResults.map((account, index) => (
+                        <div
+                          key={account.id}
+                          className={`px-4 py-3 hover:bg-indigo-50 cursor-pointer ${
+                            selectedSearchResult?.id === account.id ? 'bg-indigo-50' : ''
+                          } ${
+                            index === searchResults.length - 1 ? '' : 'border-b border-indigo-100'
+                          }`}
+                          onClick={() => selectSearchResult(account)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-medium text-gray-700">{account.name}</span>
+                            <span
+                              className={`text-xs px-2 py-1 rounded-full ${
+                                account.savingAccount?.isCompleted
+                                  ? "bg-green-100 text-green-700"
+                                  : "bg-indigo-100 text-indigo-700"
+                              }`}
+                            >
+                              {account.savingAccount?.isCompleted
+                                ? "Completed"
+                                : "Active"}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Filter Dropdown */}
               <div className="relative w-full sm:w-auto">
                 <button
                   onClick={() => setFilterMenuOpen(!filterMenuOpen)}
@@ -309,9 +390,7 @@ const Savings: React.FC = () => {
                   </div>
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
-                    className={`h-4 w-4 ml-1 transition-transform duration-200 ${
-                      filterMenuOpen ? "transform rotate-180" : ""
-                    }`}
+                    className={`h-4 w-4 ml-1 transition-transform duration-200 ${filterMenuOpen ? "transform rotate-180" : ""}`}
                     fill="none"
                     viewBox="0 0 24 24"
                     stroke="currentColor"
@@ -332,20 +411,12 @@ const Savings: React.FC = () => {
                   >
                     <div className="py-1">
                       <button
-                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${
-                          filterOption === "all"
-                            ? "bg-indigo-50 text-indigo-700 font-medium"
-                            : "text-gray-700 hover:bg-indigo-50"
-                        } transition-colors`}
+                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${filterOption === "all" ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-700 hover:bg-indigo-50"} transition-colors`}
                         onClick={() => handleFilterChange("all")}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className={`h-4 w-4 mr-3 ${
-                            filterOption === "all"
-                              ? "text-indigo-600"
-                              : "text-gray-500"
-                          }`}
+                          className={`h-4 w-4 mr-3 ${filterOption === "all" ? "text-indigo-600" : "text-gray-500"}`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -361,20 +432,12 @@ const Savings: React.FC = () => {
                       </button>
 
                       <button
-                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${
-                          filterOption === "active"
-                            ? "bg-indigo-50 text-indigo-700 font-medium"
-                            : "text-gray-700 hover:bg-indigo-50"
-                        } transition-colors`}
+                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${filterOption === "active" ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-700 hover:bg-indigo-50"} transition-colors`}
                         onClick={() => handleFilterChange("active")}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className={`h-4 w-4 mr-3 ${
-                            filterOption === "active"
-                              ? "text-indigo-600"
-                              : "text-gray-500"
-                          }`}
+                          className={`h-4 w-4 mr-3 ${filterOption === "active" ? "text-indigo-600" : "text-gray-500"}`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -390,20 +453,12 @@ const Savings: React.FC = () => {
                       </button>
 
                       <button
-                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${
-                          filterOption === "completed"
-                            ? "bg-indigo-50 text-indigo-700 font-medium"
-                            : "text-gray-700 hover:bg-indigo-50"
-                        } transition-colors`}
+                        className={`flex items-center w-full text-left px-4 py-2 text-sm ${filterOption === "completed" ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-700 hover:bg-indigo-50"} transition-colors`}
                         onClick={() => handleFilterChange("completed")}
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
-                          className={`h-4 w-4 mr-3 ${
-                            filterOption === "completed"
-                              ? "text-indigo-600"
-                              : "text-gray-500"
-                          }`}
+                          className={`h-4 w-4 mr-3 ${filterOption === "completed" ? "text-indigo-600" : "text-gray-500"}`}
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -423,7 +478,6 @@ const Savings: React.FC = () => {
               </div>
             </div>
 
-            {/* Create Button */}
             <motion.button
               onClick={handleCreateSavings}
               whileHover={{ scale: 1.03 }}
@@ -451,9 +505,7 @@ const Savings: React.FC = () => {
         </div>
       )}
 
-      {/* Main Content Area */}
       <div className="flex-1 overflow-auto" ref={contentAreaRef}>
-        {/* Filter Loading */}
         {filterLoading && (
           <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex justify-center items-center z-20 transition-opacity duration-300 ease-in-out">
             <div className="flex flex-col items-center bg-white/80 p-4 rounded-xl shadow-md">
@@ -464,17 +516,16 @@ const Savings: React.FC = () => {
             </div>
           </div>
         )}
-        {/* Empty State */}
+
         {!loading && savingsAccounts.length === 0 && (
           <div className="flex justify-center items-center p-4 sm:p-8">
             <SavingsEmptyState onCreateSavings={handleCreateSavings} />
           </div>
         )}
 
-        {/* No Search Results */}
         {!loading &&
           filteredAccounts.length === 0 &&
-          searchTerm &&
+          (searchInput || selectedSearchResult) &&
           savingsAccounts.length > 0 && (
             <div className="p-3 sm:p-4 md:px-6">
               <motion.div
@@ -501,13 +552,11 @@ const Savings: React.FC = () => {
                   No results found
                 </h2>
                 <p className="text-sm sm:text-base text-gray-600 mb-4">
-                  We couldn't find any savings accounts matching "{searchTerm}".
+                  We couldn't find any savings accounts matching "{selectedSearchResult?.name || searchInput}
+                  ".
                 </p>
                 <button
-                  onClick={() => {
-                    setSearchTerm("");
-                    setFilteredAccounts(savingsAccounts);
-                  }}
+                  onClick={clearSearch}
                   className="text-indigo-600 font-medium hover:text-indigo-800 transition-colors"
                 >
                   Clear search
@@ -516,10 +565,8 @@ const Savings: React.FC = () => {
             </div>
           )}
 
-        {/* Savings Accounts Grid */}
         {!loading && displayAccounts.length > 0 && (
-          <div className="p-3  md:px-6 pt-2 pb-16 sm:pb-20">
-            {/* Active Goals Section */}
+          <div className="p-3 md:px-6 pt-2 pb-16 sm:pb-20">
             {filterOption !== "completed" && activeAccounts.length > 0 && (
               <div className="mb-5 sm:mb-6">
                 <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 sm:mb-4">
@@ -528,7 +575,7 @@ const Savings: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={`active-${searchTerm}-${filterOption}`}
+                      key={`active-${searchInput}-${filterOption}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -553,7 +600,6 @@ const Savings: React.FC = () => {
               </div>
             )}
 
-            {/* Completed Goals Section */}
             {filterOption !== "active" && completedAccounts.length > 0 && (
               <div>
                 <h2 className="text-lg sm:text-xl font-bold text-gray-800 mb-2 sm:mb-4">
@@ -562,7 +608,7 @@ const Savings: React.FC = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   <AnimatePresence mode="wait">
                     <motion.div
-                      key={`completed-${searchTerm}-${filterOption}`}
+                      key={`completed-${searchInput}-${filterOption}`}
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
@@ -583,7 +629,6 @@ const Savings: React.FC = () => {
               </div>
             )}
 
-            {/* No Goals Found For Filter */}
             {displayAccounts.length === 0 && (
               <div className="text-center p-4 sm:p-8">
                 <svg
@@ -623,7 +668,6 @@ const Savings: React.FC = () => {
         )}
       </div>
 
-      {/* Modals */}
       {isCreateModalOpen && (
         <CreateSavingAccountPopup
           isOpen={isCreateModalOpen}
