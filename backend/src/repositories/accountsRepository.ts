@@ -20,6 +20,7 @@ export class AccountsRepository {
       where: {
         userId: userId,
         type: AccountType.DEFAULT,
+        deletedAt: null,
       },
     });
   }
@@ -29,6 +30,7 @@ export class AccountsRepository {
       where: {
         userId: userId,
         type: AccountType.SAVINGS,
+        deletedAt: null,
       },
       include: {
         savingAccount: true,
@@ -114,27 +116,27 @@ export class AccountsRepository {
   }
 
   async deleteDefaultAccount(userId: number, accountId: number) {
-    return await this.prisma.account.delete({
+    return await this.prisma.account.update({
       where: {
         id: accountId,
         userId: userId,
         type: AccountType.DEFAULT,
       },
+      data: {
+        deletedAt: new Date(),
+      },
     });
   }
 
   async deleteSavingAccount(userId: number, accountId: number) {
-    await this.prisma.savingAccount.deleteMany({
-      where: {
-        accountId: accountId,
-      },
-    });
-
-    return await this.prisma.account.delete({
+    await this.prisma.account.update({
       where: {
         id: accountId,
         userId: userId,
         type: AccountType.SAVINGS,
+      },
+      data: {
+        deletedAt: new Date(),
       },
     });
   }

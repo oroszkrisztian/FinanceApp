@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { get } from "http";
+
 
 
 export class CategoriesRepository {

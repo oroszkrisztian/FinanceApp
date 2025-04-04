@@ -1,4 +1,4 @@
-import { CustomCategory } from "./CustomCategory";
+import { BudgetCategory } from "./BudgetCategory";
 import { CurrencyType } from "./enums";
 import { Transaction } from "./Transaction";
 import { User } from "./User";
@@ -8,13 +8,13 @@ export interface Budget {
   name: string;
   limitAmount: number;
   currentSpent: number;
-  customCategoryId?: number;
   userId: number;
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date;
   currency: CurrencyType;
+  
   user: User;
-  customCategory?: CustomCategory;
+  customCategories: BudgetCategory[];
   transactions: Transaction[];
 }

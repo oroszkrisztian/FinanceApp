@@ -24,16 +24,19 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      setTimeout(() => setIsAnimatingIn(true), 10);
+      // Delay animation to next frame to ensure DOM is ready
+      const timer = setTimeout(() => setIsAnimatingIn(true), 10);
+      return () => clearTimeout(timer);
     } else if (!isOpen && shouldRender) {
       setIsAnimatingIn(false);
       setIsAnimatingOut(true);
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setIsAnimatingOut(false);
         setShouldRender(false);
       }, animationDuration);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
+  }, [isOpen, animationDuration]);
 
   if (!shouldRender) return null;
 
@@ -48,22 +51,34 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-10 flex items-center justify-center ${blurClass}
-          transition-all duration-${animationDuration} ease-in-out
+      className={`fixed inset-0 z-50 flex items-center justify-center ${blurClass}
+          transition-all ease-in-out
           ${isAnimatingIn ? "bg-black/50" : "bg-black/0"}
           ${isAnimatingOut ? "bg-black/0" : ""}`}
       onClick={handleBackdropClick}
+      style={{
+        pointerEvents: "auto",
+        transitionDuration: `${animationDuration}ms`,
+      }}
     >
-      <div className="relative w-full h-full flex items-center justify-center">
+      <div
+        className="relative w-full h-full flex items-center justify-center"
+        style={{ pointerEvents: "none" }}
+      >
         <div
-          className={`bg-white rounded-lg shadow-xl max-w-md mx-auto w-11/12
-              transform transition-all duration-${animationDuration} ease-out
+          className={`rounded-2xl shadow-xl max-w-max mx-auto w-11/12
+              transform transition-all ease-out
               ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
               ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
-              md:translate-x-10`}
+              md:translate-x-0`}
           style={{
-            maxHeight: "90vh",
-            overflow: "auto",
+            marginTop: "7vh",
+            maxHeight: "85vh",
+            overflow: "hidden",
+            pointerEvents: "auto",
+            position: "relative",
+            zIndex: 60,
+            transitionDuration: `${animationDuration}ms`,
           }}
         >
           {children}

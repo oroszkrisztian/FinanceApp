@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Button, Menu, ConfigProvider, theme } from "antd";
+import { Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import {
@@ -16,9 +16,10 @@ type MenuItem = Required<MenuProps>["items"][number];
 
 interface SideBarProps {
   collapsed: boolean;
+  onItemClick?: () => void; // New prop to handle click events
 }
 
-const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
+const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -34,14 +35,14 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
   useEffect(() => {
     localStorage.setItem("sidebar-open-keys", JSON.stringify(openKeys));
   }, [openKeys]);
-  
+
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
     };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const getSelectedKey = () => {
@@ -55,8 +56,6 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
         return "transactions";
       case "/savings":
         return "savings";
-      case "/settings":
-        return "settings";
       default:
         return "";
     }
@@ -65,9 +64,13 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
   const handleLogout = () => {
     logout();
     navigate("/login");
+    if (onItemClick) onItemClick(); // Close sidebar when logging out
   };
 
   const handleMenuClick = (e: { key: string }) => {
+    // Always close the sidebar when a menu item is clicked
+    if (onItemClick) onItemClick();
+    
     if (e.key === "logout") {
       handleLogout();
       return;
@@ -86,9 +89,6 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
       case "savings":
         navigate("/savings");
         break;
-      case "settings":
-        navigate("/settings");
-        break;
     }
   };
 
@@ -98,7 +98,7 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
       icon: <DashboardOutlined />,
       label: "Dashboard",
     },
-    { 
+    {
       key: "payments",
       icon: <BankOutlined />,
       label: "Payments",
@@ -112,11 +112,6 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
       key: "savings",
       icon: <WalletOutlined />,
       label: "Savings",
-    },
-    {
-      key: "settings",
-      icon: <SettingOutlined />,
-      label: "Settings",
     },
   ];
 
@@ -147,21 +142,21 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed }) => {
             itemHoverBg: "#FFFFFF",
             itemSelectedBg: "#FFFFFF",
             darkItemSelectedColor: "#FFFFFF",
-            itemPaddingInline: collapsed ? 12 : 20, 
+            itemPaddingInline: collapsed ? 12 : 20,
           },
         },
       }}
     >
       <div
-        style={{ 
+        style={{
           borderRight: "none",
-          height: "calc(100vh - 3.5rem)", 
+          height: "calc(100vh - 3.5rem)",
           width: "100%",
           overflow: "hidden",
-          boxShadow: "2px 0 8px rgba(0,0,0,0.2)"
+          boxShadow: "2px 0 8px rgba(0,0,0,0.2)",
         }}
         className="flex flex-col bg-black border-r border-gray-200"
-      >   
+      >
         <Menu
           onClick={handleMenuClick}
           selectedKeys={[getSelectedKey()]}

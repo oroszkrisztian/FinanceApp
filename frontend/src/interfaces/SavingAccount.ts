@@ -11,4 +11,4 @@ export interface SavingAccount {
   targetDate?: Date;
   isCompleted: boolean;
   account: Account;
-}
+} 

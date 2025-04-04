@@ -6,6 +6,7 @@ import auth from "./routes/auth";
 import accounts from "./routes/accounts";
 import transaction from "./routes/transaction";
 import categories from "./routes/categories";
+import budget from "./routes/budget";
 
 import "dotenv/config";
 
@@ -30,6 +31,7 @@ app.route("/auth", auth);
 app.route("/accounts", accounts);
 app.route("/transaction", transaction);
 app.route("/categories", categories);
+app.route("/budget", budget);
 
 app.get("/exchange-rates", async (c) => {
   try {

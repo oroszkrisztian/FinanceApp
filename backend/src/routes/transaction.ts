@@ -20,8 +20,6 @@ transaction.post("/getUserAllTransactions", async (c) => {
 
     const transactions = await transactionController.getUserAllTransactions(c);
 
-    console.log("Sending transactions to client:", transactions);
-
     return c.json(transactions);
   } catch (error) {
     console.error("Error in /getUserAllTransactions route:", error);
@@ -33,6 +31,8 @@ transaction.post("/getUserAllTransactions", async (c) => {
     return c.json({ error: "Internal server error" }, 500);
   }
 });
+
+
 transaction.post("/addFundDefaultAccount", async (c) => {
   try {
     const body = await c.req.json();
@@ -108,7 +108,6 @@ transaction.post("/addFundSaving", async (c) => {
   }
 });
 
-
 transaction.post("/addFundDefault", async (c) => {
   try {
     const body = await c.req.json();
@@ -139,6 +138,37 @@ transaction.post("/addFundDefault", async (c) => {
     return result;
   } catch (error) {
     console.error("Error in /addFundDefault route:", error);
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 500);
+    }
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+transaction.post("/createExpense", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, amount, currency } = body;
+    if (!userId || !amount) {
+      return c.json(
+        {
+          error: "Missing required fields (userId, amount)",
+        },
+        400
+      );
+    }
+    if (!currency) {
+      return c.json({
+        error: "Missing currency",
+      });
+    }
+    if (typeof amount !== "number" || amount <= 0) {
+      return c.json({ error: "Amount must be a positive number" }, 400);
+    }
+    const result = await transactionController.createExpense(c);
+    return result;
+  } catch (error) {
+    console.error("Error in /createExpense route:", error);
     if (error instanceof Error) {
       return c.json({ error: error.message }, 500);
     }

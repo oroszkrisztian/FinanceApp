@@ -16,7 +16,7 @@ export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
     const ratesObj: ExchangeRates = {};
     const rateElements = xmlDoc.getElementsByTagName("Rate");
-    
+
     for (let i = 0; i < rateElements.length; i++) {
       const element = rateElements[i];
       const currency = element.getAttribute("currency") || "";
@@ -70,7 +70,7 @@ export const convertAmount = (
 /**
  * Calculates the exchange rate between two currencies
  * @param fromCurrency The currency to convert from
- * @param toCurrency The currency to convert to 
+ * @param toCurrency The currency to convert to
  * @param rates The exchange rates object
  * @returns The exchange rate as a number
  */
@@ -81,7 +81,7 @@ export const getExchangeRate = (
 ): number => {
   if (fromCurrency === toCurrency) return 1;
   if (!rates[fromCurrency] || !rates[toCurrency]) return 0;
-  
+
   return rates[fromCurrency] / rates[toCurrency];
 };
 
@@ -102,11 +102,17 @@ export const validateCurrencyConversion = (
   }
 
   if (!rates[fromCurrency]) {
-    return { valid: false, error: `Exchange rate for ${fromCurrency} not found.` };
+    return {
+      valid: false,
+      error: `Exchange rate for ${fromCurrency} not found.`,
+    };
   }
 
   if (!rates[toCurrency]) {
-    return { valid: false, error: `Exchange rate for ${toCurrency} not found.` };
+    return {
+      valid: false,
+      error: `Exchange rate for ${toCurrency} not found.`,
+    };
   }
 
   return { valid: true };

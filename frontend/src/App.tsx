@@ -9,7 +9,6 @@ import {
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import "./globals.css";
 
-
 import LoginPage from "./pages/LoginPage";
 import SignupPage from "./pages/SignupPage";
 import HomePage from "./pages/HomePage";
@@ -36,11 +35,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
- 
   const toggleSidebar = () => {
     const newState = !collapsed;
     setCollapsed(newState);
     localStorage.setItem("sidebar-collapsed", JSON.stringify(newState));
+  };
+
+  // New function to always close sidebar on item click
+  const closeSidebar = () => {
+    setCollapsed(true);
+    localStorage.setItem("sidebar-collapsed", JSON.stringify(true));
   };
 
   useEffect(() => {
@@ -93,10 +97,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           toggleSidebar={toggleSidebar}
         />
       </div>
-      
 
       {/* Sidebar - with smooth animation - original positioning */}
-      <div className=" pt-14 ">
+      <div className="pt-14">
         <div className="h-screen w-full overflow-auto">
           <div
             className="fixed top-14 left-0 z-40 transition-all duration-300 ease-in-out"
@@ -106,12 +109,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
               width: collapsed ? "5rem" : "10rem",
             }}
           >
-            <SideBar collapsed={collapsed} />
+            <SideBar collapsed={collapsed} onItemClick={closeSidebar} />
           </div>
 
           {/* Main content - with adjusted margin for desktop closed sidebar */}
           <div
-            className="overflow-auto h-full  transition-all duration-300 ease-in-out"
+            className="overflow-auto h-full transition-all duration-300 ease-in-out"
             style={{
               marginLeft: contentMarginLeft,
               width: isMobile ? "100%" : `calc(100% - ${contentMarginLeft})`,

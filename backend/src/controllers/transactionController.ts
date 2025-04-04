@@ -19,7 +19,7 @@ export class TransactionController {
       const allTransactions =
         await this.transactionService.getUserAllTransactions(userId);
 
-      console.log("Controller returning transactions:", allTransactions);
+     
 
       return allTransactions;
     } catch (error) {
@@ -121,4 +121,38 @@ export class TransactionController {
       return c.json({ error: "Failed to add funds to default account" }, 500);
     }
   }
+
+  async createExpense(c: Context) { 
+    try {
+      const {
+        amount,
+        currency,
+        userId,
+        name,
+        fromAccountId,
+        customCategoryId,
+        description,
+      } = await c.req.json();
+
+      if (!userId || !amount || !fromAccountId) {
+        return c.json({ error: "Fill all necessary fields" }, 400);
+      }
+
+      const expense = await this.transactionService.createExpense(
+        amount,
+        currency,
+        userId,
+        name,
+        fromAccountId,
+        customCategoryId,
+        description
+      );
+
+      return c.json(expense);
+    } catch (error) {
+      console.error("Create expense error:", error);
+      return c.json({ error: "Failed to create expense" }, 500);
+    }
+  }
+
 }

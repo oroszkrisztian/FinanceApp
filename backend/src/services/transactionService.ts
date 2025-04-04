@@ -12,7 +12,7 @@ export class TransactionService {
     try {
       const allTransactions =
         await this.transactionRepo.getUserAllTransactions(userId);
-      console.log("Service layer transactions:", allTransactions);
+     
       return allTransactions;
     } catch (error) {
       console.error(
@@ -99,6 +99,32 @@ export class TransactionService {
     } catch (error) {
       console.error("Error in TransactionService.addFundsDefault:", error);
       throw new Error("Failed to add funds to default account");
+    }
+  }
+
+  async createExpense(
+    amount: number,
+    currency: CurrencyType,
+    userId: number,
+    name: string,
+    fromAccountId: number,
+    customCategoryId: number,
+    description: string
+  ) {
+    try {
+      const expenseTransaction = await this.transactionRepo.createExpense(
+        amount,
+        currency,
+        userId,
+        name,
+        fromAccountId,
+        customCategoryId,
+        description
+      );
+      return expenseTransaction;
+    } catch (error) {
+      console.error("Error in TransactionService.createExpense:", error);
+      throw new Error("Failed to create expense");
     }
   }
 }

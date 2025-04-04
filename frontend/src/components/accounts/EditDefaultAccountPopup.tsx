@@ -95,7 +95,6 @@ const EditDefaultAccountPopup = ({
           }
         }
 
-       
         Object.values(CurrencyType).forEach((curr) => {
           if (!ratesObj[curr]) {
             ratesObj[curr] = 1;
@@ -205,9 +204,9 @@ const EditDefaultAccountPopup = ({
   const currentAmount = account ? account.amount : 0;
 
   return (
-    <div>
+    <div className="min-w-30">
       {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+      <div className=" fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
         <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-2xl font-bold text-black">

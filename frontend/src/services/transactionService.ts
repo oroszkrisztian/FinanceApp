@@ -3,7 +3,7 @@ import { CurrencyType, TransactionType } from "../interfaces/enums";
 
 export const getUserAllTransactions = async (userId: number) => {
   try {
-    console.log("Fetching transactions for userId:", userId);
+    
 
     const response = await fetch(
       "http://localhost:3000/transaction/getUserAllTransactions",
@@ -177,3 +177,45 @@ export const addFundsDefault = async (
     throw err;
   }
 };
+
+export const createExpense = async (
+  userId: number,
+  name: string | null,
+  amount: number,
+  currency: CurrencyType,
+  fromAccountId: number,
+  customCategoryId: number | null,
+  description: string | null  
+) => {
+  try {
+    const response = await fetch(
+      "http://localhost:3000/transaction/createExpense",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          name,
+          amount,
+          currency,
+          fromAccountId,
+          customCategoryId,
+          description,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to create expense");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error creating expense:", err);
+    throw err;
+  }
+}

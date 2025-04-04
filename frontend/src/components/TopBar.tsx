@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { User, Menu, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -10,6 +10,24 @@ interface TopBarProps {
 
 const TopBar: React.FC<TopBarProps> = ({ title, collapsed, toggleSidebar }) => {
   const navigate = useNavigate();
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth <= 640) {
+        setIsMobileScreen(true);
+      } else {
+        setIsMobileScreen(false);
+      }
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
 
   const handleProfileClick = () => {
     navigate("/profile");
@@ -29,7 +47,11 @@ const TopBar: React.FC<TopBarProps> = ({ title, collapsed, toggleSidebar }) => {
       </div>
 
       {/* Center section with title */}
-      <h1 className="text-2xl font-semibold text-white text-center flex-1">
+      <h1
+        className={`text-2xl font-semibold text-white text-center flex-1 ${
+          isMobileScreen ? "" : "md:translate-x-10"
+        }`}
+      >
         {title}
       </h1>
 
