@@ -1,4 +1,5 @@
 import { BudgetCategory } from "./BudgetCategory";
+import { CustomCategory } from "./CustomCategory";
 import { CurrencyType } from "./enums";
 import { Transaction } from "./Transaction";
 import { User } from "./User";
@@ -15,6 +16,6 @@ export interface Budget {
   currency: CurrencyType;
   
   user: User;
-  customCategories: BudgetCategory[];
+  customCategories: CustomCategory[];
   transactions: Transaction[];
 }

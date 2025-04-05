@@ -18,7 +18,7 @@ export class TransactionRepository {
         createdAt: "desc",
       },
     });
-   
+
     return allTransactions;
   }
 
@@ -31,7 +31,6 @@ export class TransactionRepository {
       const response = await axios.get("http://localhost:3000/exchange-rates");
       const xmlText = response.data;
 
-      
       const result = await parseStringPromise(xmlText, {
         explicitArray: false,
         mergeAttrs: false,
@@ -373,7 +372,6 @@ export class TransactionRepository {
     customCategoryId: number | null,
     description: string | null
   ) {
-   
     const account = await this.prisma.account.findFirst({
       where: {
         id: fromAccountId,
@@ -386,35 +384,27 @@ export class TransactionRepository {
       throw new Error("Account not found or doesn't belong to the user");
     }
 
-    
     let amountToWithdraw = amount;
+    const rates = await this.getExchangeRates();
+
+    // Convert for account withdrawal if currencies differ
     if (account.currency !== currency) {
-      const rates = await this.getExchangeRates();
-
-      if (!rates[account.currency]) {
-        throw new Error(`Exchange rate for ${account.currency} not found`);
+      if (!rates[account.currency] || !rates[currency]) {
+        throw new Error(
+          `Exchange rate not found for conversion between ${currency} and ${account.currency}`
+        );
       }
-
-      if (!rates[currency]) {
-        throw new Error(`Exchange rate for ${currency} not found`);
-      }
-
       amountToWithdraw = amount * (rates[currency] / rates[account.currency]);
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${account.currency} for expense`
-      );
     }
 
-  
     if (account.amount < amountToWithdraw) {
       throw new Error(
         `Insufficient funds in account. Available: ${account.amount} ${account.currency}, Required: ${amountToWithdraw.toFixed(2)} ${account.currency}`
       );
     }
 
-    
     return await this.prisma.$transaction(async (prisma) => {
-      
+      // Create the transaction
       const transaction = await prisma.transaction.create({
         data: {
           userId: userId,
@@ -432,21 +422,50 @@ export class TransactionRepository {
         },
       });
 
-     
+      // Update account balance
       await prisma.account.update({
-        where: {
-          id: fromAccountId,
-        },
-        data: {
-          amount: {
-            decrement: amountToWithdraw,
-          },
-        },
+        where: { id: fromAccountId },
+        data: { amount: { decrement: amountToWithdraw } },
       });
+
+      // Handle budget updates if category is provided
+      if (customCategoryId) {
+        const associatedBudgets = await prisma.budget.findMany({
+          where: {
+            userId: userId,
+            customCategories: {
+              some: { customCategoryId: customCategoryId },
+            },
+            deletedAt: null,
+          },
+        });
+
+        // Update each associated budget
+        for (const budget of associatedBudgets) {
+          let budgetAmount = amount;
+
+          // Convert amount to budget's currency if different
+          if (currency !== budget.currency) {
+            if (!rates[budget.currency]) {
+              console.error(
+                `Exchange rate not found for ${budget.currency}, skipping budget update`
+              );
+              continue;
+            }
+            budgetAmount = amount * (rates[currency] / rates[budget.currency]);
+          }
+
+          await prisma.budget.update({
+            where: { id: budget.id },
+            data: {
+              currentSpent: { increment: budgetAmount },
+              transactions: { connect: { id: transaction.id } },
+            },
+          });
+        }
+      }
 
       return transaction;
     });
   }
-
-  
 }

@@ -71,37 +71,4 @@ export const createUserBudgetWithCategories = async (
   }
 };
 
-export const getCategoriesByBudgetId = async (budgetId: number) => {
-  try {
-    if (!budgetId) {
-      throw new Error("Budget ID is required");
-    }
-    console.log("Fetching categories for budget ID:", budgetId);
-    const response = await fetch(
-      `http://localhost:3000/budget/getCategoriesByBudgetId`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          budgetId,
-        }),
-      }
-    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to get budget categories: ${response.status} ${errorText}`
-      );
-    }
-
-  
-    const data = JSON.parse(await response.text());
-    return data;
-  } catch (error) {
-    console.error("Error in getCategoriesByBudgetId:", error);
-    throw error;
-  }
-};

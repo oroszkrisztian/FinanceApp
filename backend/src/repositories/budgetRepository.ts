@@ -12,10 +12,25 @@ export class BudgetRepository {
       where: {
         userId: userId,
       },
+      include: {
+        customCategories: {
+          select: {
+            customCategory: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
+      },
     });
 
-    console.log("Budgets found repo:", allBudgets);
-    return allBudgets;
+    return allBudgets.map((budget) => ({
+      ...budget,
+      customCategories: budget.customCategories.map((bc) => bc.customCategory),
+    }));
   }
 
   async createUserBudgetWithCategories(
@@ -54,17 +69,5 @@ export class BudgetRepository {
         },
       },
     });
-  }
-
- 
-  async getCategoriesByBudgetId(budgetId: number) {
-    const categories = await this.prisma.budgetCategory.findMany({
-      where: { budgetId },
-      include: {
-        customCategory: true,
-      },
-    });
-    console.log("Categories found for budget:", budgetId, categories);
-    return categories;
   }
 }

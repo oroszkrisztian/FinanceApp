@@ -49,17 +49,5 @@ export class BudgetController {
     }
   }
 
-  async getCategoriesByBudgetId(c: Context, budgetId: number) {
-    try {
-      if (!budgetId) {
-        throw "Budget id not found";
-      }
-      const categories =
-        await this.budgetService.getCategoriesByBudgetId(budgetId);
-      return c.json(categories);
-    } catch (error) {
-      console.error("Get categories error:", error);
-      return c.json({ error: "Failed to get categories" }, 500);
-    }
-  }
+  
 }
