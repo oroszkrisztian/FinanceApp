@@ -17,6 +17,7 @@ import Transactions from "./pages/Transactions";
 import Accounts from "./pages/Payments";
 import Settings from "./pages/Settings";
 import Profile from "./pages/ProfilePage";
+import Budget from "./pages/Budget";
 import SideBar from "./components/SideBar";
 import TopBar from "./components/TopBar";
 
@@ -41,7 +42,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     localStorage.setItem("sidebar-collapsed", JSON.stringify(newState));
   };
 
-  // New function to always close sidebar on item click
+ 
   const closeSidebar = () => {
     setCollapsed(true);
     localStorage.setItem("sidebar-collapsed", JSON.stringify(true));
@@ -76,6 +77,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         return "Settings";
       case "/profile":
         return "Profile";
+      case "/budget":
+        return "Budget";
       default:
         return "My App";
     }
@@ -217,6 +220,14 @@ const App: React.FC = () => {
             element={
               <ProtectedRoute>
                 <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/budget"
+            element={
+              <ProtectedRoute>
+                <Budget />
               </ProtectedRoute>
             }
           />

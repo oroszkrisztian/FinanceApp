@@ -70,10 +70,10 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
               transform transition-all ease-out
               ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
               ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}
-              md:translate-x-0`}
+              md:translate-x-10`}
           style={{
             marginTop: "7vh",
-            maxHeight: "85vh",
+            maxHeight: "90vh",
             overflow: "hidden",
             pointerEvents: "auto",
             position: "relative",

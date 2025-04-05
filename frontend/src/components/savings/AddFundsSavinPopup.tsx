@@ -54,16 +54,14 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
     return parseFloat(value.toString().replace(",", "."));
   };
 
-
   useEffect(() => {
     const handleResize = () => {
       setIsMobileScreen(window.innerWidth <= 768);
     };
-    
-    
+
     handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   useEffect(() => {
@@ -339,16 +337,11 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
-        style={{
-          maxWidth: "28rem",
-          minWidth: "28rem",
-          maxHeight: "90vh",
-          overflowY: "auto",
-        }}
-        className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md w-full max-h-[90vh] overflow-y-auto" 
+        className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl"
+        style={{ minWidth: isMobileScreen ? "auto" : "400px" }}
       >
-        {/* Header with fixed height that won't overlap content */}
-        <div className="bg-indigo-500 h-20 relative ">
+        {/* Header with fixed position */}
+        <div className="bg-indigo-500 h-20 relative sticky top-0 z-10">
           {/* Decorative circles */}
           <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
           <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
@@ -379,12 +372,14 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                 <h2 className="text-xl font-bold text-white">Add Funds 💰</h2>
               </div>
             </div>
-
-           
           </div>
         </div>
 
-        <div className="p-6">
+        {/* Scrollable content */}
+        <div
+          className="p-6 overflow-y-auto"
+          style={{ maxHeight: "calc(90vh - 140px)" }}
+        >
           {/* Account Name Display */}
           <div className="mb-5 px-4 py-2 bg-indigo-50 rounded-xl border border-indigo-100">
             <div className="flex justify-between items-center">
@@ -538,7 +533,18 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.15 }}
-                    className="absolute z-50 mt-2 w-full bg-white border border-indigo-100 rounded-xl shadow-lg max-h-56 overflow-auto"
+                    className="absolute z-[100]"
+                    style={{
+                      marginTop: "2px",
+                      width: "100%",
+                      backgroundColor: "white",
+                      borderRadius: "0.75rem",
+                      boxShadow:
+                        "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                      border: "1px solid #e0e7ff",
+                      maxHeight: "14rem",
+                      overflow: "auto",
+                    }}
                   >
                     {loadingAccounts ? (
                       <div className="p-3 text-sm text-gray-500 flex items-center justify-center">
@@ -658,8 +664,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               </div>
             </div>
 
-            
-
             {selectedSourceAccount && sourceAccount && (
               <div className="mt-4">
                 <h3 className="text-sm font-medium text-gray-700 mb-2 flex items-center">
@@ -685,7 +689,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                       >
                         <path
                           fillRule="evenodd"
-                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
+                          d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
                           clipRule="evenodd"
                         />
                       </svg>
@@ -779,7 +783,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                         {/* To column */}
                         <div className="p-4">
                           <div className="text-xs text-gray-500 mb-2 flex items-center">
-                            
                             {account.name}
                           </div>
                           <div className="font-bold text-green-500 text-lg">
@@ -804,7 +807,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                     {sourceAccountCurrency &&
                       account?.currency &&
                       sourceAccountCurrency !== account.currency && (
-                        <div className="flex items-center text-xs text-gray-500 bg-indigo-50 p-3 rounded-lg border border-indigo-100">
+                        <div className="flex items-center text-xs text-gray-500 bg-indigo-50 p-3 rounded-lg border border-indigo-100 mt-3">
                           <svg
                             className="h-4 w-4 mr-2 text-indigo-500"
                             fill="none"
@@ -841,8 +844,8 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               </div>
             )}
 
-            {/* Buttons */}
-            <div className="flex gap-3 pt-4">
+            {/* Buttons moved here */}
+            <div className="flex gap-3 mt-6">
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}

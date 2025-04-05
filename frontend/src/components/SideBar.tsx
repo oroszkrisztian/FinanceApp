@@ -9,6 +9,7 @@ import {
   BankOutlined,
   SettingOutlined,
   TransactionOutlined,
+  PieChartOutlined,
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -56,6 +57,8 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
         return "transactions";
       case "/savings":
         return "savings";
+      case "/budget":
+        return "budget";
       default:
         return "";
     }
@@ -70,7 +73,7 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
   const handleMenuClick = (e: { key: string }) => {
     // Always close the sidebar when a menu item is clicked
     if (onItemClick) onItemClick();
-    
+
     if (e.key === "logout") {
       handleLogout();
       return;
@@ -88,6 +91,9 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
         break;
       case "savings":
         navigate("/savings");
+        break;
+      case "budget":
+        navigate("/budget");
         break;
     }
   };
@@ -107,6 +113,11 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
       key: "transactions",
       icon: <TransactionOutlined />,
       label: "Transactions",
+    },
+    {
+      key: "budget",
+      icon: <PieChartOutlined />,
+      label: "Budget",
     },
     {
       key: "savings",

@@ -1,15 +1,15 @@
 import { useState, useEffect, useMemo } from "react";
-import { useAuth } from "../../../context/AuthContext";
-import AnimatedModal from "../../animations/BlurPopup";
-import { CurrencyType, CategoryType } from "../../../interfaces/enums";
-import { CustomCategory } from "../../../interfaces/CustomCategory";
-import { createUserBudgetWithCategories } from "../../../services/budgetService";
+import { useAuth } from "../../context/AuthContext";
+import { CustomCategory } from "../../interfaces/CustomCategory";
+import { CurrencyType } from "../../interfaces/enums";
+import { createUserBudgetWithCategories } from "../../services/budgetService";
+import AnimatedModal from "../animations/BlurPopup";
 
 interface CreateNewBudgetProps {
   isOpen: boolean;
   onClose: () => void;
   categories: CustomCategory[];
-  onSuccess?: () => void; 
+  onSuccess?: () => void;
 }
 
 interface SelectedCategory {
@@ -147,7 +147,6 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
       resetForm();
       onClose();
 
-     
       if (onSuccess) {
         onSuccess();
       }
@@ -192,7 +191,8 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
       animationDuration={150}
     >
       <div
-        className={`bg-white rounded-2xl shadow-lg w-full mx-auto max-h-[90vh] flex flex-col ${isSmallScreen ? "max-w-full min-w-0 p-0" : "max-w-md min-w-[400px]"}`}
+        className={`bg-white rounded-2xl shadow-lg w-full mx-auto flex flex-col ${isSmallScreen ? "max-w-full min-w-0 p-0" : "max-w-md min-w-[400px]"}`}
+       
       >
         <div className="bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-5 relative rounded-t-xl flex-shrink-0">
           <div className="absolute inset-0 opacity-10 mix-blend-overlay">
@@ -226,9 +226,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
           </div>
         </div>
 
-        <div
-          className={`${isSmallScreen ? "p-3" : "p-5"} flex-1 overflow-y-auto`}
-        >
+        <div className="flex-1 overflow-y-auto p-5">
           {error && (
             <div className="mb-4 p-3 bg-red-50 border-l-4 border-red-400 text-red-700 rounded-md">
               <p className="text-sm">{error}</p>
@@ -466,12 +464,10 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
                 </div>
 
                 {selectedCategories.length === 0 ? (
-                  <p className="text-gray-500 text-xs italic">
-                    Search and select
-                  </p>
+                  <p className="text-gray-500 text-xs italic">Search and select</p>
                 ) : (
                   <div className="relative">
-                    <div className="space-y-2 max-h-[170px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+                    <div className="space-y-2">
                       {selectedCategories.map((category) => (
                         <div
                           key={category.id}
@@ -542,51 +538,51 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
                 )}
               </div>
             </div>
-
-            <div
-              className={`flex ${isSmallScreen ? "flex-col space-y-2" : "justify-end space-x-3"} pt-2`}
-            >
-              <button
-                type="button"
-                onClick={handleClose}
-                className={`${isSmallScreen ? "w-full" : "px-4"} py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium focus:outline-none shadow-sm hover:bg-gray-50`}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className={`${isSmallScreen ? "w-full" : "px-5"} py-2 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white rounded-full text-sm font-medium focus:outline-none shadow-sm hover:from-indigo-600 hover:to-indigo-800 disabled:opacity-50 transform transition-transform hover:scale-105 duration-200`}
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Creating...
-                  </span>
-                ) : (
-                  "Create Budget ✨"
-                )}
-              </button>
-            </div>
           </form>
+        </div>
+
+        <div
+          className={`flex ${isSmallScreen ? "flex-col space-y-2" : "justify-end space-x-3"} p-4 bg-white flex-shrink-0`}
+        >
+          <button
+            type="button"
+            onClick={handleClose}
+            className={`${isSmallScreen ? "w-full" : "px-4"} py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium focus:outline-none shadow-sm hover:bg-gray-50`}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className={`${isSmallScreen ? "w-full" : "px-5"} py-2 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white rounded-full text-sm font-medium focus:outline-none shadow-sm hover:from-indigo-600 hover:to-indigo-800 disabled:opacity-50 transform transition-transform hover:scale-105 duration-200`}
+          >
+            {loading ? (
+              <span className="flex items-center justify-center">
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Creating...
+              </span>
+            ) : (
+              "Create Budget ✨"
+            )}
+          </button>
         </div>
       </div>
     </AnimatedModal>

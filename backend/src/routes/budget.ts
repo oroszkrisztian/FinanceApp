@@ -71,4 +71,37 @@ budget.post("/createUserBudgetWithCategories", async (c) => {
   }
 });
 
+budget.post("/getCategoriesByBudgetId", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { budgetId } = body;
+
+    if (!budgetId) {
+      return c.json(
+        {
+          error: "Missing budgetId in /getCategoriesByBudgetId",
+        },
+        400
+      );
+    }
+
+    const categories = await budgetController.getCategoriesByBudgetId(
+      c,
+      Number(budgetId)
+    );
+
+    console.log("Sending categories to client:", categories);
+
+    return c.json(categories);
+  } catch (error) {
+    console.error("Error in /getCategoriesByBudgetId route:", error);
+
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 export default budget;

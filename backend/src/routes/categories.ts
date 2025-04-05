@@ -14,4 +14,6 @@ categories.post("/getAllSystemCategories", async (c) => {
     }
 });
 
+
+
 export default categories;

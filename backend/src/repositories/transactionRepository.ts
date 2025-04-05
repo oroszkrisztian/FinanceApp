@@ -31,7 +31,7 @@ export class TransactionRepository {
       const response = await axios.get("http://localhost:3000/exchange-rates");
       const xmlText = response.data;
 
-      // Parse XML to JSON using xml2js
+      
       const result = await parseStringPromise(xmlText, {
         explicitArray: false,
         mergeAttrs: false,
@@ -447,4 +447,6 @@ export class TransactionRepository {
       return transaction;
     });
   }
+
+  
 }

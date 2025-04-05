@@ -18,8 +18,6 @@ export class BudgetRepository {
     return allBudgets;
   }
 
- 
-
   async createUserBudgetWithCategories(
     userId: number,
     name: string,
@@ -27,7 +25,6 @@ export class BudgetRepository {
     currency: CurrencyType,
     categoryIds: number[]
   ) {
-   
     const budget = await this.prisma.budget.create({
       data: {
         name,
@@ -38,9 +35,7 @@ export class BudgetRepository {
       },
     });
 
-   
     if (categoryIds && categoryIds.length > 0) {
-      
       await this.prisma.budgetCategory.createMany({
         data: categoryIds.map((categoryId) => ({
           budgetId: budget.id,
@@ -49,7 +44,6 @@ export class BudgetRepository {
       });
     }
 
-   
     return await this.prisma.budget.findUnique({
       where: { id: budget.id },
       include: {
@@ -62,16 +56,15 @@ export class BudgetRepository {
     });
   }
 
-  async getBudgetWithCategories(budgetId: number) {
-    return await this.prisma.budget.findUnique({
-      where: { id: budgetId },
+ 
+  async getCategoriesByBudgetId(budgetId: number) {
+    const categories = await this.prisma.budgetCategory.findMany({
+      where: { budgetId },
       include: {
-        customCategories: {
-          include: {
-            customCategory: true,
-          },
-        },
+        customCategory: true,
       },
     });
+    console.log("Categories found for budget:", budgetId, categories);
+    return categories;
   }
 }

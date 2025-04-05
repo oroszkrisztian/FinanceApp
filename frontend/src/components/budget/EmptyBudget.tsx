@@ -1,7 +1,7 @@
 import { useState } from "react";
 import CreateNewBudget from "./CreateNewBudget";
-import { CustomCategory } from "../../../interfaces/CustomCategory";
-import { on } from "events";
+import { CustomCategory } from "../../interfaces/CustomCategory";
+
 
 interface EmptyBudgetProps {
   categories: CustomCategory[];

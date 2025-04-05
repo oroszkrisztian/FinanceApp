@@ -52,19 +52,12 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
 
   useEffect(() => {
     const handleResize = () => {
-      if (window.innerWidth <= 640) {
-        setIsMobileScreen(true);
-      } else {
-        setIsMobileScreen(false);
-      }
+      setIsMobileScreen(window.innerWidth <= 768);
     };
 
     handleResize();
     window.addEventListener("resize", handleResize);
-
-    return () => {
-      window.removeEventListener("resize", handleResize);
-    };
+    return () => window.removeEventListener("resize", handleResize);
   }, []);
 
   const parseNumberInput = (value: string) => {
@@ -301,11 +294,11 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
-        className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full w-min-100"
+        className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full"
         style={{
-          maxWidth: "28rem",
-          minWidth: "28rem",
-          maxHeight: "90vh",
+          maxWidth: isMobileScreen ? "100%" : "28rem",
+          minWidth: isMobileScreen ? "auto" : "28rem",
+          maxHeight: "85vh",
           overflowY: "auto",
         }}
       >
@@ -536,7 +529,9 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
                       maxHeight: "200px",
                       overflowY: "auto",
                       boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.1)",
-                      top: isMobileScreen ? "calc(6vh + 200px)" : "calc(5vh + 200px)",
+                      top: isMobileScreen
+                        ? "calc(6vh + 200px)"
+                        : "calc(5vh + 200px)",
                       width: "calc(96% - 1.8rem)",
                     }}
                   >

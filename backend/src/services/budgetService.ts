@@ -33,8 +33,20 @@ export class BudgetService {
         categoryIds
       );
     } catch (error) {
-      console.log("Error in BudgetService.createUserBudgetWithCategories:", error);
+      console.log(
+        "Error in BudgetService.createUserBudgetWithCategories:",
+        error
+      );
       throw new Error("Failed to create budget");
+    }
+  }
+
+  async getCategoriesByBudgetId(budgetId: number) {
+    try {
+      return await this.budgetRepository.getCategoriesByBudgetId(budgetId);
+    } catch (error) {
+      console.log("Error in BudgetService.getCategoriesByBudgetId:", error);
+      throw new Error("Failed to get categories");
     }
   }
 }

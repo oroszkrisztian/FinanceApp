@@ -48,6 +48,17 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
   const [hasChanges, setHasChanges] = useState(false);
   const [hasChangedCurrency, setHasChangedCurrency] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(100);
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   useEffect(() => {
     if (account) {
@@ -294,8 +305,8 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
         style={{
-          maxWidth: "28rem",
-          minWidth: "28rem",
+          maxWidth: isMobileScreen ? "100%" : "28rem",
+          minWidth: isMobileScreen ? "auto" : "28rem",
           maxHeight: "90vh",
           overflowY: "auto",
         }}
@@ -463,7 +474,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                   name="currency"
                   value={formData.currency}
                   onChange={handleChange}
-                  className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none"
+                  className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none appearance-none"
                   required
                 >
                   {Object.values(CurrencyType).map((currency) => (
@@ -674,7 +685,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                 ) : fetchingRates && formData.currency !== originalCurrency ? (
                   "Loading Rates..."
                 ) : (
-                  "Save Changes ✓"
+                  "Save Changes"
                 )}
               </motion.button>
             </div>
