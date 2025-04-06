@@ -8,7 +8,7 @@ interface SearchBarProps {
   activeTab: string;
   dateRange: { start: Date | null; end: Date | null };
   setDateRange: (range: { start: Date | null; end: Date | null }) => void;
-  externalPopupOpen?: boolean; // New prop to track external popups
+  externalPopupOpen?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({
@@ -33,12 +33,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 640);
+      setIsMobile(window.innerWidth <= 700);
     };
 
     checkMobile();
-    window.addEventListener("resize", checkMobile);
-    return () => window.removeEventListener("resize", checkMobile);
+
+    let timeoutId: NodeJS.Timeout;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(checkMobile, 100);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   useEffect(() => {
@@ -55,7 +65,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         const topPosition = rect.bottom + window.scrollY + 10;
 
         const spaceBelow = window.innerHeight - topPosition;
-        const modalHeight = filterPanelRef.current?.offsetHeight || 300; // Default height estimate
+        const modalHeight = filterPanelRef.current?.offsetHeight || 300;
 
         const finalTopPosition =
           spaceBelow < modalHeight && rect.top > modalHeight
@@ -103,14 +113,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
     };
   }, [filtersOpen]);
 
-  // Effect to close filters when external popup opens or component unmounts
   useEffect(() => {
     if (externalPopupOpen && filtersOpen) {
       setFiltersOpen(false);
     }
 
     return () => {
-      // Ensure filters are closed when component unmounts
       if (filtersOpen) {
         setFiltersOpen(false);
       }
@@ -172,7 +180,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const colors = getTabColor();
 
   const toggleFilters = () => {
-    // Don't open filters if another popup is open
     if (externalPopupOpen) return;
     setFiltersOpen(!filtersOpen);
   };
@@ -198,18 +205,24 @@ const SearchBar: React.FC<SearchBarProps> = ({
   return (
     <div className="relative" ref={searchContainerRef}>
       <div className={`relative group transition-all duration-300`}>
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Search input */}
+        <div className="flex items-center space-x-2 sm:space-x-2">
           <div className="relative flex-1">
             <input
               type="text"
               placeholder={isMobile ? "Search..." : "Search transactions..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full sm:w-40 md:w-48 pl-9 sm:pl-8 pr-3 py-2.5 sm:py-2 rounded-full shadow-sm focus:outline-none focus:ring-2 focus:border-transparent text-gray-700 text-sm transition-all duration-300 ${colors.border} ${colors.focusRing} ${colors.hoverBorder}`}
+              className={`w-full lg:w-40 xl:w-48 pl-8 lg:pl-8 pr-3 py-2 lg:py-2.5 
+                rounded-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.15)] 
+                focus:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.2)] 
+                bg-white border focus:outline-none focus:ring-2 
+                focus:border-transparent text-gray-700 text-sm 
+                transition-all duration-100 
+                ${colors.border} ${colors.focusRing} ${colors.hoverBorder}`}
             />
             <svg
-              className={`absolute left-3 sm:left-2.5 top-3 sm:top-2.5 h-4 w-4 sm:h-3.5 sm:w-3.5 transition-colors duration-300 ${colors.textColor}`}
+              className={`absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 
+                transition-colors duration-300 ${colors.textColor} opacity-70`}
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
@@ -225,7 +238,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className={`absolute right-3 sm:right-2.5 top-3 sm:top-2.5 h-4 w-4 sm:h-3.5 sm:w-3.5 transition-colors duration-300 ${colors.textColor} ${colors.hoverText}`}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors duration-300 ${colors.textColor} ${colors.hoverText}`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -244,21 +257,22 @@ const SearchBar: React.FC<SearchBarProps> = ({
             )}
           </div>
 
-          {/* Filter button with calendar and filter icons */}
           <motion.button
             ref={filterButtonRef}
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={toggleFilters}
-            className={`relative flex items-center justify-center h-10 w-10 sm:h-8 sm:w-8 rounded-full ${
-              hasActiveFilters
-                ? `${colors.activeBg} text-white`
-                : `${colors.bgColor} ${colors.textColor}`
-            } shadow-sm transition-all duration-300 hover:shadow`}
+            className={`relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 
+              rounded-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.15)] 
+              ${
+                hasActiveFilters
+                  ? `${colors.activeBg} text-white`
+                  : `bg-white ${colors.textColor}`
+              } transition-all duration-300 hover:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.2)]`}
             aria-label="Open date filters"
           >
             <div className="flex items-center justify-center">
-              <Calendar size={isMobile ? 18 : 16} />
+              <Calendar size={16} />
             </div>
             {hasActiveFilters && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
@@ -272,7 +286,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
         </div>
       </div>
 
-      {/* Filter dropdown - using a portal would be better here */}
       <AnimatePresence>
         {filtersOpen && (
           <motion.div
@@ -408,14 +421,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Modal backdrop for mobile */}
       <AnimatePresence>
         {filtersOpen && isMobile && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 z-[65]"
+            className="fixed inset-0 bg-black/50 z-[60]"
             onClick={() => setFiltersOpen(false)}
           />
         )}

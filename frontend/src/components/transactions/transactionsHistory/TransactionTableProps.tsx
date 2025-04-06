@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ChevronRight, Calendar, Clock, Tag, ArrowRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 import TransactionDetailsPopup from "./TransactionDetailsPopup";
 import { useAuth } from "../../../context/AuthContext";
@@ -57,56 +58,54 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
     switch (type) {
       case TransactionType.INCOME:
         return (
-          <svg 
-            className="h-5 w-5 text-white" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor" 
+          <svg
+            className="h-5 w-5 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
             strokeWidth="2"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M7 11l5-5m0 0l5 5m-5-5v12" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M7 11l5-5m0 0l5 5m-5-5v12"
             />
           </svg>
         );
       case TransactionType.EXPENSE:
         return (
-          <svg 
-            className="h-5 w-5 text-white" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor" 
+          <svg
+            className="h-5 w-5 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
             strokeWidth="2"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M17 13l-5 5m0 0l-5-5m5 5V6" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M17 13l-5 5m0 0l-5-5m5 5V6"
             />
           </svg>
         );
       case TransactionType.TRANSFER:
         return (
-          <svg 
-            className="h-5 w-5 text-white" 
-            fill="none" 
-            viewBox="0 0 24 24" 
-            stroke="currentColor" 
+          <svg
+            className="h-5 w-5 text-white"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
             strokeWidth="2"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
             />
           </svg>
         );
       default:
-        return (
-          <Tag className="h-5 w-5 text-white" />
-        );
+        return <Tag className="h-5 w-5 text-white" />;
     }
   };
 
@@ -150,7 +149,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             />
           </svg>
         </div>
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">No transactions yet</h3>
+        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+          No transactions yet
+        </h3>
         <p className="text-gray-500 max-w-sm">
           Your financial journey starts with your first transaction! 🚀
         </p>
@@ -181,7 +182,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           icon: "text-white",
           iconBg: "bg-green-400",
           hoverBg: "hover:bg-green-50",
-          emoji: "💰"
+          emoji: "💰",
         };
       case TransactionType.EXPENSE:
         return {
@@ -193,7 +194,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           icon: "text-white",
           iconBg: "bg-red-400",
           hoverBg: "hover:bg-red-50",
-          emoji: "💸"
+          emoji: "💸",
         };
       case TransactionType.TRANSFER:
         return {
@@ -205,7 +206,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           icon: "text-white",
           iconBg: "bg-blue-400",
           hoverBg: "hover:bg-blue-50",
-          emoji: "🔄"
+          emoji: "🔄",
         };
       default:
         return {
@@ -217,102 +218,126 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
           icon: "text-white",
           iconBg: "bg-gray-400",
           hoverBg: "hover:bg-gray-50",
-          emoji: "📝"
+          emoji: "📝",
         };
     }
   };
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="divide-y divide-gray-100">
             {transactions.map((transaction, index) => {
               const theme = getThemeColors(transaction.type);
-              
+
               return (
-                <div
+                <motion.div
                   key={transaction.id}
-                  className={`group hover:bg-gray-50 transition-all duration-300 cursor-pointer border-l-4 border-transparent ${theme.hoverBg}`}
-                  style={{ 
-                    borderLeftColor: transaction.type === TransactionType.INCOME ? '#10b981' : 
-                                     transaction.type === TransactionType.EXPENSE ? '#f43f5e' : 
-                                     transaction.type === TransactionType.TRANSFER ? '#3b82f6' : '#9ca3af'
-                  }}
+                  className={`group hover:bg-gray-50 transition-all duration-300 cursor-pointer relative overflow-hidden`}
                   onClick={() => handleRowClick(transaction)}
                 >
-                  <div className="p-4">
-                    <div className="flex items-start space-x-3">
-                      {/* Transaction icon with themed background */}
-                      <div className={`flex-shrink-0 ${theme.iconBg} p-2 rounded-full shadow-sm transform transition-transform group-hover:scale-110 duration-300`}>
+                  <div className="p-3 sm:p-6">
+                    <div className="flex items-start gap-3 sm:gap-4">
+                      {/* Transaction icon */}
+                      <div
+                        className={`flex-shrink-0 ${theme.gradient} p-2 sm:p-3 rounded-xl shadow-lg backdrop-blur-sm transform transition-transform group-hover:scale-110 duration-300`}
+                      >
                         {getTransactionIcon(transaction.type)}
                       </div>
 
                       {/* Transaction details */}
                       <div className="flex-1 min-w-0">
-                        <div className="flex justify-between items-start mb-1.5">
-                          <h3 className="text-base font-semibold text-gray-900 break-words pr-2 flex items-center" title={
-                            transaction.type === TransactionType.TRANSFER 
-                              ? `${getAccountName(transaction.fromAccountId)} → ${getAccountName(transaction.toAccountId)}`
-                              : transaction.name || "Untitled Transaction"
-                          }>
-                            <span className="mr-1.5 opacity-70 hidden group-hover:inline">{theme.emoji}</span>
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-2 gap-1 sm:gap-0">
+                          <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors duration-200">
                             {transaction.type === TransactionType.TRANSFER ? (
-                              <div className="flex items-center flex-wrap">
-                                <span className="break-words">{getAccountName(transaction.fromAccountId)}</span>
-                                <ArrowRight className="h-4 w-4 mx-1 flex-shrink-0 text-blue-500 group-hover:animate-pulse" />
-                                <span className="break-words">{getAccountName(transaction.toAccountId)}</span>
+                              <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                                <span className="truncate max-w-[120px] sm:max-w-none">
+                                  {getAccountName(transaction.fromAccountId)}
+                                </span>
+                                <ArrowRight className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 group-hover:translate-x-1 transition-transform duration-300" />
+                                <span className="truncate max-w-[120px] sm:max-w-none">
+                                  {getAccountName(transaction.toAccountId)}
+                                </span>
                               </div>
                             ) : (
-                              transaction.name || "Untitled Transaction"
+                              <span className="truncate block">
+                                {transaction.name || "Untitled Transaction"}
+                              </span>
                             )}
                           </h3>
                           <div
-                            className={`text-base font-bold ${getAmountColor(transaction.type)} whitespace-nowrap transition-all duration-300 group-hover:scale-105 transform`}
+                            className={`text-base sm:text-lg font-bold ${getAmountColor(
+                              transaction.type
+                            )} group-hover:scale-105 transform transition-all duration-300`}
                           >
-                            {transaction.type === TransactionType.EXPENSE ? "- " : transaction.type === TransactionType.INCOME ? "+ " : ""}
-                            {formatAmount(transaction.amount)} {transaction.currency}
+                            {transaction.type === TransactionType.EXPENSE
+                              ? "- "
+                              : transaction.type === TransactionType.INCOME
+                                ? "+ "
+                                : ""}
+                            {formatAmount(transaction.amount)}{" "}
+                            {transaction.currency}
                           </div>
                         </div>
 
-                        <div className="flex items-center text-xs text-gray-500 mt-1 flex-wrap">
-                          <div className={`p-1 rounded-full ${theme.secondaryBg} mr-1.5 flex-shrink-0 transition-all duration-300 group-hover:shadow-sm`}>
-                            <Calendar className="h-3 w-3" />
+                        {/* Metadata */}
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
+                          <div
+                            className={`px-2 sm:px-3 py-1 rounded-full ${theme.secondaryBg} backdrop-blur-sm flex items-center gap-1 sm:gap-1.5`}
+                          >
+                            <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
+                            {formatDate(transaction.date)}
                           </div>
-                          {formatDate(transaction.date)}
-                          <div className={`p-1 rounded-full ${theme.secondaryBg} mx-1.5 flex-shrink-0 transition-all duration-300 group-hover:shadow-sm`}>
-                            <Clock className="h-3 w-3" />
+                          <div
+                            className={`px-2 sm:px-3 py-1 rounded-full ${theme.secondaryBg} backdrop-blur-sm flex items-center gap-1 sm:gap-1.5`}
+                          >
+                            <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                            {new Date(transaction.date).toLocaleTimeString([], {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
                           </div>
-                          {new Date(transaction.date).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
                         </div>
 
-                        <div className="mt-2">
-                          {transaction.type === TransactionType.INCOME ? (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${theme.badgeBg} ${theme.badgeText} transition-all duration-300 group-hover:shadow-sm`}>
-                              To: <span className="break-words ml-1">{getAccountName(transaction.toAccountId)}</span>
+                        {/* Account badge */}
+                        {(transaction.type === TransactionType.INCOME ||
+                          transaction.type === TransactionType.EXPENSE) && (
+                          <div className="mt-2 sm:mt-3">
+                            <span
+                              className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${theme.badgeBg} ${theme.badgeText}`}
+                            >
+                              {transaction.type === TransactionType.INCOME
+                                ? "To: "
+                                : "From: "}
+                              <span className="ml-1 font-semibold">
+                                {getAccountName(
+                                  transaction.type === TransactionType.INCOME
+                                    ? transaction.toAccountId
+                                    : transaction.fromAccountId
+                                )}
+                              </span>
                             </span>
-                          ) : transaction.type === TransactionType.EXPENSE ? (
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${theme.badgeBg} ${theme.badgeText} transition-all duration-300 group-hover:shadow-sm`}>
-                              From: <span className="break-words ml-1">{getAccountName(transaction.fromAccountId)}</span>
-                            </span>
-                          ) : null}
-                        </div>
+                          </div>
+                        )}
 
+                        {/* Description */}
                         {transaction.description && (
-                          <div className="text-sm text-gray-500 mt-2 line-clamp-2 italic break-words">
+                          <div className="mt-2 sm:mt-3 text-xs sm:text-sm text-gray-500 line-clamp-2 italic">
                             "{transaction.description}"
                           </div>
                         )}
                       </div>
 
-                      {/* Chevron indicator with animation */}
-                      <ChevronRight className="h-5 w-5 text-gray-400 self-center flex-shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
+                      {/* Chevron indicator - hidden on mobile */}
+                      <ChevronRight className="hidden sm:block h-6 w-6 text-gray-400 self-center flex-shrink-0 transition-transform duration-300 group-hover:translate-x-1" />
                     </div>
                   </div>
-                </div>
+                  {/* Colored border indicator */}
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1 ${theme.gradient} transform transition-transform duration-300 group-hover:scale-y-100`}
+                  ></div>
+                </motion.div>
               );
             })}
           </div>

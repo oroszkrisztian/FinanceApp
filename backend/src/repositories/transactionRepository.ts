@@ -369,7 +369,7 @@ export class TransactionRepository {
     userId: number,
     name: string,
     fromAccountId: number,
-    customCategoryId: number | null,
+    budgetId: number | null,
     description: string | null
   ) {
     const account = await this.prisma.account.findFirst({
@@ -404,13 +404,11 @@ export class TransactionRepository {
     }
 
     return await this.prisma.$transaction(async (prisma) => {
-      // Create the transaction
       const transaction = await prisma.transaction.create({
         data: {
           userId: userId,
           name: name,
           fromAccountId: fromAccountId,
-          customCategoryId: customCategoryId,
           description: description,
           type: TransactionType.EXPENSE,
           amount: amount,
@@ -418,39 +416,32 @@ export class TransactionRepository {
         },
         include: {
           fromAccount: true,
-          customCategory: true,
         },
       });
 
-      // Update account balance
       await prisma.account.update({
         where: { id: fromAccountId },
         data: { amount: { decrement: amountToWithdraw } },
       });
 
-      // Handle budget updates if category is provided
-      if (customCategoryId) {
-        const associatedBudgets = await prisma.budget.findMany({
+      if (budgetId) {
+        const budget = await prisma.budget.findFirst({
           where: {
+            id: budgetId,
             userId: userId,
-            customCategories: {
-              some: { customCategoryId: customCategoryId },
-            },
             deletedAt: null,
           },
         });
 
-        // Update each associated budget
-        for (const budget of associatedBudgets) {
+        if (budget) {
           let budgetAmount = amount;
 
-          // Convert amount to budget's currency if different
           if (currency !== budget.currency) {
             if (!rates[budget.currency]) {
               console.error(
                 `Exchange rate not found for ${budget.currency}, skipping budget update`
               );
-              continue;
+              return transaction;
             }
             budgetAmount = amount * (rates[currency] / rates[budget.currency]);
           }
@@ -465,6 +456,93 @@ export class TransactionRepository {
         }
       }
 
+      return transaction;
+    });
+  }
+
+  async transferFundsDefault(
+    userId: number,
+    amount: number,
+    fromAccountId: number,
+    toAccountId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
+    const fromAccount = await this.prisma.account.findFirst({
+      where: {
+        id: fromAccountId,
+        userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!fromAccount) {
+      throw new Error("Source account not found or doesn't belong to the user");
+    }
+
+    const toAccount = await this.prisma.account.findFirst({
+      where: {
+        id: toAccountId,
+        userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!toAccount) {
+      throw new Error(
+        "Destination account not found or doesn't belong to the user"
+      );
+    }
+
+    if (fromAccount.amount < amount) {
+      throw new Error(
+        `Insufficient funds in source account. Available: ${fromAccount.amount} ${fromAccount.currency}, Required: ${amount} ${fromAccount.currency}`
+      );
+    }
+
+    let amountToDeposit = amount;
+
+    if (toAccount.currency !== currency) {
+      const rates = await this.getExchangeRates();
+      if (!rates[toAccount.currency]) {
+        throw new Error(`Exchange rate for ${toAccount.currency} not found`);
+      }
+      if (!rates[currency]) {
+        throw new Error(`Exchange rate for ${currency} not found`);
+      }
+
+      amountToDeposit = amount * (rates[currency] / rates[toAccount.currency]);
+      console.log(
+        `Converting ${amount} ${currency} to ${amountToDeposit.toFixed(2)} ${toAccount.currency} for deposit`
+      );
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId,
+          amount,
+          type,
+          fromAccountId: fromAccountId,
+          toAccountId: toAccountId,
+          currency,
+        },
+        include: {
+          fromAccount: true,
+          toAccount: true,
+          customCategory: true,
+        },
+      });
+
+      await prisma.account.update({
+        where: { id: fromAccountId },
+        data: { amount: { decrement: amount } },
+      });
+
+      await prisma.account.update({
+        where: { id: toAccountId },
+        data: { amount: { increment: amountToDeposit } },
+      });
       return transaction;
     });
   }

@@ -130,7 +130,7 @@ export class TransactionController {
         userId,
         name,
         fromAccountId,
-        customCategoryId,
+        budgetId,
         description,
       } = await c.req.json();
 
@@ -144,7 +144,7 @@ export class TransactionController {
         userId,
         name,
         fromAccountId,
-        customCategoryId,
+        budgetId,
         description
       );
 
@@ -152,6 +152,35 @@ export class TransactionController {
     } catch (error) {
       console.error("Create expense error:", error);
       return c.json({ error: "Failed to create expense" }, 500);
+    }
+  }
+
+  async transferFundsDefault(c: Context) {
+    try {
+      const { userId, amount, fromAccountId, toAccountId, type, currency } =
+        await c.req.json();
+
+      if (!userId || !fromAccountId || !toAccountId) {
+        return c.json({ error: "Fill all necessary fields" }, 400);
+      }
+
+      if (amount <= 0) {
+        return c.json({ error: "Amount must be greater than zero" }, 400);
+      }
+
+      const defaultTransaction = await this.transactionService.transferFundsDefault(
+        userId,
+        amount,
+        fromAccountId,
+        toAccountId,
+        type || TransactionType.TRANSFER,
+        currency
+      );
+
+      return c.json(defaultTransaction);
+    } catch (error) {
+      console.error("Transfer funds to default account error:", error);
+      return c.json({ error: "Failed to transfer funds to default account" }, 500);
     }
   }
 

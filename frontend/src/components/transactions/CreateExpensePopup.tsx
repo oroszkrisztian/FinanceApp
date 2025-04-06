@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import AnimatedModal from "../animations/BlurPopup";
 import { Account } from "../../interfaces/Account";
-import {
-  CategoryType,
-  CurrencyType,
-  TransactionType,
-} from "../../interfaces/enums";
-import { CustomCategory } from "../../interfaces/CustomCategory";
+import { CurrencyType, TransactionType } from "../../interfaces/enums";
+import { Budget } from "../../interfaces/Budget";
 import {
   fetchExchangeRates,
   convertAmount,
@@ -17,20 +13,20 @@ import {
 import { createExpense } from "../../services/transactionService";
 import { useAuth } from "../../context/AuthContext";
 
-interface CreateTransactionPopupProps {
+interface CreateExpensePopupProps {
   onClose: () => void;
   isOpen: boolean;
   accounts: Account[];
-  categories: CustomCategory[];
+  budgets: Budget[];
   accountsLoading: boolean;
   onSuccess: () => void;
 }
 
-const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
+const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   onClose,
   isOpen,
   accounts,
-  categories,
+  budgets,
   accountsLoading,
   onSuccess,
 }) => {
@@ -40,7 +36,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     name: string;
     description: string;
     selectedAccount: string;
-    selectedCategory: string;
+    selectedBudget: string;
     amount: number;
     currency: CurrencyType;
     type: TransactionType;
@@ -48,20 +44,19 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     name: "",
     description: "",
     selectedAccount: "",
-    selectedCategory: "",
+    selectedBudget: "",
     amount: 0,
     currency: CurrencyType.RON,
     type: TransactionType.EXPENSE,
   });
   const [isLoading, setIsLoading] = useState(false);
-  const [categoryInput, setCategoryInput] = useState("");
+  const [budgetInput, setBudgetInput] = useState("");
   const [accountInput, setAccountInput] = useState("");
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [showBudgetDropdown, setShowBudgetDropdown] = useState(false);
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
-  const [selectedCategory, setSelectedCategory] =
-    useState<CustomCategory | null>(null);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const categoryRef = useRef<HTMLDivElement>(null);
+  const budgetRef = useRef<HTMLDivElement>(null);
   const accountRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const [amountString, setAmountString] = useState("");
@@ -78,6 +73,36 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     rate: 1,
     error: null,
   });
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      description: "",
+      selectedAccount: "",
+      selectedBudget: "",
+      amount: 0,
+      currency: CurrencyType.RON,
+      type: TransactionType.EXPENSE,
+    });
+    setAmountString("");
+    setBudgetInput("");
+    setAccountInput("");
+    setSelectedBudget(null);
+    setSelectedAccount(null);
+    setShowBudgetDropdown(false);
+    setShowAccountDropdown(false);
+    setConversionDetails({
+      originalAmount: 0,
+      convertedAmount: 0,
+      rate: 1,
+      error: null,
+    });
+  };
+
+  const handleClose = () => {
+    resetForm();
+    onClose();
+  };
 
   useEffect(() => {
     const handleResize = () => {
@@ -100,11 +125,11 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        categoryRef.current &&
-        !categoryRef.current.contains(event.target as Node) &&
-        showCategoryDropdown
+        budgetRef.current &&
+        !budgetRef.current.contains(event.target as Node) &&
+        showBudgetDropdown
       ) {
-        setShowCategoryDropdown(false);
+        setShowBudgetDropdown(false);
       }
       if (
         accountRef.current &&
@@ -116,7 +141,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showCategoryDropdown, showAccountDropdown]);
+  }, [showBudgetDropdown, showAccountDropdown]);
 
   useEffect(() => {
     updateConversionDetails();
@@ -183,14 +208,12 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     }));
   };
 
-  const handleCategoryInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleBudgetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setCategoryInput(value);
-    setSelectedCategory(null);
-    setShowCategoryDropdown(true);
-    setFormData((prev) => ({ ...prev, selectedCategory: "" }));
+    setBudgetInput(value);
+    setSelectedBudget(null);
+    setShowBudgetDropdown(true);
+    setFormData((prev) => ({ ...prev, selectedBudget: "" }));
   };
 
   const handleAccountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -201,11 +224,11 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     setFormData((prev) => ({ ...prev, selectedAccount: "" }));
   };
 
-  const selectCategory = (category: CustomCategory) => {
-    setSelectedCategory(category);
-    setFormData((prev) => ({ ...prev, selectedCategory: String(category.id) }));
-    setCategoryInput("");
-    setShowCategoryDropdown(false);
+  const selectBudget = (budget: Budget) => {
+    setSelectedBudget(budget);
+    setFormData((prev) => ({ ...prev, selectedBudget: String(budget.id) }));
+    setBudgetInput("");
+    setShowBudgetDropdown(false);
   };
 
   const selectAccount = (account: Account) => {
@@ -215,11 +238,11 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     setShowAccountDropdown(false);
   };
 
-  const clearCategorySelection = (e: React.MouseEvent) => {
+  const clearBudgetSelection = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setSelectedCategory(null);
-    setCategoryInput("");
-    setFormData((prev) => ({ ...prev, selectedCategory: "" }));
+    setSelectedBudget(null);
+    setBudgetInput("");
+    setFormData((prev) => ({ ...prev, selectedBudget: "" }));
   };
 
   const clearAccountSelection = (e: React.MouseEvent) => {
@@ -256,7 +279,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
         formData.amount,
         formData.currency as CurrencyType,
         parseInt(formData.selectedAccount),
-        formData.selectedCategory ? parseInt(formData.selectedCategory) : null,
+        formData.selectedBudget ? parseInt(formData.selectedBudget) : null,
         formData.description || null
       );
 
@@ -270,7 +293,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
         });
       }
 
-      onClose();
+      handleClose();
       onSuccess();
     } catch (error) {
       console.error("Failed to create expense:", error);
@@ -279,8 +302,8 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
     }
   };
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(categoryInput.toLowerCase())
+  const filteredBudgets = budgets.filter((budget) =>
+    budget.name.toLowerCase().includes(budgetInput.toLowerCase())
   );
 
   const filteredAccounts = accounts.filter((account) =>
@@ -329,7 +352,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
   return (
     <AnimatedModal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={handleClose}
       closeOnBackdropClick={true}
       backdropBlur="md"
       animationDuration={150}
@@ -341,8 +364,8 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
         ref={modalRef}
       >
         {/* Header - Fixed */}
-        <div className="bg-gradient-to-r from-gray-700 to-black px-5 py-5 rounded-t-xl flex items-center flex-shrink-0 sticky top-0 z-10">
-          <div className="mr-3 p-2.5 rounded-full bg-gray-800 shadow">
+        <div className="bg-gradient-to-r from-red-600 to-red-800 px-5 py-5 rounded-t-xl flex items-center flex-shrink-0 sticky top-0 z-10">
+          <div className="mr-3 p-2.5 rounded-full bg-red-700 shadow">
             <svg
               className="h-6 w-6 text-white"
               fill="none"
@@ -372,10 +395,14 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                 {/* Amount Input with Currency */}
                 <div className="mb-4">
                   <div
-                    className={`flex border border-gray-300 rounded-lg focus-within:ring-1 focus-within:ring-black focus-within:border-transparent transition-all ${isMobileScreen ? "flex-col" : ""}`}
+                    className={`flex border border-gray-300 rounded-lg focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 transition-all ${
+                      isMobileScreen ? "flex-col" : ""
+                    }`}
                   >
                     <div
-                      className={`relative ${isMobileScreen ? "w-full" : "flex-grow"}`}
+                      className={`relative ${
+                        isMobileScreen ? "w-full" : "flex-grow"
+                      }`}
                     >
                       <input
                         type="text"
@@ -410,7 +437,11 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                             }
                           }
                         }}
-                        className={`w-full px-4 py-3 focus:outline-none ${isMobileScreen ? "rounded-t-lg" : "rounded-l-lg"} border-none ${isMobileScreen ? "text-xl" : "text-2xl"} font-bold text-gray-800`}
+                        className={`w-full px-4 py-3 focus:outline-none ${
+                          isMobileScreen ? "rounded-t-lg" : "rounded-l-lg"
+                        } border-none ${
+                          isMobileScreen ? "text-xl" : "text-2xl"
+                        } font-bold text-gray-800`}
                         placeholder="0.00"
                         autoComplete="off"
                         required
@@ -422,7 +453,11 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                       name="currency"
                       value={formData.currency}
                       onChange={handleChange}
-                      className={`${isMobileScreen ? "w-full px-4 py-2 rounded-b-lg text-center border-t border-gray-200" : "px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg border-l border-gray-300"} ${isMobileScreen ? "text-base" : "text-lg"} font-bold`}
+                      className={`${
+                        isMobileScreen
+                          ? "w-full px-4 py-2 rounded-b-lg text-center border-t border-gray-200"
+                          : "px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg border-l border-gray-300"
+                      } ${isMobileScreen ? "text-base" : "text-lg"} font-bold`}
                       required
                     >
                       {Object.values(CurrencyType).map((currency) => (
@@ -442,7 +477,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                   >
                     Expense Name*
                   </label>
-                  <div className="flex items-center border border-gray-300 rounded-md focus-within:ring-1 focus-within:ring-black focus-within:border-black">
+                  <div className="flex items-center border border-gray-300 rounded-md focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500">
                     <div className="p-2 bg-gray-50 m-1.5 rounded-md">
                       <svg
                         className="h-5 w-5 text-gray-500"
@@ -488,7 +523,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                   ) : (
                     <div className="relative" ref={accountRef}>
                       <div
-                        className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-black focus-within:border-black h-[42px]"
+                        className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 h-[42px]"
                         onClick={() =>
                           setShowAccountDropdown(!showAccountDropdown)
                         }
@@ -512,7 +547,9 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                           {selectedAccount ? (
                             <input
                               type="text"
-                              className={`w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium ${isMobileScreen ? "text-sm" : ""}`}
+                              className={`w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium ${
+                                isMobileScreen ? "text-sm" : ""
+                              }`}
                               value={[
                                 selectedAccount.name +
                                   " (" +
@@ -558,7 +595,9 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                         )}
                         <div className="px-2 text-gray-400">
                           <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${showAccountDropdown ? "transform rotate-180" : ""}`}
+                            className={`w-4 h-4 transition-transform duration-200 ${
+                              showAccountDropdown ? "transform rotate-180" : ""
+                            }`}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -583,7 +622,11 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                             filteredAccounts.map((account) => (
                               <div
                                 key={account.id}
-                                className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${selectedAccount?.id === account.id ? "bg-gray-100" : ""}`}
+                                className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${
+                                  selectedAccount?.id === account.id
+                                    ? "bg-gray-100"
+                                    : ""
+                                }`}
                                 onClick={() => selectAccount(account)}
                               >
                                 <div className="flex items-center justify-between">
@@ -605,24 +648,24 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                   )}
                 </div>
 
-                {/* Category Dropdown */}
+                {/* Budget Dropdown */}
                 <div className="mb-4">
                   <label
-                    htmlFor="categoryInput"
+                    htmlFor="budgetInput"
                     className="block text-xs font-semibold text-gray-500 uppercase mb-1"
                   >
-                    Category*
+                    Budget
                   </label>
-                  {categories.length === 0 ? (
+                  {budgets.length === 0 ? (
                     <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
-                      No categories available.
+                      No budgets available.
                     </div>
                   ) : (
-                    <div className="relative" ref={categoryRef}>
+                    <div className="relative" ref={budgetRef}>
                       <div
-                        className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-black focus-within:border-black h-[42px]"
+                        className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 h-[42px]"
                         onClick={() =>
-                          setShowCategoryDropdown(!showCategoryDropdown)
+                          setShowBudgetDropdown(!showBudgetDropdown)
                         }
                       >
                         <div className="p-2 bg-gray-50 m-1.5 rounded-md">
@@ -636,35 +679,37 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                               strokeLinecap="round"
                               strokeLinejoin="round"
                               strokeWidth={2}
-                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
                             />
                           </svg>
                         </div>
                         <div className="flex-grow">
-                          {selectedCategory ? (
+                          {selectedBudget ? (
                             <input
                               type="text"
-                              className={`w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium ${isMobileScreen ? "text-sm" : ""}`}
-                              value={selectedCategory.name}
+                              className={`w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium ${
+                                isMobileScreen ? "text-sm" : ""
+                              }`}
+                              value={selectedBudget.name}
                               readOnly
-                              onClick={() => setShowCategoryDropdown(true)}
+                              onClick={() => setShowBudgetDropdown(true)}
                             />
                           ) : (
                             <input
                               type="text"
-                              value={categoryInput}
-                              onChange={handleCategoryInputChange}
+                              value={budgetInput}
+                              onChange={handleBudgetInputChange}
                               className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
-                              placeholder="Type to search categories"
-                              onClick={() => setShowCategoryDropdown(true)}
+                              placeholder="Type to search budgets"
+                              onClick={() => setShowBudgetDropdown(true)}
                             />
                           )}
                         </div>
-                        {(categoryInput || selectedCategory) && (
+                        {(budgetInput || selectedBudget) && (
                           <button
                             type="button"
                             className="px-2 text-gray-400 hover:text-gray-600"
-                            onClick={clearCategorySelection}
+                            onClick={clearBudgetSelection}
                           >
                             <svg
                               className="w-4 h-4"
@@ -683,7 +728,9 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                         )}
                         <div className="px-2 text-gray-400">
                           <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${showCategoryDropdown ? "transform rotate-180" : ""}`}
+                            className={`w-4 h-4 transition-transform duration-200 ${
+                              showBudgetDropdown ? "transform rotate-180" : ""
+                            }`}
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
@@ -698,27 +745,31 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                         </div>
                       </div>
 
-                      {showCategoryDropdown && (
-                        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-md max-h-40 overflow-y-auto">
-                          {filteredCategories.length === 0 ? (
+                      {showBudgetDropdown && (
+                        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-md max-h-28 overflow-y-auto">
+                          {filteredBudgets.length === 0 ? (
                             <div className="p-3 text-sm text-gray-500">
-                              No matching categories, will create new
+                              No matching budgets
                             </div>
                           ) : (
-                            filteredCategories.map((category) => (
+                            filteredBudgets.map((budget) => (
                               <div
-                                key={category.id}
-                                className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${selectedCategory?.id === category.id ? "bg-gray-100" : ""}`}
-                                onClick={() => selectCategory(category)}
+                                key={budget.id}
+                                className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${
+                                  selectedBudget?.id === budget.id
+                                    ? "bg-gray-100"
+                                    : ""
+                                }`}
+                                onClick={() => selectBudget(budget)}
                               >
                                 <div className="flex items-center justify-between">
                                   <span className="font-medium truncate">
-                                    {category.name}
+                                    {budget.name}
                                   </span>
                                   <span className="text-xs text-gray-500 ml-1">
-                                    {category.type === CategoryType.SYSTEM
-                                      ? "(System)"
-                                      : "(Custom)"}
+                                    {budget.currentSpent !== undefined
+                                      ? `${budget.currentSpent.toFixed(2)} ${budget.currency}`
+                                      : ""}
                                   </span>
                                 </div>
                               </div>
@@ -738,7 +789,7 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
                   >
                     Description
                   </label>
-                  <div className="border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-black focus-within:border-black">
+                  <div className="border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500">
                     <textarea
                       id="description"
                       name="description"
@@ -989,18 +1040,26 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
 
             {/* Buttons */}
             <div
-              className={`${isMobileScreen ? "flex flex-col-reverse space-y-2 space-y-reverse" : "flex justify-end space-x-3"} mt-4 pb-3`}
+              className={`${
+                isMobileScreen
+                  ? "flex flex-col-reverse space-y-2 space-y-reverse"
+                  : "flex justify-end space-x-3"
+              } mt-4 pb-3`}
             >
               <button
                 type="button"
-                onClick={onClose}
-                className={`${isMobileScreen ? "w-full mt-2" : "px-5"} py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium focus:outline-none shadow-sm hover:bg-gray-50`}
+                onClick={handleClose}
+                className={`${
+                  isMobileScreen ? "w-full mt-2" : "px-5"
+                } py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium focus:outline-none shadow-sm hover:bg-gray-50`}
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className={`${isMobileScreen ? "w-full" : "px-5"} py-2 bg-gradient-to-r from-gray-700 to-black text-white rounded-full text-sm font-medium focus:outline-none shadow-sm hover:from-gray-800 hover:to-black disabled:opacity-50`}
+                className={`${
+                  isMobileScreen ? "w-full" : "px-5"
+                } py-2 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full text-sm font-medium focus:outline-none shadow-sm hover:from-red-700 hover:to-red-900 disabled:opacity-50`}
                 disabled={
                   isLoading || (balanceInfo ? !balanceInfo.isValid : false)
                 }
@@ -1040,4 +1099,4 @@ const CreateTransactionPopup: React.FC<CreateTransactionPopupProps> = ({
   );
 };
 
-export default CreateTransactionPopup;
+export default CreateExpensePopup;

@@ -105,6 +105,8 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
     setError(null);
     setLoading(true);
 
+    console.log("create budget pressed");
+
     if (!user) {
       setError("User not found");
       setLoading(false);
@@ -554,6 +556,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
           <button
             type="submit"
             disabled={loading}
+            onClick={handleSubmit}
             className={`${isSmallScreen ? "w-full" : "px-5"} py-2 bg-gradient-to-r from-indigo-500 to-indigo-700 text-white rounded-full text-sm font-medium focus:outline-none shadow-sm hover:from-indigo-600 hover:to-indigo-800 disabled:opacity-50 transform transition-transform hover:scale-105 duration-200`}
           >
             {loading ? (

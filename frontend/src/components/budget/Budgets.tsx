@@ -28,7 +28,6 @@ const Budgets: React.FC<BudgetsProps> = ({
     return Math.min(percentage, 100);
   };
 
-
   const getGradientColor = (percentage: number) => {
     let r, g, b;
 
@@ -133,123 +132,105 @@ const Budgets: React.FC<BudgetsProps> = ({
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: index * 0.1 }}
-                    className="relative bg-white p-4 rounded-xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition-shadow"
+                    className="relative bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 group backdrop-blur-sm"
+                    style={{
+                      background: `radial-gradient(circle at top right, ${getLightColor(mainColor)}, white 70%)`,
+                    }}
                   >
-                    {/* Options Menu Button */}
-                    <div className="absolute top-3 right-3 z-10">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(
-                            openMenuId === String(budget.id)
-                              ? null
-                              : String(budget.id)
-                          );
-                        }}
-                        className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          className="h-5 w-5 text-gray-500"
-                          viewBox="0 0 20 20"
-                          fill="currentColor"
-                        >
-                          <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                        </svg>
-                      </button>
-
-                      {openMenuId === String(budget.id) && (
-                        <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-100 z-20 py-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditBudget(budget);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-700 flex items-center transition-colors rounded-md"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4 mr-2 text-blue-500"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                            </svg>
-                            Edit
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteBudget(budget);
-                            }}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-700 flex items-center transition-colors rounded-md"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-4 w-4 mr-2 text-red-500"
-                              viewBox="0 0 20 20"
-                              fill="currentColor"
-                            >
-                              <path
-                                fillRule="evenodd"
-                                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                                clipRule="evenodd"
-                              />
-                            </svg>
-                            Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Decorative corner accent */}
+                    {/* Decorative corner accent - updated */}
                     <div
-                      className="absolute top-0 right-0 w-20 h-20 opacity-10 rounded-bl-full"
+                      className="absolute top-0 right-0 w-24 h-24 opacity-20 rounded-bl-[100%] transition-all duration-300 group-hover:opacity-30"
                       style={{ backgroundColor: mainColor }}
                     ></div>
 
-                    {/* Wave background at bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 md:h-24 z-0 overflow-hidden">
+                    {/* Wave background at bottom - updated */}
+                    <div className="absolute bottom-0 left-0 right-0 h-20 z-0 overflow-hidden opacity-60 group-hover:opacity-80 transition-opacity duration-300">
                       <div
                         className="absolute bottom-0 left-0 w-full h-full z-0"
                         style={{
-                          opacity: 0.4,
                           backgroundColor: mainColor,
                           clipPath:
-                            "path('M0 43.9999C106.667 43.9999 213.333 7.99994 320 7.99994C426.667 7.99994 533.333 43.9999 640 43.9999C746.667 43.9999 853.333 7.99994 960 7.99994C1066.67 7.99994 1173.33 43.9999 1280 43.9999C1386.67 43.9999 1440 19.0266 1440 9.01329V100H0V43.9999Z')",
-                        }}
-                      ></div>
-
-                      <div
-                        className="absolute bottom-0 left-0 h-full z-1"
-                        style={{
-                          width: `${percentage}%`,
-                          background:
-                            "linear-gradient(to right, rgba(255,255,255,0) 80%, rgba(255,255,255,1) 100%)",
-                          transition:
-                            "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
-                        }}
-                      ></div>
-
-                      <div
-                        className="absolute bottom-0 right-0 h-full bg-white z-1"
-                        style={{
-                          width: `${100 - percentage}%`,
-                          transition:
-                            "width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)",
+                            "path('M0,50 Q50,0 100,50 T200,50 T300,50 T400,50 L400,100 L0,100 Z')",
                         }}
                       ></div>
                     </div>
 
                     <div className="relative">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="text-xl font-bold text-gray-900 tracking-tight truncate">
+                      {/* Options Menu Button - updated */}
+                      <div className="absolute -top-1 -right-1 z-10">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(
+                              openMenuId === String(budget.id)
+                                ? null
+                                : String(budget.id)
+                            );
+                          }}
+                          className="p-1.5 rounded-full hover:bg-white/80 transition-colors"
+                        >
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5 text-gray-500"
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                          >
+                            <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                          </svg>
+                        </button>
+
+                        {openMenuId === String(budget.id) && (
+                          <div className="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg shadow-lg border border-gray-100 z-20 py-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleEditBudget(budget);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-700 flex items-center transition-colors rounded-md"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-2 text-blue-500"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteBudget(budget);
+                              }}
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-700 flex items-center transition-colors rounded-md"
+                            >
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-4 w-4 mr-2 text-red-500"
+                                viewBox="0 0 20 20"
+                                fill="currentColor"
+                              >
+                                <path
+                                  fillRule="evenodd"
+                                  d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                                  clipRule="evenodd"
+                                />
+                              </svg>
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex justify-between items-center mb-3">
+                        <h3 className="text-xl font-bold text-gray-800 tracking-tight truncate group-hover:text-gray-900 transition-colors">
                           {budget.name}
                         </h3>
                       </div>
 
                       <motion.span
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium mb-3"
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mb-4"
                         style={{
                           backgroundColor: lightColor,
                           color: textColor,
@@ -295,18 +276,38 @@ const Budgets: React.FC<BudgetsProps> = ({
 
                         {/* Remaining amount */}
                         <div className="bg-gray-50 rounded-lg p-3">
-                          <div className="flex justify-between items-center">
-                            <p className="text-sm text-gray-600 font-medium">
-                              Remaining
-                            </p>
-                            <p
-                              className="text-lg font-bold"
-                              style={{ color: textColor }}
-                            >
-                              {remainingAmount > 0
-                                ? `${budget.currency} ${remainingAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                : "Exceeded"}
-                            </p>
+                          <div className="flex flex-col gap-1">
+                            <div className="flex justify-between items-center">
+                              <p className="text-sm text-gray-600 font-medium">
+                                {remainingAmount > 0
+                                  ? "Remaining"
+                                  : remainingAmount === 0
+                                    ? "Budget Limit"
+                                    : "Exceeded By"}
+                              </p>
+                              <p
+                                className="text-lg font-bold"
+                                style={{ color: textColor }}
+                              >
+                                {remainingAmount > 0
+                                  ? `${budget.currency} ${remainingAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  : remainingAmount === 0
+                                    ? `${budget.currency} ${budget.limitAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                    : `${budget.currency} ${Math.abs(remainingAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                              </p>
+                            </div>
+                            {remainingAmount <= 0 && (
+                              <div className="flex justify-between items-center text-xs text-gray-500">
+                                <span>Total Budget</span>
+                                <span>
+                                  {budget.currency}{" "}
+                                  {budget.limitAmount.toLocaleString("en-US", {
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                </span>
+                              </div>
+                            )}
                           </div>
                         </div>
 

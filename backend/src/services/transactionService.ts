@@ -108,7 +108,7 @@ export class TransactionService {
     userId: number,
     name: string,
     fromAccountId: number,
-    customCategoryId: number,
+    budgetId: number,
     description: string
   ) {
     try {
@@ -118,13 +118,37 @@ export class TransactionService {
         userId,
         name,
         fromAccountId,
-        customCategoryId,
+        budgetId,
         description
       );
       return expenseTransaction;
     } catch (error) {
       console.error("Error in TransactionService.createExpense:", error);
       throw new Error("Failed to create expense");
+    }
+  }
+
+  async transferFundsDefault(
+    userId: number,
+    amount: number,
+    fromAccountId: number,
+    toAccountId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
+    try {
+      const transferTransaction = await this.transactionRepo.transferFundsDefault(
+        userId,
+        amount,
+        fromAccountId,
+        toAccountId,
+        type,
+        currency
+      );
+      return transferTransaction;
+    } catch (error) {
+      console.error("Error in TransactionService.trasnferFundsDefault:", error);
+      throw new Error("Failed to transfer funds");
     }
   }
 }

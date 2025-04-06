@@ -72,12 +72,7 @@ const Budget: React.FC = () => {
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="w-full h-full bg-white min-h-screen"
-    >
+    <div className="bg-gray-100 min-h-screen">
       <div className="container mx-auto p-4 max-w-screen-xl">
         {error ? (
           <div className="p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
@@ -97,7 +92,9 @@ const Budget: React.FC = () => {
           />
         )}
       </div>
-    </motion.div>
+    </div>
+      
+    
   );
 };
 

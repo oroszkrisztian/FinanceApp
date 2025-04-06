@@ -1,10 +1,7 @@
-
 import { CurrencyType, TransactionType } from "../interfaces/enums";
 
 export const getUserAllTransactions = async (userId: number) => {
   try {
-    
-
     const response = await fetch(
       "http://localhost:3000/transaction/getUserAllTransactions",
       {
@@ -184,8 +181,8 @@ export const createExpense = async (
   amount: number,
   currency: CurrencyType,
   fromAccountId: number,
-  customCategoryId: number | null,
-  description: string | null  
+  budgetId: number | null,
+  description: string | null
 ) => {
   try {
     const response = await fetch(
@@ -201,7 +198,7 @@ export const createExpense = async (
           amount,
           currency,
           fromAccountId,
-          customCategoryId,
+          budgetId,
           description,
         }),
       }
@@ -218,4 +215,46 @@ export const createExpense = async (
     console.error("Error creating expense:", err);
     throw err;
   }
-}
+};
+
+export const transferFundsDefault = async (
+  userId: number,
+  amount: number,
+  fromAccountId: number,
+  toAccountId: number, 
+  type: TransactionType,
+  currency: CurrencyType
+) => {
+  try {
+    const response = await fetch(
+      "http://localhost:3000/transaction/transferFundsDefault",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          amount,
+          fromAccountId,
+          toAccountId,
+          type,
+          currency,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(
+        errorData.error || "Failed to transfer funds to default account"
+      );
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error transferring funds to default account:", err);
+    throw err;
+  }
+};

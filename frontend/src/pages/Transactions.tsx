@@ -7,7 +7,6 @@ import ErrorState from "../components/ErrorState";
 import LoadingState from "../components/LoadingState";
 import { motion, AnimatePresence } from "framer-motion";
 
-import CreateTransactionPopup from "../components/transactions/CreateTransacationPopup";
 import { Account } from "../interfaces/Account";
 import { fetchAllAccounts } from "../services/accountService";
 import TransactionTable from "../components/transactions/transactionsHistory/TransactionTableProps";
@@ -15,6 +14,10 @@ import EmptySearchResults from "../components/transactions/EmptySearchTransactio
 import SearchBar from "../components/transactions/Searchbar";
 import { getAllSystemCategories } from "../services/categoriesService";
 import { CustomCategory } from "../interfaces/CustomCategory";
+import { getAllBudgets } from "../services/budgetService";
+import CreateExpensePopup from "../components/transactions/CreateExpensePopup";
+import AddIncomePopup from "../components/transactions/AddIncomePopup";
+import TransferDefaultAccounts from "../components/transactions/TransferDefaultAccounts";
 
 const Transactions: React.FC = () => {
   const { user } = useAuth();
@@ -25,8 +28,10 @@ const Transactions: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("income");
   const [isSmallScreen, setIsSmallScreen] = useState(false);
-  const [isCreateTransactionModalOpen, setIsCreateTransactionModalOpen] =
+  const [isCreateExpenseModalOpen, setIsCreateExpenseModalOpen] =
     useState(false);
+  const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
   const [dateRange, setDateRange] = useState<{
     start: Date | null;
@@ -38,6 +43,7 @@ const Transactions: React.FC = () => {
 
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [categories, setCategories] = useState<CustomCategory[]>([]);
+  const [budgets, setBudgets] = useState<any[]>([]);
 
   const defaultAccounts = accounts.filter(
     (account) => account.type === AccountType.DEFAULT
@@ -74,6 +80,21 @@ const Transactions: React.FC = () => {
       console.error("Error fetching accounts:", err);
     } finally {
       setAccountsLoading(false);
+    }
+  };
+
+  const fetchBudgets = async () => {
+    if (!user?.id) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const budgetData = await getAllBudgets(user.id);
+      setBudgets(Array.isArray(budgetData) ? budgetData : []);
+    } catch (err) {
+      console.error("Error fetching budgets:", err);
+      setError("Failed to load budgets. Please try again later.");
     }
   };
 
@@ -142,6 +163,7 @@ const Transactions: React.FC = () => {
     fetchAccounts();
     fetchTransactions();
     fetchCategories();
+    fetchBudgets();
   }, [user]);
 
   const formatAmount = (amount: number) => {
@@ -255,64 +277,28 @@ const Transactions: React.FC = () => {
     }
   };
 
-  const getTabStyles = (tab: string) => {
-    const baseClasses =
-      "px-3 py-3 md:px-6 md:py-4 text-xs md:text-sm font-medium border-b-2 transition-all duration-300 flex items-center";
-    const centerClasses = isSmallScreen ? "flex-1 justify-center" : "";
-
-    let activeClasses = "";
-    let icon = null;
-
-    if (tab === "income") {
-      activeClasses =
-        activeTab === "income"
-          ? "border-green-500 text-green-600 bg-green-50"
-          : "border-transparent text-gray-500 hover:text-green-600 hover:bg-green-50/50 hover:border-green-300";
-      icon = (
-        <span
-          className={`mr-1.5 text-sm ${activeTab === "income" ? "text-green-500" : "text-gray-400"}`}
-        >
-          💰
-        </span>
-      );
-    } else if (tab === "expenses") {
-      activeClasses =
-        activeTab === "expenses"
-          ? "border-red-500 text-red-600 bg-red-50"
-          : "border-transparent text-gray-500 hover:text-red-600 hover:bg-red-50/50 hover:border-red-300";
-      icon = (
-        <span
-          className={`mr-1.5 text-sm ${activeTab === "expenses" ? "text-red-500" : "text-gray-400"}`}
-        >
-          💸
-        </span>
-      );
-    } else if (tab === "transfers") {
-      activeClasses =
-        activeTab === "transfers"
-          ? "border-blue-500 text-blue-600 bg-blue-50"
-          : "border-transparent text-gray-500 hover:text-blue-600 hover:bg-blue-50/50 hover:border-blue-300";
-      icon = (
-        <span
-          className={`mr-1.5 text-sm ${activeTab === "transfers" ? "text-blue-500" : "text-gray-400"}`}
-        >
-          🔄
-        </span>
-      );
-    }
-
-    return {
-      className: `${baseClasses} ${centerClasses} ${activeClasses}`,
-      icon,
-    };
+  const openExpenseModal = () => {
+    setIsCreateExpenseModalOpen(true);
   };
 
-  const openTransactionModal = () => {
-    setIsCreateTransactionModalOpen(true);
+  const closeExpenseModal = () => {
+    setIsCreateExpenseModalOpen(false);
   };
 
-  const closeTransactionModal = () => {
-    setIsCreateTransactionModalOpen(false);
+  const openIncomeModal = () => {
+    setIsAddIncomeModalOpen(true);
+  };
+
+  const closeIncomeModal = () => {
+    setIsAddIncomeModalOpen(false);
+  };
+
+  const openTransferModal = () => {
+    setIsTransferModalOpen(true);
+  };
+
+  const closeTransferModal = () => {
+    setIsTransferModalOpen(false);
   };
 
   if (loading) {
@@ -400,7 +386,7 @@ const Transactions: React.FC = () => {
               whileTap={{ scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
               className="w-full px-6 py-3.5 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-medium rounded-full shadow-md hover:shadow-lg flex items-center justify-center space-x-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              onClick={openTransactionModal}
+              onClick={openExpenseModal}
             >
               <svg
                 className="w-5 h-5"
@@ -483,11 +469,11 @@ const Transactions: React.FC = () => {
           </div>
         </motion.div>
 
-        <CreateTransactionPopup
-          isOpen={isCreateTransactionModalOpen}
-          onClose={closeTransactionModal}
+        <CreateExpensePopup
+          isOpen={isCreateExpenseModalOpen}
+          onClose={closeExpenseModal}
           accounts={defaultAccounts}
-          categories={categories}
+          budgets={budgets}
           accountsLoading={accountsLoading}
           onSuccess={handleSuccess}
         />
@@ -497,190 +483,170 @@ const Transactions: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 md:py-8">
-        {/* Transaction History */}
-        <div>
-          {/* Header & Tabs */}
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
-            className="bg-white rounded-lg shadow-md mb-4 md:mb-8 overflow-hidden border border-gray-100"
-          >
-            {/* Navigation Tabs */}
-            <div className="border-b border-gray-200">
-              <nav className="flex items-center -mb-px overflow-x-auto">
-                {/* Income Tab */}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className={getTabStyles("income").className}
-                  onClick={() => setActiveTab("income")}
+      {/* Enhanced Navigation Bar */}
+      <div className="bg-white border-b border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-16 justify-between gap-4">
+            {/* Left - Action Button */}
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => {
+                if (activeTab === "expenses") openExpenseModal();
+                else if (activeTab === "income") openIncomeModal();
+                else if (activeTab === "transfers") openTransferModal();
+              }}
+              className={`px-4 py-2 rounded-lg text-sm font-medium text-white shadow-sm transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
+                activeTab === "income"
+                  ? "bg-green-500 hover:bg-green-600"
+                  : activeTab === "expenses"
+                    ? "bg-red-500 hover:bg-red-600"
+                    : "bg-blue-500 hover:bg-blue-600"
+              }`}
+            >
+              <span className="flex items-center">
+                <svg
+                  className="w-4 h-4 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
                 >
-                  {getTabStyles("income").icon}
-                  Income
-                </motion.button>
-
-                {/* Expenses Tab */}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className={getTabStyles("expenses").className}
-                  onClick={() => setActiveTab("expenses")}
-                >
-                  {getTabStyles("expenses").icon}
-                  Expenses
-                </motion.button>
-
-                {/* Transfers Tab */}
-                <motion.button
-                  whileTap={{ scale: 0.97 }}
-                  className={getTabStyles("transfers").className}
-                  onClick={() => setActiveTab("transfers")}
-                >
-                  {getTabStyles("transfers").icon}
-                  Transfers
-                </motion.button>
-
-                {/* Search Bar - Only visible on non-mobile screens */}
-                {!isSmallScreen && (
-                  <div className="relative ml-auto mr-4 z-20">
-                    <SearchBar
-                      searchQuery={searchQuery}
-                      setSearchQuery={setSearchQuery}
-                      activeTab={activeTab}
-                      dateRange={dateRange}
-                      setDateRange={setDateRange}
-                    />
-                  </div>
-                )}
-              </nav>
-            </div>
-
-            {/* Search Bar - Only visible on mobile screens */}
-            {isSmallScreen && (
-              <div className="p-3 border-b border-gray-200 bg-gray-50">
-                <div className="mb-3">
-                  <SearchBar
-                    searchQuery={searchQuery}
-                    setSearchQuery={setSearchQuery}
-                    activeTab={activeTab}
-                    dateRange={dateRange}
-                    setDateRange={setDateRange}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
                   />
-                </div>
+                </svg>
+                Add {activeTab.slice(0, -1)}
+              </span>
+            </motion.button>
+
+            {/* Center - Navigation Tabs */}
+            <div className="flex justify-center flex-1">
+              <div className="flex space-x-1">
+                <motion.button
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setActiveTab("income")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activeTab === "income"
+                      ? "bg-green-100 text-green-700 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    <span>💰</span>
+                    <span>Income</span>
+                  </span>
+                </motion.button>
 
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`w-full py-2.5 text-white text-sm rounded-full flex justify-center items-center shadow-sm transition-all duration-300 ${
-                    activeTab === "income"
-                      ? "bg-gradient-to-r from-green-500 to-emerald-600"
-                      : activeTab === "expenses"
-                        ? "bg-gradient-to-r from-red-500 to-pink-600"
-                        : "bg-gradient-to-r from-blue-500 to-indigo-600"
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setActiveTab("expenses")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activeTab === "expenses"
+                      ? "bg-red-100 text-red-700 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100"
                   }`}
-                  onClick={openTransactionModal}
                 >
-                  <svg
-                    className="w-4 h-4 mr-1.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 4v16m8-8H4"
-                    />
-                  </svg>
-                  Add New{" "}
-                  {activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}
+                  <span className="flex items-center space-x-2">
+                    <span>💸</span>
+                    <span>Expenses</span>
+                  </span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ y: -1 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => setActiveTab("transfers")}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                    activeTab === "transfers"
+                      ? "bg-blue-100 text-blue-700 shadow-sm"
+                      : "text-gray-600 hover:bg-gray-100"
+                  }`}
+                >
+                  <span className="flex items-center space-x-2">
+                    <span>🔄</span>
+                    <span>Transfers</span>
+                  </span>
                 </motion.button>
               </div>
-            )}
+            </div>
 
-            {/* Transaction Table with Animation */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.3 }}
-                className="overflow-hidden"
-              >
-                {getTransactionsToDisplay().length > 0 ? (
-                  <TransactionTable
-                    transactions={getTransactionsToDisplay()}
-                    formatAmount={formatAmount}
-                    formatDate={formatDate}
-                    transactionType={
-                      activeTab === "income"
-                        ? TransactionType.INCOME
-                        : activeTab === "expenses"
-                          ? TransactionType.EXPENSE
-                          : TransactionType.TRANSFER
-                    }
-                  />
-                ) : (
-                  <EmptySearchResults
-                    searchQuery={searchQuery}
-                    activeTab={activeTab}
-                    onClearSearch={() => setSearchQuery("")}
-                    dateRange={dateRange}
-                    clearDateRange={clearDateRange}
-                  />
-                )}
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
+            {/* Right - Search and Filters */}
+            <div className="w-72 flex-shrink-0">
+              <SearchBar
+                searchQuery={searchQuery}
+                setSearchQuery={setSearchQuery}
+                activeTab={activeTab}
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+              />
+            </div>
+          </div>
         </div>
-
-        {/* Floating Action Button for adding transactions (non-mobile) */}
-        {!isSmallScreen && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="fixed bottom-6 right-6 "
-          >
-            <motion.button
-              whileHover={{
-                scale: 1.05,
-                boxShadow:
-                  "0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -2px rgba(0, 0, 0, 0.1)",
-              }}
-              whileTap={{ scale: 0.95 }}
-              className={`flex items-center justify-center w-14 h-14 rounded-full text-white shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-all duration-300 ${
-                activeTab === "income"
-                  ? "bg-gradient-to-r from-green-500 to-emerald-600 focus:ring-green-500"
-                  : activeTab === "expenses"
-                    ? "bg-gradient-to-r from-red-500 to-pink-600 focus:ring-red-500"
-                    : "bg-gradient-to-r from-blue-500 to-indigo-600 focus:ring-blue-500"
-              }`}
-              onClick={openTransactionModal}
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-            </motion.button>
-          </motion.div>
-        )}
       </div>
-      <CreateTransactionPopup
-        isOpen={isCreateTransactionModalOpen}
-        onClose={closeTransactionModal}
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Transaction List */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.2 }}
+          >
+            {getTransactionsToDisplay().length > 0 ? (
+              <TransactionTable
+                transactions={getTransactionsToDisplay()}
+                formatAmount={formatAmount}
+                formatDate={formatDate}
+                transactionType={
+                  activeTab === "income"
+                    ? TransactionType.INCOME
+                    : activeTab === "expenses"
+                      ? TransactionType.EXPENSE
+                      : TransactionType.TRANSFER
+                }
+              />
+            ) : (
+              <EmptySearchResults
+                searchQuery={searchQuery}
+                activeTab={activeTab}
+                onClearSearch={() => setSearchQuery("")}
+                dateRange={dateRange}
+                clearDateRange={clearDateRange}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Modals */}
+      <CreateExpensePopup
+        isOpen={isCreateExpenseModalOpen}
+        onClose={closeExpenseModal}
         accounts={defaultAccounts}
-        categories={categories}
+        budgets={budgets}
+        accountsLoading={accountsLoading}
+        onSuccess={handleSuccess}
+      />
+
+      <AddIncomePopup
+        isOpen={isAddIncomeModalOpen}
+        onClose={closeIncomeModal}
+        accounts={defaultAccounts}
+        accountsLoading={accountsLoading}
+        onSuccess={handleSuccess}
+      />
+
+      <TransferDefaultAccounts
+        isOpen={isTransferModalOpen}
+        onClose={closeTransferModal}
+        accounts={defaultAccounts}
         accountsLoading={accountsLoading}
         onSuccess={handleSuccess}
       />
