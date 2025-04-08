@@ -79,10 +79,10 @@ const Budgets: React.FC<BudgetsProps> = ({
         <EmptyBudget categories={categories} onSuccess={onSuccess} />
       ) : (
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          className=" flex flex-col h-full"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.3 }}
+          className="flex flex-col h-full"
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
             <h2 className="text-xl sm:text-2xl font-bold text-gray-700">
@@ -129,21 +129,19 @@ const Budgets: React.FC<BudgetsProps> = ({
                 return (
                   <motion.div
                     key={budget.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                    whileHover={{ scale: 1.02 }}
                     className="relative bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 group backdrop-blur-sm"
                     style={{
                       background: `radial-gradient(circle at top right, ${getLightColor(mainColor)}, white 70%)`,
                     }}
                   >
-                    {/* Decorative corner accent - updated */}
+                    {/* Decorative corner accent */}
                     <div
                       className="absolute top-0 right-0 w-24 h-24 opacity-20 rounded-bl-[100%] transition-all duration-300 group-hover:opacity-30"
                       style={{ backgroundColor: mainColor }}
                     ></div>
 
-                    {/* Wave background at bottom - updated */}
+                    {/* Wave background at bottom */}
                     <div className="absolute bottom-0 left-0 right-0 h-20 z-0 overflow-hidden opacity-60 group-hover:opacity-80 transition-opacity duration-300">
                       <div
                         className="absolute bottom-0 left-0 w-full h-full z-0"
@@ -156,7 +154,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                     </div>
 
                     <div className="relative">
-                      {/* Options Menu Button - updated */}
+                      {/* Options Menu Button */}
                       <div className="absolute -top-1 -right-1 z-10">
                         <button
                           onClick={(e) => {
@@ -229,7 +227,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                         </h3>
                       </div>
 
-                      <motion.span
+                      <span
                         className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mb-4"
                         style={{
                           backgroundColor: lightColor,
@@ -237,7 +235,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                         }}
                       >
                         {`${percentage.toFixed(0)}% Used`}
-                      </motion.span>
+                      </span>
 
                       <div className="space-y-4">
                         {/* Amount Display */}
@@ -264,13 +262,13 @@ const Budgets: React.FC<BudgetsProps> = ({
                         {/* Progress Bar */}
                         <div>
                           <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{ width: `${percentage}%` }}
-                              transition={{ duration: 1, delay: 0.2 }}
-                              className="h-3 rounded-full"
-                              style={{ backgroundColor: mainColor }}
-                            ></motion.div>
+                            <div
+                              className="h-3 rounded-full transition-all duration-300"
+                              style={{
+                                backgroundColor: mainColor,
+                                width: `${percentage}%`,
+                              }}
+                            ></div>
                           </div>
                         </div>
 
@@ -290,10 +288,27 @@ const Budgets: React.FC<BudgetsProps> = ({
                                 style={{ color: textColor }}
                               >
                                 {remainingAmount > 0
-                                  ? `${budget.currency} ${remainingAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                                  ? `${budget.currency} ${remainingAmount.toLocaleString(
+                                      "en-US",
+                                      {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      }
+                                    )}`
                                   : remainingAmount === 0
-                                    ? `${budget.currency} ${budget.limitAmount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                                    : `${budget.currency} ${Math.abs(remainingAmount).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+                                    ? `${budget.currency} ${budget.limitAmount.toLocaleString(
+                                        "en-US",
+                                        {
+                                          minimumFractionDigits: 2,
+                                          maximumFractionDigits: 2,
+                                        }
+                                      )}`
+                                    : `${budget.currency} ${Math.abs(
+                                        remainingAmount
+                                      ).toLocaleString("en-US", {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}`}
                               </p>
                             </div>
                             {remainingAmount <= 0 && (
