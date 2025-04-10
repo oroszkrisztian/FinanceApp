@@ -91,7 +91,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const contentMarginLeft = isMobile ? 0 : "5rem";
 
   return (
-    <div className="h-screen w-full overflow-hidden">
+    <div className=" bg-white h-screen w-full overflow-hidden">
       {/* Fixed TopBar at the top */}
       <div className="fixed top-0 left-0 right-0 z-50">
         <TopBar

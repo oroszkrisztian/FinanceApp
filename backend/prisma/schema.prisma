@@ -35,9 +35,9 @@ model CustomCategory {
   deletedAt       DateTime?
 
   user            User?                   @relation(fields: [userId], references: [id])
-  budgets         BudgetCategory[]       
+  budgetCategories BudgetCategory[]
   recurringBills  RecurringFundAndBill[]  @relation("CustomCategoryRecurringBills")
-  transactions    Transaction[]
+
 
   @@index([userId])
   @@unique([name, type])  
@@ -54,22 +54,24 @@ model Budget {
   deletedAt         DateTime?
   currency          CurrencyType
 
-  user              User            @relation(fields: [userId], references: [id]) 
-  customCategories  BudgetCategory[]
-  transactions      Transaction[]  
+  user              User            @relation(fields: [userId], references: [id])
+  budgetCategories  BudgetCategory[]
+  transactions      Transaction[]
 
   @@index([userId])
 }
 
 model BudgetCategory {
-  id                Int            @id @default(autoincrement())
-  budgetId          Int
-  customCategoryId  Int
-  
-  budget            Budget         @relation(fields: [budgetId], references: [id])
-  customCategory    CustomCategory @relation(fields: [customCategoryId], references: [id])
-  
-  @@unique([budgetId, customCategoryId])
+  id              Int             @id @default(autoincrement())
+  budgetId        Int
+  customCategoryId Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  budget          Budget          @relation(fields: [budgetId], references: [id])
+  customCategory  CustomCategory  @relation(fields: [customCategoryId], references: [id])
+
   @@index([budgetId])
   @@index([customCategoryId])
 }
@@ -135,7 +137,7 @@ model Transaction {
   description         String?
   type                TransactionType
   currency            CurrencyType
-  customCategoryId    Int?
+  budgetId            Int?
   fromAccountId       Int?  
   toAccountId         Int?
   userId              Int
@@ -146,11 +148,10 @@ model Transaction {
   user                User                    @relation(fields: [userId], references: [id])
   fromAccount         Account?                @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount           Account?                @relation(name: "ToAccount", fields: [toAccountId], references: [id])
-  customCategory      CustomCategory?         @relation(fields: [customCategoryId], references: [id])
-  budgets             Budget[]
+  budget              Budget?                 @relation(fields: [budgetId], references: [id])
 
   @@index([userId])
-  @@index([customCategoryId])
+  @@index([budgetId])
 }
 
 model SavingAccount {

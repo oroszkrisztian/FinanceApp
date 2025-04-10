@@ -119,12 +119,12 @@ export class TransactionRepository {
           amount: amount,
           type: type,
           toAccountId: defaultAccount.id,
-          customCategoryId: customCategoryId,
+          budgetId: customCategoryId,
           currency: currency,
         },
         include: {
           toAccount: true,
-          customCategory: true,
+          budget: true,
         },
       });
 
@@ -221,7 +221,7 @@ export class TransactionRepository {
         include: {
           fromAccount: true,
           toAccount: true,
-          customCategory: true,
+          budget: true,
         },
       });
 
@@ -343,7 +343,7 @@ export class TransactionRepository {
         include: {
           fromAccount: true,
           toAccount: true,
-          customCategory: true,
+          budget: true,
         },
       });
 
@@ -542,7 +542,7 @@ export class TransactionRepository {
         include: {
           fromAccount: true,
           toAccount: true,
-          customCategory: true,
+          budget: true,
         },
       });
 

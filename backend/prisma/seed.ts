@@ -2,66 +2,39 @@ import { PrismaClient, CategoryType } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-async function seedSystemCategories() {
-  const systemCategories = [
-    { name: 'Food & Dining' },
-    { name: 'Groceries' },
-    { name: 'Transportation' },
-    { name: 'Entertainment' },
-    { name: 'Housing' },
-    { name: 'Utilities' },
-    { name: 'Healthcare' },
-    { name: 'Education' },
-    { name: 'Shopping' },
-    { name: 'Personal Care' },
-    { name: 'Travel' },
-    { name: 'Fitness' },
-    { name: 'Gifts & Donations' },
-    { name: 'Investments' },
-    { name: 'Savings' },
-    { name: 'Salary' },
-    { name: 'Income' },
-    { name: 'Taxes' },
+async function main() {
+  // Create default system categories
+  const defaultCategories = [
+    { name: 'Food & Drinks', type: CategoryType.SYSTEM },
+    { name: 'Shopping', type: CategoryType.SYSTEM },
+    { name: 'Housing', type: CategoryType.SYSTEM },
+    { name: 'Transportation', type: CategoryType.SYSTEM },
+    { name: 'Entertainment', type: CategoryType.SYSTEM },
+    { name: 'Healthcare', type: CategoryType.SYSTEM },
+    { name: 'Utilities', type: CategoryType.SYSTEM },
+    { name: 'Salary', type: CategoryType.SYSTEM },
+    { name: 'Investment', type: CategoryType.SYSTEM },
   ];
 
-  console.log('Starting to seed system categories...');
-  
-  try {
-    // Check for existing system categories and create missing ones
-    for (const category of systemCategories) {
-      const existingCategory = await prisma.customCategory.findFirst({
-        where: { 
+  for (const category of defaultCategories) {
+    await prisma.customCategory.upsert({
+      where: {
+        name_type: {
           name: category.name,
-          type: CategoryType.SYSTEM
-        }
-      });
-
-      if (!existingCategory) {
-        // Create the system category without userId
-        await prisma.customCategory.create({
-          data: {
-            name: category.name,
-            type: CategoryType.SYSTEM
-            // No userId is needed now
-          }
-        });
-        console.log(`Added system category: ${category.name}`);
-      } else {
-        console.log(`System category ${category.name} already exists, skipping`);
-      }
-    }
-    
-    console.log('System categories seeding completed successfully');
-  } catch (error) {
-    console.error('Error seeding system categories:', error);
-  } finally {
-    await prisma.$disconnect();
+          type: category.type,
+        },
+      },
+      update: {},
+      create: category,
+    });
   }
 }
 
-// Execute the seeding function
-seedSystemCategories()
+main()
   .catch((e) => {
     console.error(e);
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });
