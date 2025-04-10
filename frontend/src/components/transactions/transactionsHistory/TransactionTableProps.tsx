@@ -14,12 +14,14 @@ interface TransactionTableProps {
   formatAmount: (amount: number) => string;
   formatDate: (dateString: Date) => string;
   transactionType: TransactionType;
+ 
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions,
   formatAmount,
   formatDate,
+  
 }) => {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -225,8 +227,10 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   return (
     <>
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="max-h-[calc(100vh-280px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="bg-white  rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div
+          className="lg:max-h-[calc(100vh-210px)] max-h-[calc(100vh-250px)]   overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+        >
           <div className="divide-y divide-gray-100">
             {transactions.map((transaction, index) => {
               const theme = getThemeColors(transaction.type);

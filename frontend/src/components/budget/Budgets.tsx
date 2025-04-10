@@ -1,6 +1,5 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
-import { motion } from "framer-motion";
 import { Budget } from "../../interfaces/Budget";
 import { CustomCategory } from "../../interfaces/CustomCategory";
 import { useAuth } from "../../context/AuthContext";
@@ -22,6 +21,12 @@ const Budgets: React.FC<BudgetsProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState<string>("");
+  const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+  const [selectedSearchResult, setSelectedSearchResult] =
+    useState<Budget | null>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const calculatePercentage = (spent: number, limit: number) => {
     const percentage = (spent / limit) * 100;
@@ -73,26 +78,214 @@ const Budgets: React.FC<BudgetsProps> = ({
     setOpenMenuId(null);
   };
 
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchInput(value);
+    setSelectedSearchResult(null);
+    setShowSearchDropdown(true);
+  };
+
+  const selectSearchResult = (budget: Budget) => {
+    setSelectedSearchResult(budget);
+    setSearchInput(budget.name);
+    setShowSearchDropdown(false);
+  };
+
+  const clearSearch = () => {
+    setSearchInput("");
+    setSelectedSearchResult(null);
+  };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchDropdown(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  const searchResults =
+    budgets?.filter((budget) =>
+      budget.name.toLowerCase().includes(searchInput.toLowerCase())
+    ) || [];
+
+  const filterBudgets = (budgets: Budget[] | null | undefined) => {
+    return (
+      budgets?.filter((budget) =>
+        budget.name.toLowerCase().includes(searchInput.toLowerCase())
+      ) || []
+    );
+  };
+
+  const filteredBudgets = filterBudgets(
+    budgets?.filter((budget) =>
+      selectedSearchResult
+        ? budget.id === selectedSearchResult.id
+        : budget.name.toLowerCase().includes(searchInput.toLowerCase())
+    )
+  );
+
   return (
-    <div className="p-5 h-full flex flex-col">
+    <div className="p-2h-full flex flex-col">
       {!budgets || budgets.length === 0 ? (
         <EmptyBudget categories={categories} onSuccess={onSuccess} />
       ) : (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-          className="flex flex-col h-full"
-        >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-            <h2 className="text-xl sm:text-2xl font-bold text-gray-700">
-              Your Budgets
-            </h2>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+        <div className="flex flex-col h-full margin-auto">
+          <div className="flex lg:justify-between items-center flex-col sm:flex-row sm:items-center mb-5 bg-white p-3 rounded-xl shadow-sm border border-indigo-100">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 w-full sm:mr-4">
+              <div ref={searchRef} className="relative sm:max-w-60 w-full">
+                <div
+                  className="flex items-center bg-indigo-50/70 border border-indigo-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent group hover:bg-indigo-50"
+                  onClick={() => setShowSearchDropdown(!showSearchDropdown)}
+                >
+                  <div className="px-3 text-indigo-400">
+                    <svg
+                      className="h-5 w-5 group-hover:text-indigo-500"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                      />
+                    </svg>
+                  </div>
+
+                  <input
+                    ref={searchInputRef}
+                    type="text"
+                    className="w-full py-2.5 bg-transparent outline-none text-gray-900 font-medium placeholder-gray-500"
+                    placeholder="Search budgets..."
+                    value={
+                      selectedSearchResult
+                        ? selectedSearchResult.name
+                        : searchInput
+                    }
+                    onChange={handleSearchInputChange}
+                    onClick={() => {
+                      setShowSearchDropdown(true);
+                      setSearchInput("");
+                    }}
+                  />
+
+                  {(searchInput || selectedSearchResult) && (
+                    <button
+                      type="button"
+                      className="px-3 text-indigo-400 hover:text-indigo-600"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearSearch();
+                      }}
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M6 18L18 6M6 6l12 12"
+                        />
+                      </svg>
+                    </button>
+                  )}
+
+                  <div className="px-2 text-indigo-400">
+                    <svg
+                      className={`w-4 h-4 ${showSearchDropdown ? "transform rotate-180 text-indigo-600" : "text-indigo-400 group-hover:text-indigo-500"}`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 9l-7 7-7-7"
+                      />
+                    </svg>
+                  </div>
+                </div>
+
+                {showSearchDropdown && (
+                  <div className="absolute z-20 mt-1 w-full bg-white border border-indigo-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {searchResults.length === 0 ? (
+                      <div className="px-4 py-3 text-sm text-gray-500 flex items-center">
+                        <svg
+                          className="w-5 h-5 mr-2 text-gray-400"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M20 12H4"
+                          />
+                        </svg>
+                        No matching budgets found
+                      </div>
+                    ) : (
+                      <div className="py-1">
+                        {searchResults.map((budget) => {
+                          const percentage = calculatePercentage(
+                            budget.currentSpent,
+                            budget.limitAmount
+                          );
+                          const mainColor = getGradientColor(percentage);
+                          const lightColor = getLightColor(mainColor);
+                          const textColor = getTextColor(percentage);
+
+                          return (
+                            <div
+                              key={budget.id}
+                              className="px-4 py-3 hover:bg-indigo-50 cursor-pointer"
+                              onClick={() => selectSearchResult(budget)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium text-gray-700">
+                                  {budget.name}
+                                </span>
+                                <span
+                                  className="text-xs px-2 py-1 rounded-full font-medium"
+                                  style={{
+                                    backgroundColor: lightColor,
+                                    color: textColor,
+                                  }}
+                                >
+                                  {budget.currency}{" "}
+                                  {budget.currentSpent.toLocaleString()}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
               onClick={() => setIsModalOpen(true)}
-              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full shadow-md transition-all text-xs sm:text-sm font-medium flex items-center justify-center sm:justify-start w-full sm:w-auto"
+              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full shadow-md text-base sm:text-lg font-medium flex items-center justify-center sm:justify-start w-full sm:w-auto mt-3 sm:mt-0 min-w-[120px]"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -108,13 +301,13 @@ const Budgets: React.FC<BudgetsProps> = ({
                   d="M12 4v16m8-8H4"
                 />
               </svg>
-              Create Budget
-            </motion.button>
+              Create
+            </button>
           </div>
 
           <div className="flex-1 overflow-hidden">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto pr-1 h-full max-h-[calc(100vh-200px)] pb-4">
-              {budgets.map((budget, index) => {
+              {filteredBudgets.map((budget, index) => {
                 const percentage = calculatePercentage(
                   budget.currentSpent,
                   budget.limitAmount
@@ -127,22 +320,21 @@ const Budgets: React.FC<BudgetsProps> = ({
                 const textColor = getTextColor(percentage);
 
                 return (
-                  <motion.div
+                  <div
                     key={budget.id}
-                    whileHover={{ scale: 1.02 }}
-                    className="relative bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 overflow-hidden hover:shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 group backdrop-blur-sm"
+                    className="relative bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 overflow-hidden backdrop-blur-sm"
                     style={{
                       background: `radial-gradient(circle at top right, ${getLightColor(mainColor)}, white 70%)`,
                     }}
                   >
                     {/* Decorative corner accent */}
                     <div
-                      className="absolute top-0 right-0 w-24 h-24 opacity-20 rounded-bl-[100%] transition-all duration-300 group-hover:opacity-30"
+                      className="absolute top-0 right-0 w-24 h-24 opacity-20 rounded-bl-[100%]"
                       style={{ backgroundColor: mainColor }}
                     ></div>
 
                     {/* Wave background at bottom */}
-                    <div className="absolute bottom-0 left-0 right-0 h-20 z-0 overflow-hidden opacity-60 group-hover:opacity-80 transition-opacity duration-300">
+                    <div className="absolute bottom-0 left-0 right-0 h-20 z-0 overflow-hidden opacity-60">
                       <div
                         className="absolute bottom-0 left-0 w-full h-full z-0"
                         style={{
@@ -165,7 +357,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                                 : String(budget.id)
                             );
                           }}
-                          className="p-1.5 rounded-full hover:bg-white/80 transition-colors"
+                          className="p-1.5 rounded-full hover:bg-white/80"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -184,7 +376,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                                 e.stopPropagation();
                                 handleEditBudget(budget);
                               }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-700 flex items-center transition-colors rounded-md"
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-blue-100 hover:text-blue-700 flex items-center rounded-md"
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -201,7 +393,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                                 e.stopPropagation();
                                 handleDeleteBudget(budget);
                               }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-700 flex items-center transition-colors rounded-md"
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-red-100 hover:text-red-700 flex items-center rounded-md"
                             >
                               <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -222,7 +414,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                       </div>
 
                       <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-xl font-bold text-gray-800 tracking-tight truncate group-hover:text-gray-900 transition-colors">
+                        <h3 className="text-xl font-bold text-gray-800 tracking-tight truncate group-hover:text-gray-900">
                           {budget.name}
                         </h3>
                       </div>
@@ -263,7 +455,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                         <div>
                           <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                             <div
-                              className="h-3 rounded-full transition-all duration-300"
+                              className="h-3 rounded-full"
                               style={{
                                 backgroundColor: mainColor,
                                 width: `${percentage}%`,
@@ -339,7 +531,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                         </div>
                       </div>
                     </div>
-                  </motion.div>
+                  </div>
                 );
               })}
             </div>
@@ -353,7 +545,7 @@ const Budgets: React.FC<BudgetsProps> = ({
               onSuccess={onSuccess}
             />
           )}
-        </motion.div>
+        </div>
       )}
     </div>
   );

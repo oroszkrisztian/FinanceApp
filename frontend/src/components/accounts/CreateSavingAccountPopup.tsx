@@ -22,6 +22,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
   const [isClosing, setIsClosing] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
+  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -114,6 +115,16 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
     setHasChanges(percentage === 100);
   }, [formData]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileScreen(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
   return (
     <AnimatedModal
       isOpen={isOpen && !isClosing}
@@ -127,8 +138,8 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
         style={{
-          maxWidth: "28rem",
-          minWidth: "28rem",
+          maxWidth: isMobileScreen ? "100%" : "28rem",
+          minWidth: isMobileScreen ? "auto" : "28rem",
           maxHeight: "90vh",
           overflowY: "auto",
         }}

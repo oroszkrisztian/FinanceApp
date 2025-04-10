@@ -98,6 +98,18 @@ export class TransactionRepository {
       throw new Error("No default account found for the user");
     }
 
+    //log the sent data
+    console.log(
+      "Adding funds to default account:",
+      toAccountId,
+      "amount:",
+      amount,
+      "currency:",
+      currency
+    );
+
+    // and stop function now
+
     return await this.prisma.$transaction(async (prisma) => {
       const transaction = await prisma.transaction.create({
         data: {

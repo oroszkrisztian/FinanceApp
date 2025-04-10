@@ -219,7 +219,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         TransactionType.INCOME,
         selectedAccount.id,
         null,
-        formData.currency
+        selectedAccount.currency
       );
       onSuccess();
       handleClose();

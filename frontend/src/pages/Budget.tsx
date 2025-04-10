@@ -85,16 +85,20 @@ const Budget: React.FC = () => {
             </button>
           </div>
         ) : (
-          <Budgets
-            budgets={budgets}
-            categories={categories}
-            onSuccess={handleBudgetSuccess}
-          />
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+          >
+            <Budgets
+              budgets={budgets}
+              categories={categories}
+              onSuccess={handleBudgetSuccess}
+            />
+          </motion.div>
         )}
       </div>
     </div>
-      
-    
   );
 };
 

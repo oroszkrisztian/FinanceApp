@@ -29,34 +29,6 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
     return account ? account.name : `Account ${accountId}`;
   };
 
-  const getTransactionTypeLabel = (type: TransactionType) => {
-    switch (type) {
-      case TransactionType.INCOME:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-green-400 text-white shadow-sm">
-            💰 Income
-          </span>
-        );
-      case TransactionType.EXPENSE:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-red-400 text-white shadow-sm">
-            💸 Expense
-          </span>
-        );
-      case TransactionType.TRANSFER:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-400 text-white shadow-sm">
-            🔄 Transfer
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-gray-400 text-white shadow-sm">
-            ❓ Unknown
-          </span>
-        );
-    }
-  };
 
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
@@ -198,9 +170,11 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
       backdropBlur="md"
       animationDuration={150}
     >
-                <div className="bg-white rounded-2xl shadow-lg max-w-md mx-auto w-full overflow-hidden max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-lg w-[95%] max-w-[95%] min-w-[300px] md:min-w-[400px] lg:max-w-[800px] mx-auto overflow-hidden max-h-[85vh] lg:max-h-[75vh] overflow-y-auto">
         {/* Header with gradient background */}
-        <div className={`${theme.gradient} px-4 sm:px-6 pt-6 sm:pt-8 pb-10 sm:pb-12 relative rounded-t-2xl`}>
+        <div
+          className={`${theme.gradient} px-3 sm:px-6 pt-4 sm:pt-8 pb-8 sm:pb-12 relative rounded-t-2xl`}
+        >
           {/* Fun pattern overlay */}
           <div className="absolute inset-0 opacity-10 mix-blend-overlay">
             <div
@@ -214,49 +188,81 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
           </div>
 
           {/* Header content */}
-          <div className="relative flex items-center justify-between mb-4 sm:mb-6">
+          <div className="relative flex items-center justify-between mb-3 sm:mb-6">
             <div className="flex items-center">
               <div
-                className={`mr-2 sm:mr-3 p-2 sm:p-3 rounded-full ${theme.iconBg} shadow-lg`}
+                className={`mr-2 sm:mr-3 p-1.5 sm:p-3 rounded-full ${theme.iconBg} shadow-lg`}
               >
                 <span className={theme.icon}>
                   {getTransactionIcon(transaction.type)}
                 </span>
               </div>
-              <h3 className="text-lg sm:text-xl font-bold text-white">
-                Transaction Details
+              <h3 className="text-base sm:text-xl font-bold text-white">
+                {transaction.type === TransactionType.INCOME
+                  ? "Income Detail"
+                  : transaction.type === TransactionType.EXPENSE
+                    ? "Expense Detail"
+                    : "Transfer Detail"}
               </h3>
             </div>
           </div>
         </div>
 
         {/* Amount "card" that overlaps the header */}
-        <div className="relative px-4 sm:px-6 -mt-6 sm:-mt-8 mb-4 sm:mb-6">
-          <div className="bg-white rounded-xl shadow-lg px-4 py-3 sm:px-5 sm:py-4 flex items-center justify-center border-b-4 border-l border-r border-t border-gray-100">
-            <span className={`text-2xl sm:text-3xl font-extrabold ${theme.amountText} break-all`}>
+        <div className="relative px-3 sm:px-6 -mt-5 sm:-mt-8 mb-3 sm:mb-6">
+          <div className="bg-white rounded-xl shadow-lg px-3 py-2 sm:px-5 sm:py-4 flex items-center justify-center border-b-4 border-l border-r border-t border-gray-100">
+            <span
+              className={`text-xl sm:text-3xl font-extrabold ${theme.amountText} break-all`}
+            >
               {transaction.currency} {formatAmount(transaction.amount)}
             </span>
           </div>
         </div>
 
         {/* Main Content */}
-        <div className="px-4 sm:px-6 pt-1 pb-6">
-          <div className="space-y-4 sm:space-y-5">
+        <div className="px-3 sm:px-5 pt-1 pb-4 sm:pb-5">
+          <div className="space-y-3 sm:space-y-5">
             {/* Transaction Info Card */}
             <div
               className={`bg-white rounded-xl overflow-hidden shadow-md border ${theme.cardBorder}`}
             >
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-x-4 sm:gap-y-5 p-4 sm:p-5">
+              <div className="grid grid-cols-1 gap-3 sm:gap-x-4 sm:gap-y-5 p-3 sm:p-5">
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                  <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
+                    <svg
+                      className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                      />
+                    </svg>
                     Date
                   </p>
-                  <div className="flex items-center">
-                    <div
-                      className={`p-1 sm:p-1.5 rounded-full ${theme.secondaryBg} mr-2`}
-                    >
+                  <div className="flex">
+                    <p className="text-base font-medium text-gray-800 ml-5">
+                      {formatDate(transaction.date)}
+                      <div className="text-sm text-gray-500">
+                        {new Date(transaction.date).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </div>
+                    </p>
+                  </div>
+                </div>
+
+                {transaction.type === TransactionType.EXPENSE ||
+                transaction.type === TransactionType.INCOME ? (
+                  <div>
+                    <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
                       <svg
-                        className={`h-3 w-3 sm:h-4 sm:w-4 ${theme.amountText}`}
+                        className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
                         fill="none"
                         viewBox="0 0 24 24"
                         stroke="currentColor"
@@ -265,54 +271,16 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                    </div>
-                    <div className="text-sm font-medium text-gray-800 truncate">
-                      {formatDate(transaction.date)}
-                      <span className="text-xs text-gray-500 ml-2">
-                        {new Date(transaction.date).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                    Type
-                  </p>
-                  <div>{getTransactionTypeLabel(transaction.type)}</div>
-                </div>
-
-                {transaction.type === TransactionType.EXPENSE ||
-                transaction.type === TransactionType.INCOME ? (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
                       Name
                     </p>
-                    <div className="flex items-start">
-                      <div
-                        className={`p-1 sm:p-1.5 rounded-full ${theme.secondaryBg} mr-2 flex-shrink-0 mt-0.5`}
+                    <div className="flex">
+                      <p
+                        className="text-base font-medium text-gray-800 break-words ml-5"
+                        title={transaction.name || "-"}
                       >
-                        <svg
-                          className={`h-3 w-3 sm:h-4 sm:w-4 ${theme.amountText}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium text-gray-800 break-words" title={transaction.name || "-"}>
                         {transaction.name || "-"}
                       </p>
                     </div>
@@ -321,28 +289,27 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
 
                 {transaction.fromAccountId && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                    <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
+                      <svg
+                        className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      </svg>
                       From Account
                     </p>
-                    <div className="flex items-start">
-                      <div
-                        className={`p-1 sm:p-1.5 rounded-full ${theme.secondaryBg} mr-2 flex-shrink-0 mt-0.5`}
+                    <div className="flex">
+                      <p
+                        className="text-base font-medium text-gray-800 break-words ml-5"
+                        title={getAccountName(transaction.fromAccountId)}
                       >
-                        <svg
-                          className={`h-3 w-3 sm:h-4 sm:w-4 ${theme.amountText}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium text-gray-800 break-words" title={getAccountName(transaction.fromAccountId)}>
                         {getAccountName(transaction.fromAccountId)}
                       </p>
                     </div>
@@ -351,59 +318,28 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
 
                 {transaction.toAccountId && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                    <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
+                      <svg
+                        className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
+                        />
+                      </svg>
                       To Account
                     </p>
-                    <div className="flex items-start">
-                      <div
-                        className={`p-1 sm:p-1.5 rounded-full ${theme.secondaryBg} mr-2 flex-shrink-0 mt-0.5`}
+                    <div className="flex">
+                      <p
+                        className="text-base font-medium text-gray-800 break-words ml-5"
+                        title={getAccountName(transaction.toAccountId)}
                       >
-                        <svg
-                          className={`h-3 w-3 sm:h-4 sm:w-4 ${theme.amountText}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium text-gray-800 break-words" title={getAccountName(transaction.toAccountId)}>
                         {getAccountName(transaction.toAccountId)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {transaction.customCategoryId && (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                      Category
-                    </p>
-                    <div className="flex items-center">
-                      <div
-                        className={`p-1 sm:p-1.5 rounded-full ${theme.secondaryBg} mr-2`}
-                      >
-                        <svg
-                          className={`h-3 w-3 sm:h-4 sm:w-4 ${theme.amountText}`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                          />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        {transaction.customCategoryId}
                       </p>
                     </div>
                   </div>
@@ -417,16 +353,13 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
                 className={`bg-white rounded-xl shadow-md border ${theme.cardBorder} overflow-hidden`}
               >
                 <div
-                  className={`${theme.secondaryBg} px-4 sm:px-5 py-2 sm:py-3 border-b ${theme.cardBorder}`}
+                  className={`${theme.secondaryBg} px-4 sm:px-5 py-2.5 sm:py-3 border-b ${theme.cardBorder}`}
                 >
-                  <h4 className={`text-sm font-bold ${theme.amountText}`}>
-                    Description
-                  </h4>
-                </div>
-                <div className="p-4 sm:p-5">
-                  <div className="flex">
+                  <h4
+                    className={`text-base font-bold ${theme.amountText} flex items-center`}
+                  >
                     <svg
-                      className={`h-4 w-4 sm:h-5 sm:w-5 ${theme.amountText} mr-2 mt-0.5 flex-shrink-0`}
+                      className={`h-5 w-5 sm:h-5 sm:w-5 ${theme.amountText} mr-2.5 flex-shrink-0`}
                       fill="none"
                       viewBox="0 0 24 24"
                       stroke="currentColor"
@@ -438,20 +371,36 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
                         d="M4 6h16M4 12h16M4 18h7"
                       />
                     </svg>
-                    <p className="text-xs sm:text-sm text-gray-700 break-words">
-                      {transaction.description}
-                    </p>
-                  </div>
+                    Description
+                  </h4>
+                </div>
+                <div className="p-4 sm:p-5">
+                  <p className="text-sm sm:text-base text-gray-700 break-words ml-7">
+                    {transaction.description}
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Close Button */}
+            {/* Bottom action buttons and layout improvements */}
             <div className="pt-2 sm:pt-3 flex justify-center sm:justify-end">
               <button
                 onClick={onClose}
-                className={`w-full sm:w-auto px-6 py-2.5 ${theme.button} text-white rounded-full text-sm font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg transition-all transform hover:scale-105 active:scale-95 duration-300`}
+                className={`w-full sm:w-auto px-5 py-2.5 ${theme.button} text-white rounded-full text-base font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg transition-all transform hover:scale-105 active:scale-95 duration-300 flex items-center justify-center`}
               >
+                <svg
+                  className="h-5 w-5 mr-2"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
                 Close
               </button>
             </div>

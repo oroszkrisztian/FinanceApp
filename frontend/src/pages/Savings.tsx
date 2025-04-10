@@ -280,6 +280,11 @@ const Savings: React.FC = () => {
     setFilterLoading(true);
     setFilterOption(option);
     setFilterMenuOpen(false);
+    // Reset sorting when switching to completed goals
+    if (option === "completed") {
+      setSortType("none");
+      setSortOrder("none");
+    }
     setTimeout(() => {
       setFilterLoading(false);
     }, 500);
@@ -357,23 +362,26 @@ const Savings: React.FC = () => {
                 onClick={() => setShowFilters(!showFilters)}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md flex items-center justify-center whitespace-nowrap"
+                className="w-full sm:w-auto justify-between px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md flex items-center whitespace-nowrap"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
-                  />
-                </svg>
-                <span>Filters</span>
+                <div className="flex items-center gap-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+                    />
+                  </svg>
+                  <span>Filters</span>
+                </div>
+
                 <motion.div
                   animate={{ rotate: showFilters ? 180 : 0 }}
                   transition={{ duration: 0.2 }}
@@ -529,7 +537,7 @@ const Savings: React.FC = () => {
 
               {/* Filter Button */}
               {showFilters && (
-                <div className="relative w-full sm:w-auto">
+                <div className="relative justify-items-stretch w-full sm:w-auto">
                   <div ref={dropdownRef}>
                     <button
                       onClick={() => setFilterMenuOpen(!filterMenuOpen)}
@@ -552,7 +560,7 @@ const Savings: React.FC = () => {
                         </svg>
                         <span className="font-medium">
                           {filterOption === "all"
-                            ? "All Goals"
+                            ? "All "
                             : filterOption === "active"
                               ? "Active"
                               : "Completed"}
@@ -646,7 +654,7 @@ const Savings: React.FC = () => {
                 </div>
               )}
 
-              {/* Sort Button */}
+              {/* Sort Bu tton */}
               {showFilters && (
                 <div className="relative w-full sm:w-auto">
                   <div ref={sortDropdownRef}>

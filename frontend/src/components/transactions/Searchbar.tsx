@@ -203,17 +203,17 @@ const SearchBar: React.FC<SearchBarProps> = ({
   };
 
   return (
-    <div className="relative" ref={searchContainerRef}>
-      <div className={`relative group transition-all duration-300`}>
-        <div className="flex items-center space-x-2 sm:space-x-2">
+    <div className="relative w-full">
+      <div className={`relative group transition-all duration-300 w-full`}>
+        <div className="flex items-center space-x-2">
           <div className="relative flex-1">
             <input
               type="text"
               placeholder={isMobile ? "Search..." : "Search transactions..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className={`w-full lg:w-40 xl:w-48 pl-8 lg:pl-8 pr-3 py-2 lg:py-2.5 
-                rounded-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.15)] 
+              className={`w-full pl-8 lg:pl-8 pr-3 py-2 lg:py-2.5 
+                rounded-lg shadow-[0_2px_8px_-3px_rgba(0,0,0,0.15)] 
                 focus:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.2)] 
                 bg-white border focus:outline-none focus:ring-2 
                 focus:border-transparent text-gray-700 text-sm 
@@ -238,7 +238,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 transition-colors duration-300 ${colors.textColor} ${colors.hoverText}`}
+                className={`absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 
+                  transition-colors duration-300 ${colors.textColor} ${colors.hoverText}`}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -259,16 +260,13 @@ const SearchBar: React.FC<SearchBarProps> = ({
 
           <motion.button
             ref={filterButtonRef}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={toggleFilters}
             className={`relative flex items-center justify-center h-8 w-8 sm:h-9 sm:w-9 
-              rounded-full shadow-[0_2px_8px_-3px_rgba(0,0,0,0.15)] 
-              ${
-                hasActiveFilters
-                  ? `${colors.activeBg} text-white`
-                  : `bg-white ${colors.textColor}`
-              } transition-all duration-300 hover:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.2)]`}
+              rounded-lg shadow-[0_2px_8px_-3px_rgba(0,0,0,0.15)] 
+              ${hasActiveFilters ? `${colors.activeBg} text-white` : `bg-white ${colors.textColor}`} 
+              transition-all duration-300 hover:shadow-[0_2px_12px_-3px_rgba(0,0,0,0.2)]`}
             aria-label="Open date filters"
           >
             <div className="flex items-center justify-center">
