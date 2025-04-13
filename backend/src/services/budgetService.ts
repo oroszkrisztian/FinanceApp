@@ -40,4 +40,13 @@ export class BudgetService {
       throw new Error("Failed to create budget");
     }
   }
+
+  async deleteUserBudget(userId: number, budgetId: number) {
+    try {
+      return await this.budgetRepository.deleteUserBudget(userId, budgetId);
+    } catch (error) {
+      console.log("Error in BudgetService.deleteUserBudget:", error);
+      throw new Error("Failed to delete budget");
+    }
+  }
 }

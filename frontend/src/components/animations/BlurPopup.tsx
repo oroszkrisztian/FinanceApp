@@ -66,7 +66,7 @@ const AnimatedModal: React.FC<AnimatedModalProps> = ({
         style={{ pointerEvents: "none" }}
       >
         <div
-          className={`rounded-2xl shadow-xl max-w-max mx-auto w-11/12
+          className={` shadow-xl max-w-max mx-auto w-11/12
               transform transition-all ease-out
               ${isAnimatingIn ? "translate-y-0 opacity-100 scale-100" : "translate-y-8 opacity-0 scale-95"}
               ${isAnimatingOut ? "translate-y-8 opacity-0 scale-95" : ""}

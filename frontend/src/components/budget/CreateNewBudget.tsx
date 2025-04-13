@@ -1,9 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { CustomCategory } from "../../interfaces/CustomCategory";
-import { CurrencyType } from "../../interfaces/enums";
+
 import { createUserBudgetWithCategories } from "../../services/budgetService";
 import AnimatedModal from "../animations/BlurPopup";
+import {
+  ExchangeRates,
+  fetchExchangeRates,
+} from "../../services/exchangeRateService";
 
 interface CreateNewBudgetProps {
   isOpen: boolean;
@@ -29,7 +33,10 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
   const [name, setName] = useState("");
   const [limitAmount, setLimitAmount] = useState("");
   const [limitAmountString, setLimitAmountString] = useState("");
-  const [currency, setCurrency] = useState<CurrencyType>(CurrencyType.RON);
+  const [rates, setRates] = useState<ExchangeRates>({});
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const [currency, setCurrency] = useState<string>("RON");
+
   const [selectedCategories, setSelectedCategories] = useState<
     SelectedCategory[]
   >([]);
@@ -50,12 +57,27 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
 
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
+  useEffect(() => {
+    const loadExchangeRates = async () => {
+      setFetchingRates(true);
+      try {
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
+      } catch (err) {
+        console.error("Error fetching exchange rates:", err);
+        setError("Could not fetch exchange rates. Please try again later.");
+      } finally {
+        setFetchingRates(false);
+      }
+    };
 
+    loadExchangeRates();
+  }, []);
   const resetForm = () => {
     setName("");
     setLimitAmount("");
     setLimitAmountString("");
-    setCurrency(CurrencyType.RON);
+    setCurrency("RON");
     setSelectedCategories([]);
     setSearchTerm("");
     setError(null);
@@ -194,9 +216,8 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
     >
       <div
         className={`bg-white rounded-2xl shadow-lg w-full mx-auto flex flex-col ${isSmallScreen ? "max-w-full min-w-0 p-0" : "max-w-md min-w-[400px]"}`}
-       
       >
-        <div className="bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-5 relative rounded-t-xl flex-shrink-0">
+        <div className="bg-gradient-to-r from-indigo-500 to-indigo-700 px-5 py-5 relative rounded-t-2xl flex-shrink-0">
           <div className="absolute inset-0 opacity-10 mix-blend-overlay">
             <div
               className="w-full h-full"
@@ -350,15 +371,20 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
                 <select
                   id="currency"
                   value={currency}
-                  onChange={(e) => setCurrency(e.target.value as CurrencyType)}
+                  onChange={(e) => setCurrency(e.target.value)}
                   className="w-full py-2.5 px-2 bg-transparent outline-none text-gray-800 appearance-none"
                   required
+                  disabled={fetchingRates}
                 >
-                  {Object.values(CurrencyType).map((curr) => (
-                    <option key={curr} value={curr}>
-                      {curr}
-                    </option>
-                  ))}
+                  {fetchingRates ? (
+                    <option>Loading currencies...</option>
+                  ) : (
+                    Object.keys(rates).map((curr) => (
+                      <option key={curr} value={curr}>
+                        {curr}
+                      </option>
+                    ))
+                  )}
                 </select>
                 <div className="px-2 text-gray-400">
                   <svg
@@ -466,7 +492,9 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
                 </div>
 
                 {selectedCategories.length === 0 ? (
-                  <p className="text-gray-500 text-xs italic">Search and select</p>
+                  <p className="text-gray-500 text-xs italic">
+                    Search and select
+                  </p>
                 ) : (
                   <div className="relative">
                     <div className="space-y-2">
@@ -544,7 +572,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
         </div>
 
         <div
-          className={`flex ${isSmallScreen ? "flex-col space-y-2" : "justify-end space-x-3"} p-4 bg-white flex-shrink-0`}
+          className={`flex ${isSmallScreen ? "flex-col space-y-2" : "justify-end space-x-3"} p-4 bg-white flex-shrink-0 rounded-b-2xl`}
         >
           <button
             type="button"

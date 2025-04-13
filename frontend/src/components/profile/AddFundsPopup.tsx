@@ -24,9 +24,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
-  const [currency, setCurrency] = useState<CurrencyType>(
-    account.currency as CurrencyType
-  );
+  const [currency, setCurrency] = useState<string>(account.currency || "RON");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [rates, setRates] = useState<ExchangeRates>({});
@@ -305,10 +303,10 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
               />
               <select
                 value={currency}
-                onChange={(e) => setCurrency(e.target.value as CurrencyType)}
+                onChange={(e) => setCurrency(e.target.value)}
                 className="px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg"
               >
-                {Object.values(CurrencyType).map((curr) => (
+                {Object.keys(rates).map((curr) => (
                   <option key={curr} value={curr}>
                     {curr}
                   </option>

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from "react";
-
 import { Budget } from "../../interfaces/Budget";
 import { CustomCategory } from "../../interfaces/CustomCategory";
 import { useAuth } from "../../context/AuthContext";
 import EmptyBudget from "./EmptyBudget";
 import CreateNewBudget from "./CreateNewBudget";
+import EditBudget from "./EditBudget";
+import { deleteUserBudget } from "../../services/budgetService";
 
 interface BudgetsProps {
   budgets: Budget[] | null;
@@ -20,6 +21,8 @@ const Budgets: React.FC<BudgetsProps> = ({
   const { user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
   const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
@@ -67,15 +70,30 @@ const Budgets: React.FC<BudgetsProps> = ({
   };
 
   const handleEditBudget = (budget: Budget) => {
-    // Implement edit functionality here
-    console.log("Edit budget:", budget);
+    console.log("Edit button clicked for budget:", budget);
+    setSelectedBudget(budget);
+    setIsEditModalOpen(true);
     setOpenMenuId(null);
   };
 
-  const handleDeleteBudget = (budget: Budget) => {
-    // Implement delete functionality here
-    console.log("Delete budget:", budget);
-    setOpenMenuId(null);
+  const handleDeleteBudget = async (budget: Budget) => {
+    if (!user) {
+      setError("User not found");
+      return;
+    }
+
+    try {
+      const response = await deleteUserBudget(user.id, budget.id);
+      if (response.error) {
+        setError(response.error);
+        return;
+      }
+      setOpenMenuId(null);
+      onSuccess?.();
+    } catch (error) {
+      console.error("Error deleting budget:", error);
+      setError("Failed to delete budget");
+    }
   };
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -543,6 +561,22 @@ const Budgets: React.FC<BudgetsProps> = ({
               onClose={() => setIsModalOpen(false)}
               categories={categories}
               onSuccess={onSuccess}
+            />
+          )}
+
+          {isEditModalOpen && selectedBudget && (
+            <EditBudget
+              isOpen={isEditModalOpen}
+              onClose={() => setIsEditModalOpen(false)}
+              budget={selectedBudget}
+              categories={categories}
+              onSuccess={onSuccess}
+              color={getGradientColor(
+                calculatePercentage(
+                  selectedBudget.currentSpent,
+                  selectedBudget.limitAmount
+                )
+              )} // Pass budget color
             />
           )}
         </div>

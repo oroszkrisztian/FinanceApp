@@ -1,30 +1,54 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
 import { createDefaultAccount } from "../../services/accountService";
+import {
+  fetchExchangeRates,
+  ExchangeRates,
+} from "../../services/exchangeRateService";
 
 interface CreateDefaultAccountPopupProps {
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onAccountCreated?: () => void;
 }
 
-const CreateDefaultAccountPopup = ({ 
-  setIsModalOpen, 
-  onAccountCreated 
+const CreateDefaultAccountPopup = ({
+  setIsModalOpen,
+  onAccountCreated,
 }: CreateDefaultAccountPopupProps) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    accountType: AccountType.DEFAULT, 
-    currency: CurrencyType.RON, 
+    accountType: AccountType.DEFAULT,
+    currency: CurrencyType.RON,
   });
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [rates, setRates] = useState<ExchangeRates>({});
+  const [fetchingRates, setFetchingRates] = useState(false);
+
+  useEffect(() => {
+    const loadExchangeRates = async () => {
+      setFetchingRates(true);
+      try {
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
+      } catch (err) {
+        console.error("Error fetching exchange rates:", err);
+        setError("Could not fetch exchange rates. Please try again later.");
+      } finally {
+        setFetchingRates(false);
+      }
+    };
+    loadExchangeRates();
+  }, []);
 
   const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+    e: React.ChangeEvent<
+      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+    >
   ) => {
     const { name, value } = e.target;
     setFormData({
@@ -37,12 +61,12 @@ const CreateDefaultAccountPopup = ({
     e.preventDefault();
     setIsLoading(true);
     setError(null);
-    
+
     try {
       if (!user?.id) {
         throw new Error("User not found. Please log in again.");
       }
-      
+
       const data = await createDefaultAccount({
         userId: user.id,
         accountType: formData.accountType,
@@ -52,14 +76,16 @@ const CreateDefaultAccountPopup = ({
       });
 
       console.log("Account created successfully:", data);
-      
+
       if (onAccountCreated) {
         onAccountCreated();
       } else {
         setIsModalOpen(false);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred"
+      );
       console.error("Error creating account:", err);
     } finally {
       setIsLoading(false);
@@ -80,7 +106,10 @@ const CreateDefaultAccountPopup = ({
           <form onSubmit={handleSubmit} className="space-y-4">
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Account Name<span className="text-blue-600">*</span>
               </label>
               <input
@@ -97,7 +126,10 @@ const CreateDefaultAccountPopup = ({
 
             {/* Description Field - Updated to match AddFundsPopup */}
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Description (Optional)
               </label>
               <textarea
@@ -113,7 +145,10 @@ const CreateDefaultAccountPopup = ({
 
             {/* Currency Field */}
             <div>
-              <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="currency"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Currency
               </label>
               <select
@@ -122,11 +157,12 @@ const CreateDefaultAccountPopup = ({
                 value={formData.currency}
                 onChange={handleInputChange}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                disabled={isLoading || fetchingRates}
                 required
               >
-                {Object.values(CurrencyType).map((currency) => (
-                  <option key={currency} value={currency}>
-                    {currency}
+                {Object.keys(rates).map((curr) => (
+                  <option key={curr} value={curr}>
+                    {curr}
                   </option>
                 ))}
               </select>

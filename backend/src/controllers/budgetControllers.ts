@@ -49,5 +49,21 @@ export class BudgetController {
     }
   }
 
+  async deleteUserBudget(
+    c: Context,
+    userId: number,
+    budgetId: number
+  ) {
+    try {
+      if (!userId) {
+        throw "User id not found";
+      }
+      const budget = await this.budgetService.deleteUserBudget(userId, budgetId);
+      return c.json(budget);
+    } catch (error) {
+      console.error("Delete budget error:", error);
+      return c.json({ error: "Failed to delete budget" }, 500);
+    }
+  }
   
 }

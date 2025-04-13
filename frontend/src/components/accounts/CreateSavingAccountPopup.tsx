@@ -2,8 +2,12 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "../../context/AuthContext";
 import { createSavingAccount } from "../../services/accountService";
-import { CurrencyType, AccountType } from "../../interfaces/enums";
+import { AccountType } from "../../interfaces/enums";
 import AnimatedModal from "../animations/BlurPopup";
+import {
+  ExchangeRates,
+  fetchExchangeRates,
+} from "../../services/exchangeRateService";
 
 interface CreateSavingAccountPopupProps {
   isOpen: boolean;
@@ -23,23 +27,44 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
   const [hasChanges, setHasChanges] = useState(false);
   const [progressPercentage, setProgressPercentage] = useState(0);
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+  const [rates, setRates] = useState<ExchangeRates>({});
+  const [fetchingRates, setFetchingRates] = useState(false);
+
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    currency: CurrencyType.EUR,
+    currency: "RON",
     accountType: AccountType.SAVINGS,
     targetAmount: "",
     targetDate: "",
   });
 
+  // Add useEffect for fetching exchange rates
+  useEffect(() => {
+    const loadExchangeRates = async () => {
+      setFetchingRates(true);
+      try {
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
+      } catch (err) {
+        console.error("Error fetching exchange rates:", err);
+        setError("Could not fetch exchange rates. Please try again later.");
+      } finally {
+        setFetchingRates(false);
+      }
+    };
+
+    loadExchangeRates();
+  }, []);
+
   const handleChange = (
     e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
+      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
+    setFormData((prevFormData) => ({
+      ...prevFormData,
       [name]: value,
     }));
   };
@@ -94,23 +119,23 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
     // Calculate progress based on required fields
     let progress = 0;
     const totalRequiredFields = 3; // name, targetAmount, targetDate
-    
+
     if (formData.name.trim() !== "") {
       progress += 1;
     }
-    
+
     if (formData.targetAmount.toString().trim() !== "") {
       progress += 1;
     }
-    
+
     if (formData.targetDate.trim() !== "") {
       progress += 1;
     }
-    
+
     // Calculate percentage
     const percentage = (progress / totalRequiredFields) * 100;
     setProgressPercentage(percentage);
-    
+
     // Set hasChanges if all required fields are filled
     setHasChanges(percentage === 100);
   }, [formData]);
@@ -133,7 +158,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
       backdropBlur="md"
       animationDuration={300}
     >
-      <motion.div 
+      <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
@@ -151,7 +176,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
           <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
           <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
           <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
-          
+
           {/* Title is now part of the header, not overlapping */}
           <div className="absolute bottom-0 left-0 w-full px-6 pb-3 flex items-center">
             <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
@@ -173,10 +198,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
               </motion.svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">
-                New Goal! ✨
-              </h2>
-              
+              <h2 className="text-xl font-bold text-white">New Goal! ✨</h2>
             </div>
           </div>
         </div>
@@ -184,7 +206,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
         <div className="p-6">
           {/* Error message */}
           {error && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
@@ -279,16 +301,16 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
                   required
                 />
                 <motion.select
-                  //whileHover={{ scale: 1.02 }}
                   transition={{ type: "spring", stiffness: 400, damping: 17 }}
                   id="currency"
                   name="currency"
                   value={formData.currency}
                   onChange={handleChange}
                   className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none"
+                  disabled={fetchingRates}
                   required
                 >
-                  {Object.values(CurrencyType).map((currency) => (
+                  {Object.keys(rates).map((currency) => (
                     <option key={currency} value={currency}>
                       {currency}
                     </option>
@@ -326,19 +348,23 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
                   initial={{ width: 0 }}
                   animate={{ width: `${progressPercentage}%` }}
                   transition={{ duration: 0.3 }}
-                  style={{ background: `linear-gradient(to right, #4f46e5 ${progressPercentage}%, #818cf8)` }}
+                  style={{
+                    background: `linear-gradient(to right, #4f46e5 ${progressPercentage}%, #818cf8)`,
+                  }}
                   className="absolute top-0 left-0 h-full"
                 ></motion.div>
               </div>
               <div className="flex justify-between items-center mt-1">
                 <p className="text-xs text-gray-500">
-                  {progressPercentage < 100 
-                    ? `${Math.round(progressPercentage)}% complete` 
+                  {progressPercentage < 100
+                    ? `${Math.round(progressPercentage)}% complete`
                     : "Ready !"}
                 </p>
                 <p className="text-xs text-indigo-500 font-medium">
                   {progressPercentage === 0 && "Start filling the form"}
-                  {progressPercentage > 0 && progressPercentage < 100 && "Keep going..."}
+                  {progressPercentage > 0 &&
+                    progressPercentage < 100 &&
+                    "Keep going..."}
                   {progressPercentage === 100 && "All set! 🚀"}
                 </p>
               </div>
@@ -358,7 +384,10 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
                 Cancel
               </motion.button>
               <motion.button
-                whileHover={{ scale: 1.02, boxShadow: "0 10px 15px -3px rgba(79, 70, 229, 0.2)" }}
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: "0 10px 15px -3px rgba(79, 70, 229, 0.2)",
+                }}
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.1 }}
                 type="submit"

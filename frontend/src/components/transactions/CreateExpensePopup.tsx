@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import AnimatedModal from "../animations/BlurPopup";
 import { Account } from "../../interfaces/Account";
-import { CurrencyType, TransactionType } from "../../interfaces/enums";
+import { TransactionType } from "../../interfaces/enums";
 import { Budget } from "../../interfaces/Budget";
 import {
-  fetchExchangeRates,
   convertAmount,
   getExchangeRate,
   validateCurrencyConversion,
@@ -20,6 +19,9 @@ interface CreateExpensePopupProps {
   budgets: Budget[];
   accountsLoading: boolean;
   onSuccess: () => void;
+  rates: ExchangeRates;
+  ratesError: string | null;
+  fetchingRates: boolean;
 }
 
 const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
@@ -29,6 +31,9 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   budgets,
   accountsLoading,
   onSuccess,
+  rates,
+  ratesError,
+  fetchingRates,
 }) => {
   const { user } = useAuth();
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
@@ -38,7 +43,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     selectedAccount: string;
     selectedBudget: string;
     amount: number;
-    currency: CurrencyType;
+    currency: string;
     type: TransactionType;
   }>({
     name: "",
@@ -46,7 +51,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     selectedAccount: "",
     selectedBudget: "",
     amount: 0,
-    currency: CurrencyType.RON,
+    currency: "RON",
     type: TransactionType.EXPENSE,
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -60,8 +65,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   const accountRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
   const [amountString, setAmountString] = useState("");
-  const [rates, setRates] = useState<ExchangeRates>({});
-  const [fetchingRates, setFetchingRates] = useState(false);
   const [conversionDetails, setConversionDetails] = useState<{
     originalAmount: number;
     convertedAmount: number;
@@ -81,7 +84,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       selectedAccount: "",
       selectedBudget: "",
       amount: 0,
-      currency: CurrencyType.RON,
+      currency: "RON",
       type: TransactionType.EXPENSE,
     });
     setAmountString("");
@@ -117,12 +120,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchRates();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         budgetRef.current &&
@@ -146,18 +143,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedAccount, rates]);
-
-  const fetchRates = async () => {
-    setFetchingRates(true);
-    try {
-      const exchangeRates = await fetchExchangeRates();
-      setRates(exchangeRates);
-    } catch (error) {
-      console.error("Failed to fetch exchange rates:", error);
-    } finally {
-      setFetchingRates(false);
-    }
-  };
 
   const updateConversionDetails = () => {
     if (!selectedAccount || !rates || Object.keys(rates).length === 0) return;
@@ -277,7 +262,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         userId,
         formData.name,
         formData.amount,
-        formData.currency as CurrencyType,
+        formData.currency,
         parseInt(formData.selectedAccount),
         formData.selectedBudget ? parseInt(formData.selectedBudget) : null,
         formData.description || null
@@ -449,22 +434,24 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     </div>
 
                     <select
-                      id="currency"
-                      name="currency"
                       value={formData.currency}
-                      onChange={handleChange}
-                      className={`${
-                        isMobileScreen
-                          ? "w-full px-4 py-2 rounded-b-lg text-center border-t border-gray-200"
-                          : "px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg border-l border-gray-300"
-                      } ${isMobileScreen ? "text-base" : "text-lg"} font-bold`}
-                      required
+                      onChange={(e) =>
+                        setFormData({ ...formData, currency: e.target.value })
+                      }
+                      className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none"
+                      disabled={isLoading || fetchingRates}
                     >
-                      {Object.values(CurrencyType).map((currency) => (
-                        <option key={currency} value={currency}>
-                          {currency}
-                        </option>
-                      ))}
+                      {fetchingRates ? (
+                        <option>Loading currencies...</option>
+                      ) : ratesError ? (
+                        <option>Error loading currencies</option>
+                      ) : (
+                        Object.keys(rates).map((curr) => (
+                          <option key={curr} value={curr}>
+                            {curr}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>

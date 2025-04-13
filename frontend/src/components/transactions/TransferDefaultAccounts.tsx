@@ -3,7 +3,6 @@ import { Account } from "../../interfaces/Account";
 import AnimatedModal from "../animations/BlurPopup";
 import { CurrencyType, TransactionType } from "../../interfaces/enums";
 import {
-  fetchExchangeRates,
   convertAmount,
   getExchangeRate,
   validateCurrencyConversion,
@@ -19,6 +18,9 @@ interface TransferDefaultAccountsProps {
   accounts: Account[];
   accountsLoading: boolean;
   onSuccess: () => void;
+  rates: ExchangeRates;
+  ratesError: string | null;
+  fetchingRates: boolean;
 }
 
 const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
@@ -27,6 +29,9 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   accounts,
   accountsLoading,
   onSuccess,
+  rates,
+  ratesError,
+  fetchingRates,
 }) => {
   const { user } = useAuth();
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
@@ -43,16 +48,14 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   const fromAccountRef = useRef<HTMLDivElement>(null);
   const toAccountRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
-  const [rates, setRates] = useState<ExchangeRates>({});
-  const [fetchingRates, setFetchingRates] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState<{
     amount: number;
-    currency: CurrencyType;
+    currency: string;
   }>({
     amount: 0,
-    currency: CurrencyType.RON,
+    currency: "RON",
   });
 
   const [conversionDetails, setConversionDetails] = useState<{
@@ -70,7 +73,7 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   const resetForm = () => {
     setFormData({
       amount: 0,
-      currency: CurrencyType.RON,
+      currency: "RON",
     });
     setAmountString("");
     setFromAccountInput("");
@@ -102,12 +105,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchRates();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         fromAccountRef.current &&
@@ -131,18 +128,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedToAccount, rates]);
-
-  const fetchRates = async () => {
-    setFetchingRates(true);
-    try {
-      const exchangeRates = await fetchExchangeRates();
-      setRates(exchangeRates);
-    } catch (error) {
-      console.error("Failed to fetch exchange rates:", error);
-    } finally {
-      setFetchingRates(false);
-    }
-  };
 
   const updateConversionDetails = () => {
     if (
@@ -791,6 +776,36 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
             {selectedFromAccount &&
               selectedToAccount &&
               formData.amount > 0 && <TransferVisualization />}
+
+            {/* Currency Selector */}
+            <div className="mb-4">
+              <label
+                htmlFor="currency"
+                className="block text-xs font-semibold text-gray-500 uppercase mb-1"
+              >
+                Currency*
+              </label>
+              <select
+                value={formData.currency}
+                onChange={(e) =>
+                  setFormData({ ...formData, currency: e.target.value })
+                }
+                className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none"
+                disabled={isLoading || fetchingRates}
+              >
+                {fetchingRates ? (
+                  <option>Loading currencies...</option>
+                ) : ratesError ? (
+                  <option>Error loading currencies</option>
+                ) : (
+                  Object.keys(rates).map((curr) => (
+                    <option key={curr} value={curr}>
+                      {curr}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
 
             {/* Buttons */}
             <div

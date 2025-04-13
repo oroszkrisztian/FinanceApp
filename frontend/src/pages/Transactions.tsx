@@ -18,6 +18,10 @@ import { getAllBudgets } from "../services/budgetService";
 import CreateExpensePopup from "../components/transactions/CreateExpensePopup";
 import AddIncomePopup from "../components/transactions/AddIncomePopup";
 import TransferDefaultAccounts from "../components/transactions/TransferDefaultAccounts";
+import {
+  ExchangeRates,
+  fetchExchangeRates,
+} from "../services/exchangeRateService";
 
 const Transactions: React.FC = () => {
   const { user } = useAuth();
@@ -54,6 +58,26 @@ const Transactions: React.FC = () => {
     fetchAccounts();
     fetchBudgets();
   };
+
+  const [rates, setRates] = useState<ExchangeRates>({});
+  const [ratesError, setRatesError] = useState<string | null>(null);
+  const [fetchingRates, setFetchingRates] = useState(false);
+
+  useEffect(() => {
+    const loadRates = async () => {
+      setFetchingRates(true);
+      try {
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
+      } catch (err) {
+        console.error("Error fetching rates:", err);
+        setRatesError("Could not fetch exchange rates");
+      } finally {
+        setFetchingRates(false);
+      }
+    };
+    loadRates();
+  }, []);
 
   useEffect(() => {
     const checkScreenSize = () => {
@@ -478,6 +502,9 @@ const Transactions: React.FC = () => {
           budgets={budgets}
           accountsLoading={accountsLoading}
           onSuccess={handleSuccess}
+          rates={rates}
+          ratesError={ratesError}
+          fetchingRates={fetchingRates}
         />
       </div>
     );
@@ -644,6 +671,9 @@ const Transactions: React.FC = () => {
         budgets={budgets}
         accountsLoading={accountsLoading}
         onSuccess={handleSuccess}
+        rates={rates}
+        ratesError={ratesError}
+        fetchingRates={fetchingRates}
       />
 
       <AddIncomePopup
@@ -652,6 +682,9 @@ const Transactions: React.FC = () => {
         accounts={defaultAccounts}
         accountsLoading={accountsLoading}
         onSuccess={handleSuccess}
+        rates={rates}
+        ratesError={ratesError}
+        fetchingRates={fetchingRates}
       />
 
       <TransferDefaultAccounts
@@ -660,6 +693,9 @@ const Transactions: React.FC = () => {
         accounts={defaultAccounts}
         accountsLoading={accountsLoading}
         onSuccess={handleSuccess}
+        rates={rates}
+        ratesError={ratesError}
+        fetchingRates={fetchingRates}
       />
     </div>
   );

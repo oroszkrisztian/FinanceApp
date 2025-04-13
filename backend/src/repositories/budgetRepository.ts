@@ -13,7 +13,7 @@ export class BudgetRepository {
         userId: userId,
       },
       include: {
-        customCategories: {
+        budgetCategories: {
           select: {
             customCategory: {
               select: {
@@ -29,7 +29,7 @@ export class BudgetRepository {
 
     return allBudgets.map((budget) => ({
       ...budget,
-      customCategories: budget.customCategories.map((bc) => bc.customCategory),
+      customCategories: budget.budgetCategories.map((bc) => bc.customCategory),
     }));
   }
 
@@ -62,11 +62,29 @@ export class BudgetRepository {
     return await this.prisma.budget.findUnique({
       where: { id: budget.id },
       include: {
-        customCategories: {
-          include: {
-            customCategory: true,
+        budgetCategories: {
+          select: {
+            customCategory: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              },
+            },
           },
         },
+      },
+    });
+  }
+
+  async deleteUserBudget(userId: number, budgetId: number){
+    return await this.prisma.budget.update({
+      where: {
+        id: budgetId,
+        userId: userId,
+      },
+      data: {
+        deletedAt: new Date(),
       },
     });
   }

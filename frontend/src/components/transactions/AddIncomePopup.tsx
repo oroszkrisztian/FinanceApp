@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from "react";
 import { Account } from "../../interfaces/Account";
 import { useAuth } from "../../context/AuthContext";
-import { CurrencyType, TransactionType } from "../../interfaces/enums";
+import { TransactionType } from "../../interfaces/enums";
 import AnimatedModal from "../animations/BlurPopup";
 import {
-  fetchExchangeRates,
   convertAmount,
   getExchangeRate,
   validateCurrencyConversion,
@@ -18,6 +17,9 @@ interface IncomeProps {
   accounts: Account[];
   accountsLoading: boolean;
   onSuccess: () => void;
+  rates: ExchangeRates;
+  ratesError: string | null;
+  fetchingRates: boolean;
 }
 
 const AddIncomePopup: React.FC<IncomeProps> = ({
@@ -26,6 +28,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   accounts,
   accountsLoading,
   onSuccess,
+  rates,
+  ratesError,
+  fetchingRates,
 }) => {
   const { user } = useAuth();
   const accountRef = useRef<HTMLDivElement>(null);
@@ -35,14 +40,12 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   const [showAccountDropdown, setShowAccountDropdown] = useState(false);
   const [accountInput, setAccountInput] = useState("");
   const [amountString, setAmountString] = useState("");
-  const [rates, setRates] = useState<ExchangeRates>({});
-  const [fetchingRates, setFetchingRates] = useState(false);
   const [formData, setFormData] = useState({
     amount: 0,
     name: "",
     description: "",
     selectedAccount: "",
-    currency: CurrencyType.RON,
+    currency: "RON",
   });
   const [conversionDetails, setConversionDetails] = useState<{
     originalAmount: number;
@@ -62,7 +65,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
       name: "",
       description: "",
       selectedAccount: "",
-      currency: CurrencyType.RON,
+      currency: "RON",
     });
     setAmountString("");
     setSelectedAccount(null);
@@ -100,26 +103,8 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   }, []);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchRates();
-    }
-  }, [isOpen]);
-
-  useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedAccount, rates]);
-
-  const fetchRates = async () => {
-    setFetchingRates(true);
-    try {
-      const exchangeRates = await fetchExchangeRates();
-      setRates(exchangeRates);
-    } catch (error) {
-      console.error("Failed to fetch exchange rates:", error);
-    } finally {
-      setFetchingRates(false);
-    }
-  };
 
   const updateConversionDetails = () => {
     if (!selectedAccount || !rates || Object.keys(rates).length === 0) return;
@@ -356,22 +341,24 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                     </div>
 
                     <select
-                      id="currency"
-                      name="currency"
                       value={formData.currency}
-                      onChange={handleInputChange}
-                      className={`${
-                        isMobileScreen
-                          ? "w-full px-4 py-2 rounded-b-lg text-center border-t border-gray-200"
-                          : "px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg border-l border-gray-300"
-                      } ${isMobileScreen ? "text-base" : "text-lg"} font-bold`}
-                      required
+                      onChange={(e) =>
+                        setFormData({ ...formData, currency: e.target.value })
+                      }
+                      className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none"
+                      disabled={isLoading || fetchingRates}
                     >
-                      {Object.values(CurrencyType).map((currency) => (
-                        <option key={currency} value={currency}>
-                          {currency}
-                        </option>
-                      ))}
+                      {fetchingRates ? (
+                        <option>Loading currencies...</option>
+                      ) : ratesError ? (
+                        <option>Error loading currencies</option>
+                      ) : (
+                        Object.keys(rates).map((curr) => (
+                          <option key={curr} value={curr}>
+                            {curr}
+                          </option>
+                        ))
+                      )}
                     </select>
                   </div>
                 </div>

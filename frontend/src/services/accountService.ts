@@ -1,11 +1,11 @@
 // accountService.ts
-import { AccountType, CurrencyType } from "../interfaces/enums";
+import { AccountType} from "../interfaces/enums";
 import { Account } from "../interfaces/Account";
 
 interface CreateDefaultAccountParams {
   userId: number;
   accountType: AccountType;
-  currencyType: CurrencyType;
+  currencyType: string;
   name: string;
   description: string;
 }
@@ -50,7 +50,7 @@ export const createDefaultAccount = async ({
 export const createSavingAccount = async (
   userId: number,
   accountType: AccountType,
-  currencyType: CurrencyType,
+  currencyType: string,
   name: string,
   description: string,
   targetAmount: number,
@@ -253,7 +253,7 @@ export const editDefaultAccount = async (
   requestData: {
     name: string;
     description: string;
-    currency: CurrencyType;
+    currency: string;
     accountType: AccountType;
     amount?: number;
   }
@@ -298,7 +298,7 @@ export const editSavingAccount = async (
   requestData: {
     name: string;
     description: string;
-    currency: CurrencyType;
+    currency: string;
     savingAccount: {
       update: {
         targetAmount: number;

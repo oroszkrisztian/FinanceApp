@@ -308,7 +308,7 @@ const EditDefaultAccountPopup = ({
                 className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                 required
               >
-                {Object.values(CurrencyType).map((currency) => (
+                {Object.keys(rates).map((currency) => (
                   <option key={currency} value={currency}>
                     {currency}
                   </option>

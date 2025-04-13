@@ -15,6 +15,7 @@ const Budget: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [budgets, setBudgets] = useState<BudgetType[]>([]);
   const [categories, setCategories] = useState<CustomCategory[]>([]);
+  const [deletedBudgets, setDeletedBudgets] = useState<BudgetType | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBudgets = async () => {
@@ -25,7 +26,12 @@ const Budget: React.FC = () => {
 
     try {
       const budgetData = await getAllBudgets(user.id);
-      setBudgets(Array.isArray(budgetData) ? budgetData : []);
+      
+      const activeBudgets = budgetData.filter((budget: BudgetType) => !budget.deletedAt);
+      const deletedBudgetsList = budgetData.filter((budget: BudgetType) => budget.deletedAt);
+
+      setBudgets(activeBudgets);
+      setDeletedBudgets(deletedBudgetsList);
     } catch (err) {
       console.error("Error fetching budgets:", err);
       setError("Failed to load budgets. Please try again later.");
@@ -51,7 +57,7 @@ const Budget: React.FC = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500)); 
+        await new Promise((resolve) => setTimeout(resolve, 500));
         await Promise.all([fetchBudgets(), fetchCategories()]);
       } catch (err) {
         console.error("Error loading data:", err);

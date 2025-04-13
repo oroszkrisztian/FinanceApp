@@ -1,5 +1,3 @@
-import { CurrencyType } from "../interfaces/enums";
-
 export const getAllBudgets = async (userId: number) => {
   try {
     const response = await fetch(
@@ -39,7 +37,7 @@ export const createUserBudgetWithCategories = async (
   userId: number,
   name: string,
   limitAmount: number,
-  currency: CurrencyType,
+  currency: string,
   categoryIds: number[]
 ) => {
   try {
@@ -71,4 +69,65 @@ export const createUserBudgetWithCategories = async (
   }
 };
 
+export const deleteUserBudget = async (userId: number, budgetId: number) => {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/budget/deleteUserBudget`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          budgetId,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to delete budget");
+    }
+    const data = await response.json();
 
+    return data;
+  } catch (error) {
+    console.error("Error deleting budget:", error);
+    throw error;
+  }
+};
+
+export const updateUserBudget = async (
+  userId: number,
+  budgetId: number,
+  name: string,
+  limitAmount: number,
+  currency: string,
+  categoryIds: number[]
+) => {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/budget/updateUserBudget`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          budgetId,
+          name,
+          limitAmount,
+          currency,
+          categoryIds,
+        }),
+      }
+    );
+    if (!response.ok) {
+      throw new Error("Failed to update budget");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating budget:", error);
+    throw error;
+  }
+};

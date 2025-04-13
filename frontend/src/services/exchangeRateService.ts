@@ -1,14 +1,32 @@
-import { CurrencyType } from "../interfaces/enums";
-
 export interface ExchangeRates {
   [key: string]: number;
 }
+
+let cachedRates: ExchangeRates = {};
+let lastFetchTime: number = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+export const getCachedRates = (): ExchangeRates | null => {
+  if (
+    Object.keys(cachedRates).length === 0 ||
+    Date.now() - lastFetchTime > CACHE_DURATION
+  ) {
+    return null;
+  }
+  return cachedRates;
+};
 
 /**
  * Fetches exchange rates from the server
  * @returns A promise that resolves to an object with currency codes as keys and exchange rates as values
  */
 export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
+  // Return cached rates if they exist and are not expired
+  const cached = getCachedRates();
+  if (cached) {
+    return cached;
+  }
+
   try {
     const response = await fetch("http://localhost:3000/exchange-rates");
     const xmlText = await response.text();
@@ -29,9 +47,9 @@ export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
 
     ratesObj["RON"] = 1;
 
-    Object.values(CurrencyType).forEach((curr) => {
-      if (!ratesObj[curr]) ratesObj[curr] = 1;
-    });
+    // Update cache
+    cachedRates = ratesObj;
+    lastFetchTime = Date.now();
 
     return ratesObj;
   } catch (err) {
