@@ -6,6 +6,7 @@ import EmptyBudget from "./EmptyBudget";
 import CreateNewBudget from "./CreateNewBudget";
 import EditBudget from "./EditBudget";
 import { deleteUserBudget } from "../../services/budgetService";
+import { motion } from "framer-motion";
 
 interface BudgetsProps {
   budgets: Budget[] | null;
@@ -301,13 +302,16 @@ const Budgets: React.FC<BudgetsProps> = ({
               </div>
             </div>
 
-            <button
+            <motion.button
               onClick={() => setIsModalOpen(true)}
-              className="px-3 sm:px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full shadow-md text-base sm:text-lg font-medium flex items-center justify-center sm:justify-start w-full sm:w-auto mt-3 sm:mt-0 min-w-[120px]"
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md flex items-center justify-center whitespace-nowrap"
             >
               <svg
+                className="w-5 h-5 mr-2"
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -316,11 +320,11 @@ const Budgets: React.FC<BudgetsProps> = ({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={2}
-                  d="M12 4v16m8-8H4"
+                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
               </svg>
               Create
-            </button>
+            </motion.button>
           </div>
 
           <div className="flex-1 overflow-hidden">

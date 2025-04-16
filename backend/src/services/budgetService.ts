@@ -49,4 +49,27 @@ export class BudgetService {
       throw new Error("Failed to delete budget");
     }
   }
+
+  async updateUserBudget(
+    userId: number,
+    budgetId: number,
+    name: string,
+    limitAmount: number,
+    currency: CurrencyType,
+    categoryIds: number[]
+  ) {
+    try {
+      return await this.budgetRepository.updateUserBudget(
+        userId,
+        budgetId,
+        name,
+        limitAmount,
+        currency,
+        categoryIds
+      );
+    } catch (error) {
+      console.log("Error in BudgetService.updateUserBudget:", error);
+      throw new Error("Failed to update budget");
+    }
+  }
 }

@@ -189,134 +189,15 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
       </div>
 
       <div className="relative">
-        {/* Account Name with Completion Badge */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className={`text-xl font-bold text-gray-900 tracking-tight`}>
-            {account.name || "Unnamed Account"}
-          </h3>
-          <div
-            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${colors.primary}-100 text-${colors.primary}-800`}
-          >
-            {completionPercentage.toFixed(0)}% Complete
+        {/* Top section with account name and menu button */}
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <h3 className={`text-xl font-bold text-gray-900 tracking-tight`}>
+              {account.name || "Unnamed Account"}
+            </h3>
           </div>
-        </div>
-
-        {/* Main info area */}
-        <div className="space-y-4">
-          {/* Amount Display */}
-          <div className="flex justify-between items-end">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-gray-500 font-medium mb-1">
-                Current Amount
-              </p>
-              <p
-                className={`text-2xl font-bold bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}
-              >
-                {formatCurrency(account.amount || 0)}
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-xs uppercase tracking-wide text-gray-500 font-medium mb-1">
-                Target
-              </p>
-              <p className="text-lg font-semibold text-gray-700">
-                {account.savingAccount?.targetAmount
-                  ? formatCurrency(account.savingAccount.targetAmount)
-                  : "Not set"}
-              </p>
-            </div>
-          </div>
-
-          {/* Progress Bar */}
-          <div>
-            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${completionPercentage}%` }}
-                transition={{ duration: 1, delay: 0.2 }}
-                className={`${progressBarColor} h-3 rounded-full`}
-              ></motion.div>
-            </div>
-          </div>
-
-          {/* Dates and Timeline */}
-          <div className=" mt-4 grid grid-cols-2 gap-2">
-            {account.savingAccount?.startDate && (
-              <div className="bg-gray-50 rounded-lg p-2 justify-self-start">
-                <p className={`text-xs text-${colors.primary}-600 font-medium`}>
-                  Started
-                </p>
-                <p className="text-sm font-medium">
-                  {new Date(account.savingAccount.startDate).toLocaleDateString(
-                    undefined,
-                    {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    }
-                  )}
-                </p>
-              </div>
-            )}
-
-            {account.savingAccount?.targetDate && (
-              <div className="bg-white-50 rounded-lg p-2 justify-self-end">
-                <p className={`text-xs text-${colors.primary}-600 font-medium`}>
-                  Target Date
-                </p>
-                <div className="flex justify-between items-center">
-                  <p className="text-sm font-medium">
-                    {new Date(
-                      account.savingAccount.targetDate
-                    ).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="mt-5 flex gap-2">
-          <button
-            className={`flex-1 py-2.5 px-4 bg-${colors.primary}-50 text-${colors.primary}-700 rounded-lg hover:bg-${colors.primary}-100 focus:ring-2 focus:ring-${colors.primary}-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5`}
-            onClick={() => onAddFunds(account.id)}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path
-                fillRule="evenodd"
-                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-            Add Funds
-          </button>
-
-          <button
-            className={`flex-1 py-2.5 px-4 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5`}
-            onClick={() => onTransfer(account.id)}
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-4 w-4"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-            >
-              <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
-            </svg>
-            Transfer
-          </button>
-
-          {/* Enhanced Menu Button */}
+          
+          {/* Three-dot menu moved to top right */}
           <div className="relative">
             <button
               id={`menu-button-${account.id}`}
@@ -326,12 +207,12 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
                   activeMenu === String(account.id) ? null : String(account.id)
                 )
               }
-              className={`h-full p-2.5 bg-gradient-to-br from-indigo-500 to-indigo-900 text-white rounded-lg  hover:from-gray-700 hover:to-gray-800 transition-all duration-100 group`}
+              className={`p-2 rounded-lg  hover:bg-gray-100 transition-all duration-100 group -mr-2 -mt-1`}
               aria-label="More options"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300"
+                className="h-5 w-5 text-gray-600 group-hover:text-gray-900 transition-colors duration-300"
                 viewBox="0 0 20 20"
                 fill="currentColor"
               >
@@ -409,6 +290,131 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
               </div>
             )}
           </div>
+        </div>
+
+        {/* Completion percentage moved under the name */}
+        <div className="mb-4">
+          <div
+            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${colors.primary}-100 text-${colors.primary}-800`}
+          >
+            {completionPercentage.toFixed(0)}% Complete
+          </div>
+        </div>
+
+        {/* Main info area */}
+        <div className="space-y-4">
+          {/* Amount Display */}
+          <div className="flex justify-between items-end">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-gray-500 font-medium mb-1">
+                Current Amount
+              </p>
+              <p
+                className={`text-2xl font-bold bg-gradient-to-r ${colors.gradient} bg-clip-text text-transparent`}
+              >
+                {formatCurrency(account.amount || 0)}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-xs uppercase tracking-wide text-gray-500 font-medium mb-1">
+                Target
+              </p>
+              <p className="text-lg font-semibold text-gray-700">
+                {account.savingAccount?.targetAmount
+                  ? formatCurrency(account.savingAccount.targetAmount)
+                  : "Not set"}
+              </p>
+            </div>
+          </div>
+
+          {/* Progress Bar */}
+          <div>
+            <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${completionPercentage}%` }}
+                transition={{ duration: 1, delay: 0.2 }}
+                className={`${progressBarColor} h-3 rounded-full`}
+              ></motion.div>
+            </div>
+          </div>
+
+          {/* Dates and Timeline */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {account.savingAccount?.startDate && (
+              <div className="bg-gray-50 rounded-lg p-2 justify-self-start">
+                <p className={`text-xs text-${colors.primary}-600 font-medium`}>
+                  Started
+                </p>
+                <p className="text-sm font-medium">
+                  {new Date(account.savingAccount.startDate).toLocaleDateString(
+                    undefined,
+                    {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    }
+                  )}
+                </p>
+              </div>
+            )}
+
+            {account.savingAccount?.targetDate && (
+              <div className="bg-white-50 rounded-lg p-2 justify-self-end">
+                <p className={`text-xs text-${colors.primary}-600 font-medium`}>
+                  Target Date
+                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-medium">
+                    {new Date(
+                      account.savingAccount.targetDate
+                    ).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="mt-5 flex gap-2">
+          <button
+            className={`flex-1 py-2.5 px-4 bg-${colors.primary}-50 text-${colors.primary}-700 rounded-lg hover:bg-${colors.primary}-100 focus:ring-2 focus:ring-${colors.primary}-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5`}
+            onClick={() => onAddFunds(account.id)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path
+                fillRule="evenodd"
+                d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
+                clipRule="evenodd"
+              />
+            </svg>
+            Add Funds
+          </button>
+
+          <button
+            className={`flex-1 py-2.5 px-4 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5`}
+            onClick={() => onTransfer(account.id)}
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              viewBox="0 0 20 20"
+              fill="currentColor"
+            >
+              <path d="M8 5a1 1 0 100 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L13.586 5H8zM12 15a1 1 0 100-2H6.414l1.293-1.293a1 1 0 10-1.414-1.414l-3 3a1 1 0 000 1.414l3 3a1 1 0 001.414-1.414L6.414 15H12z" />
+            </svg>
+            Transfer
+          </button>
         </div>
       </div>
     </motion.div>

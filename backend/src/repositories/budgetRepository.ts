@@ -77,7 +77,7 @@ export class BudgetRepository {
     });
   }
 
-  async deleteUserBudget(userId: number, budgetId: number){
+  async deleteUserBudget(userId: number, budgetId: number) {
     return await this.prisma.budget.update({
       where: {
         id: budgetId,
@@ -85,6 +85,58 @@ export class BudgetRepository {
       },
       data: {
         deletedAt: new Date(),
+      },
+    });
+  }
+
+  async updateUserBudget(
+    userId: number,
+    budgetId: number,
+    name: string,
+    limitAmount: number,
+    currency: CurrencyType,
+    categoryIds: number[]
+  ) {
+    const updatedBudget = await this.prisma.budget.update({
+      where: {
+        id: budgetId,
+        userId: userId,
+      },
+      data: {
+        name,
+        limitAmount,
+        currency,
+      },
+    });
+
+    // Update budget categories
+    await this.prisma.budgetCategory.deleteMany({
+      where: { budgetId },
+    });
+
+    if (categoryIds && categoryIds.length > 0) {
+      await this.prisma.budgetCategory.createMany({
+        data: categoryIds.map((categoryId) => ({
+          budgetId: updatedBudget.id,
+          customCategoryId: categoryId,
+        })),
+      });
+    }
+
+    return await this.prisma.budget.findUnique({
+      where: { id: updatedBudget.id },
+      include: {
+        budgetCategories: {
+          select: {
+            customCategory: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
       },
     });
   }

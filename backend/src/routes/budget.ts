@@ -99,5 +99,42 @@ budget.post("/deleteUserBudget", async (c) => {
   }
 });
 
+budget.post("/updateUserBudget", async (c) => {
+  try {
+    const body = await c.req.json();
+    const { userId, budgetId, name, limitAmount, currency, categoryIds } = body;
+
+    if (!userId) {
+      return c.json(
+        {
+          error: "Missing userId in /updateUserBudget",
+        },
+        400
+      );
+    }
+
+    const budget = await budgetController.updateUserBudget(
+      c,
+      Number(userId),
+      Number(budgetId),
+      name,
+      limitAmount,
+      currency,
+      categoryIds
+    );
+
+    console.log("Sending updated budget to client:", budget);
+
+    return c.json(budget);
+  } catch (error) {
+    console.error("Error in /updateUserBudget route:", error);
+
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 500);
+    }
+
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
 
 export default budget;

@@ -14,14 +14,12 @@ interface TransactionTableProps {
   formatAmount: (amount: number) => string;
   formatDate: (dateString: Date) => string;
   transactionType: TransactionType;
- 
 }
 
 const TransactionTable: React.FC<TransactionTableProps> = ({
   transactions,
   formatAmount,
   formatDate,
-  
 }) => {
   const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -70,7 +68,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M7 11l5-5m0 0l5 5m-5-5v12"
+              d="M7 13l5 5m0 0l5-5m-5 5V6"
             />
           </svg>
         );
@@ -86,7 +84,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              d="M17 13l-5 5m0 0l-5-5m5 5V6"
+              d="M17 11l-5-5m0 0l-5 5m5-5v12"
             />
           </svg>
         );
@@ -228,9 +226,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
   return (
     <>
       <div className="bg-white  rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div
-          className="lg:max-h-[calc(100vh-210px)] max-h-[calc(100vh-250px)]   overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-        >
+        <div className="lg:max-h-[calc(100vh-210px)] max-h-[calc(100vh-250px)]   overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="divide-y divide-gray-100">
             {transactions.map((transaction, index) => {
               const theme = getThemeColors(transaction.type);
@@ -265,9 +261,26 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                                 </span>
                               </div>
                             ) : (
-                              <span className="truncate block">
+                              <h3 className="text-base sm:text-lg font-semibold text-gray-900 group-hover:text-gray-700 transition-colors duration-200 flex items-center gap-2">
                                 {transaction.name || "Untitled Transaction"}
-                              </span>
+                                <ArrowRight
+                                  className={`h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-300 ${
+                                    transaction.type === TransactionType.INCOME
+                                      ? "text-green-500 group-hover:translate-x-1"
+                                      : transaction.type ===
+                                          TransactionType.EXPENSE
+                                        ? "text-red-500 rotate-180 group-hover:-translate-x-1"
+                                        : "text-blue-500 group-hover:translate-x-1"
+                                  }`}
+                                />
+                                <span className="truncate max-w-[120px] sm:max-w-none">
+                                  {getAccountName(
+                                    transaction.type === TransactionType.INCOME
+                                      ? transaction.toAccountId
+                                      : transaction.fromAccountId
+                                  )}
+                                </span>
+                              </h3>
                             )}
                           </h3>
                           <div
@@ -303,27 +316,6 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                             })}
                           </div>
                         </div>
-
-                        {/* Account badge */}
-                        {(transaction.type === TransactionType.INCOME ||
-                          transaction.type === TransactionType.EXPENSE) && (
-                          <div className="mt-2 sm:mt-3">
-                            <span
-                              className={`inline-flex items-center px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${theme.badgeBg} ${theme.badgeText}`}
-                            >
-                              {transaction.type === TransactionType.INCOME
-                                ? "To: "
-                                : "From: "}
-                              <span className="ml-1 font-semibold">
-                                {getAccountName(
-                                  transaction.type === TransactionType.INCOME
-                                    ? transaction.toAccountId
-                                    : transaction.fromAccountId
-                                )}
-                              </span>
-                            </span>
-                          </div>
-                        )}
 
                         {/* Description */}
                         {transaction.description && (

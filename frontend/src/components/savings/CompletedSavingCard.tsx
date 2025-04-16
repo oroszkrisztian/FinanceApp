@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Account } from "../../interfaces/Account";
 
@@ -13,14 +13,83 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
   index,
   onDelete,
 }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: account.currency || "USD",
       maximumFractionDigits: 2,
-      currencyDisplay: "code"
+      currencyDisplay: "code",
     }).format(amount);
   };
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showMenu) {
+        if (
+          menuRef.current &&
+          !menuRef.current.contains(event.target as Node) &&
+          buttonRef.current &&
+          !buttonRef.current.contains(event.target as Node)
+        ) {
+          setShowMenu(false);
+        }
+      }
+    };
+
+    const handleScroll = () => {
+      if (showMenu) {
+        setShowMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("scroll", handleScroll, true);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("scroll", handleScroll, true);
+    };
+  }, [showMenu]);
+
+  useEffect(() => {
+    if (showMenu && menuRef.current) {
+      const button = document.getElementById(`menu-button-${account.id}`);
+      if (button) {
+        const buttonRect = button.getBoundingClientRect();
+        const el = menuRef.current;
+
+        // Position menu
+        el.style.left = `${buttonRect.right - el.offsetWidth}px`;
+        el.style.top = `${buttonRect.bottom + 8}px`;
+
+        // Calculate available space
+        const spaceBelow = window.innerHeight - buttonRect.bottom;
+
+        // Adjust position if not enough space below
+        if (
+          spaceBelow < el.offsetHeight + 10 &&
+          buttonRect.top > el.offsetHeight + 10
+        ) {
+          el.style.top = `${buttonRect.top - el.offsetHeight - 8}px`;
+          el.style.transformOrigin = "bottom right";
+        } else {
+          el.style.transformOrigin = "top right";
+        }
+
+        // Animate in
+        requestAnimationFrame(() => {
+          el.style.opacity = "1";
+          el.style.transition =
+            "opacity 0.2s ease-in-out, transform 0.2s ease-in-out";
+          el.style.transform = "scale(1)";
+        });
+      }
+    }
+  }, [showMenu, account.id]);
 
   return (
     <motion.div
@@ -47,11 +116,85 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
 
       {/* Card content with higher z-index to appear above the background */}
       <div className="relative">
-        {/* Account Name with Completion Badge */}
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-gray-900 tracking-tight">
-            {account.name || "Unnamed Account"}
-          </h3>
+        {/* Top section with account name and menu button */}
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex-1">
+            <h3 className="text-xl font-bold text-gray-900 tracking-tight">
+              {account.name || "Unnamed Account"}
+            </h3>
+          </div>
+
+          {/* Three-dot menu in top right */}
+          <div className="relative">
+            <button
+              id={`menu-button-${account.id}`}
+              ref={buttonRef}
+              onClick={() => setShowMenu(!showMenu)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-all duration-100 group -mr-2 -mt-1"
+              aria-label="More options"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5 text-gray-600 group-hover:text-gray-900 transition-colors duration-300"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+              >
+                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+              </svg>
+            </button>
+
+            {showMenu && (
+              <div
+                id={`menu-${account.id}`}
+                ref={menuRef}
+                className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 z-50 opacity-0 w-64 transform scale-95 backdrop-blur-sm bg-white/95"
+                onClick={(e: React.MouseEvent<HTMLDivElement>) =>
+                  e.stopPropagation()
+                }
+                style={{
+                  boxShadow:
+                    "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
+                }}
+              >
+                <div className="px-1 py-1.5">
+                  {/* Menu Header */}
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 mb-1">
+                    Account Options
+                  </div>
+
+                  <button
+                    className="flex items-center w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:translate-x-1 mt-1 mb-1"
+                    onClick={() => onDelete(account.id, account.name)}
+                  >
+                    <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-50 text-red-600 mr-3">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-4 w-4"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="font-medium">Delete Account</span>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Remove this completed goal permanently
+                      </p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Completion percentage moved under the name */}
+        <div className="mb-4">
           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             100% Complete
           </div>
@@ -97,9 +240,7 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
           <div className="mt-4 grid grid-cols-2 gap-2">
             {account.savingAccount?.startDate && (
               <div className="bg-gray-50 rounded-lg p-2 justify-self-start">
-                <p className="text-xs text-green-600 font-medium">
-                  Started
-                </p>
+                <p className="text-xs text-green-600 font-medium">Started</p>
                 <p className="text-sm font-medium">
                   {new Date(account.savingAccount.startDate).toLocaleDateString(
                     undefined,
@@ -131,25 +272,17 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
           </div>
         </div>
 
-        {/* Action Button */}
         <div className="mt-5 flex gap-2">
-          <button
-            className="flex-1 py-2.5 px-4 bg-white text-red-700 rounded-lg border border-red-200 hover:bg-red-50 focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5"
-            onClick={() => onDelete(account.id, account.name)}
-          >
+          <button className="flex-1 py-2.5 px-4 bg-green-50 text-green-700 rounded-lg hover:bg-green-100 focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-4 w-4"
               viewBox="0 0 20 20"
               fill="currentColor"
             >
-              <path
-                fillRule="evenodd"
-                d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z"
-                clipRule="evenodd"
-              />
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            Delete Goal
+            View Achievement
           </button>
         </div>
       </div>

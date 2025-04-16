@@ -541,7 +541,7 @@ const Savings: React.FC = () => {
                   <div ref={dropdownRef}>
                     <button
                       onClick={() => setFilterMenuOpen(!filterMenuOpen)}
-                      className="w-full sm:w-auto px-3 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 focus:outline-none transition-colors relative flex items-center justify-between sm:justify-start"
+                      className="w-full sm:w-auto px-3 py-2.5 bg-white-50 border border-black text-black rounded-lg hover:bg-gray-100 focus:outline-none transition-colors relative flex items-center justify-between sm:justify-start"
                     >
                       <div className="flex items-center">
                         <svg
@@ -654,13 +654,13 @@ const Savings: React.FC = () => {
                 </div>
               )}
 
-              {/* Sort Bu tton */}
+              {/* Sort Button */}
               {showFilters && (
                 <div className="relative w-full sm:w-auto">
                   <div ref={sortDropdownRef}>
                     <button
                       onClick={() => setSortMenuOpen(!sortMenuOpen)}
-                      className="w-full sm:w-auto px-3 py-2.5 bg-indigo-50 border border-indigo-200 text-indigo-700 rounded-lg hover:bg-indigo-100 focus:outline-none transition-colors relative flex items-center justify-between sm:justify-start"
+                      className="w-full sm:w-auto px-3 py-2.5 bg-white-50 border border-black text-black rounded-lg hover:bg-gray-100 focus:outline-none transition-colors relative flex items-center justify-between sm:justify-start"
                     >
                       <div className="flex items-center">
                         <svg
@@ -770,7 +770,7 @@ const Savings: React.FC = () => {
                   strokeWidth={2}
                   d="M12 6v6m0 0v6m0-6h6m-6 0H6"
                 />
-              </svg>
+              </svg> 
               <span className="hidden xs:inline">Create</span> Goal
             </motion.button>
           </motion.div>
