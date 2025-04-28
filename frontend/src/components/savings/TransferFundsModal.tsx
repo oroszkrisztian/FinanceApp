@@ -17,7 +17,7 @@ interface TransferFromSavingModalProps {
   onClose: () => void;
   selectedSaving: Account;
   accountsDefault: Account[];
-  onSuccess: () => void;
+  onSuccess: (accountId?: number) => void;
 }
 
 const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
@@ -265,7 +265,7 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
 
       setLoading(false);
       handleClose();
-      onSuccess();
+      onSuccess(selectedSaving.id); // Pass the saving ID to trigger animation
     } catch (err) {
       setLoading(false);
       setError(err instanceof Error ? err.message : "Failed to transfer funds");

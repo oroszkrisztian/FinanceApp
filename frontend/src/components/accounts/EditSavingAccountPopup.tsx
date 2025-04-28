@@ -15,7 +15,7 @@ import {
 interface EditSavingAccountPopupProps {
   setIsModalOpen: (isOpen: boolean) => void;
   account: any;
-  onSuccess: () => void;
+  onSuccess: (accountId?: number) => void;
 }
 
 const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
@@ -226,7 +226,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
 
       await editSavingAccount(user.id, account.id, requestData);
       setLoading(false);
-      onSuccess();
+      onSuccess(account.id); // Pass the account ID to trigger animation
       handleClose();
     } catch (err) {
       setLoading(false);

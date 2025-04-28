@@ -16,7 +16,7 @@ import {
 interface AddFundsPopupProps {
   isOpen: boolean;
   account: any;
-  onSuccess: () => void;
+  onSuccess: (accountId: number) => void;
   onClose: () => void;
 }
 
@@ -256,33 +256,25 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSuccess = async (): Promise<void> => {
     setLoading(true);
     setError(null);
 
     try {
-      if (!amountTransfer || parseNumberInput(amountTransfer) <= 0)
-        throw new Error("Please enter a valid amount");
+      const amountToAdd = parseFloat(amountTransfer);
+      if (isNaN(amountToAdd) || amountToAdd <= 0) {
+        throw new Error("Please enter a valid amount.");
+      }
 
-      if (!user?.id) throw new Error("User id not found");
+      if (!sourceAccount) {
+        throw new Error("Please select a source account.");
+      }
 
-      if (!selectedSourceAccount)
-        throw new Error("Please select a source account");
+      if (!user) {
+        throw new Error("User not found");
+      }
 
-      const sourceAccount = defaultAccounts.find(
-        (acc) => acc.id === selectedSourceAccount
-      );
-
-      if (!sourceAccount) throw new Error("Source account not found");
-
-      const amountToAdd = parseNumberInput(amountTransfer);
-
-      if (amountToAdd > (sourceAccount.amount || 0))
-        throw new Error(
-          `Insufficient funds in source account. Need ${amountToAdd.toFixed(2)} ${sourceAccount.currency}.`
-        );
-
+      // Check if this would exceed the goal target
       const targetCheck = calculateTargetAmountExceed();
       if (targetCheck?.exceeded) {
         throw new Error(
@@ -308,11 +300,16 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
 
       setLoading(false);
       handleClose();
-      onSuccess();
+      onSuccess(account.id); // Pass account ID to trigger animation
     } catch (err) {
       setLoading(false);
       setError(err instanceof Error ? err.message : "Failed to add funds");
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await handleSuccess();
   };
 
   const handleClose = () => {

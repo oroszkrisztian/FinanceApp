@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Account } from "../../interfaces/Account";
 
 interface CompletedSavingCardProps {
@@ -16,6 +16,22 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const [shouldAnimate, setShouldAnimate] = useState<boolean>(true);
+
+  // Card animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20, scale: 0.95 },
+    visible: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        delay: i * 0.05 + 0.3, // Add extra delay to stagger after active cards
+        duration: 0.4,
+        ease: "easeOut",
+      },
+    }),
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -25,6 +41,15 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
       currencyDisplay: "code",
     }).format(amount);
   };
+
+  useEffect(() => {
+    // Setup a one-time animation on first render
+    const timer = setTimeout(() => {
+      setShouldAnimate(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -93,10 +118,10 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
 
   return (
     <motion.div
-      key={account.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+      custom={index}
+      initial="hidden"
+      animate={shouldAnimate ? "visible" : "visible"}
+      variants={cardVariants}
       className="relative bg-white p-4 rounded-xl shadow-md border border-green-100 overflow-hidden hover:shadow-lg transition-shadow"
     >
       {/* Decorative corner accent */}
@@ -230,8 +255,8 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: "100%" }}
-                transition={{ duration: 1, delay: 0.2 }}
-                className="bg-green-500 h-3 rounded-full"
+                transition={{ duration: 1, delay: 0.3 }}
+                className="bg-green-500 h-3 rounded-full w-full"
               ></motion.div>
             </div>
           </div>

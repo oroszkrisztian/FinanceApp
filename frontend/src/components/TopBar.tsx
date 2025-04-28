@@ -58,7 +58,7 @@ const TopBar: React.FC<TopBarProps> = ({ title, collapsed, toggleSidebar }) => {
       {/* Right section with profile */}
       <button
         onClick={handleProfileClick}
-        className="h-10 w-10 bg-white rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center"
+        className="h-10 w-10 z-10 bg-white rounded-full hover:bg-gray-200 transition-colors flex items-center justify-center"
       >
         <User className="text-black" size={20} />
       </button>

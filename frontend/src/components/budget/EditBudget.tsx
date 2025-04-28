@@ -20,7 +20,7 @@ interface EditBudgetProps {
   onClose: () => void;
   budget: Budget;
   categories: CustomCategory[];
-  onSuccess?: () => void;
+  onSuccess?: (budgetId: number) => void;
   color?: string;
 }
 
@@ -230,7 +230,7 @@ const EditBudget: React.FC<EditBudgetProps> = ({
       );
 
       setIsSubmitting(false);
-      onSuccess?.();
+      onSuccess?.(budget.id); // Pass the budget ID to trigger animation only on this card
       onClose();
     } catch (error) {
       console.error("Error updating budget:", error);
@@ -283,7 +283,9 @@ const EditBudget: React.FC<EditBudgetProps> = ({
               </motion.svg>
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Edit {budget.name}✨</h2>
+              <h2 className="text-xl font-bold text-white">
+                Edit {budget.name}✨
+              </h2>
             </div>
           </div>
         </div>

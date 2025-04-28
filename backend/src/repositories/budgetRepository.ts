@@ -1,10 +1,13 @@
 import { PrismaClient, CurrencyType } from "@prisma/client";
+import { TransactionRepository } from "./transactionRepository";
 
 export class BudgetRepository {
   private prisma: PrismaClient;
+  private transactionRepo: TransactionRepository;
 
   constructor() {
     this.prisma = new PrismaClient();
+    this.transactionRepo = new TransactionRepository();
   }
 
   async getAllBudgets(userId: number) {
@@ -97,6 +100,33 @@ export class BudgetRepository {
     currency: CurrencyType,
     categoryIds: number[]
   ) {
+    const existingBudget = await this.prisma.budget.findFirst({
+      where: {
+        id: budgetId,
+        userId: userId,
+      },
+    });
+
+    if (!existingBudget) {
+      throw new Error("Budget not found or doesn't belong to the user");
+    }
+
+    let updatedCurrentSpent = existingBudget.currentSpent;
+
+    if (existingBudget.currency !== currency) {
+      const rates = await this.transactionRepo.getExchangeRates();
+
+      if (!rates[existingBudget.currency] || !rates[currency]) {
+        throw new Error(
+          `Exchange rate not found for conversion between ${existingBudget.currency} and ${currency}`
+        );
+      }
+
+      updatedCurrentSpent =
+        existingBudget.currentSpent *
+        (rates[existingBudget.currency] / rates[currency]);
+    }
+
     const updatedBudget = await this.prisma.budget.update({
       where: {
         id: budgetId,
@@ -106,6 +136,7 @@ export class BudgetRepository {
         name,
         limitAmount,
         currency,
+        currentSpent: updatedCurrentSpent,
       },
     });
 

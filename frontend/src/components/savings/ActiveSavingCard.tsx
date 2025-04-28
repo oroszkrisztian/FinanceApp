@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Account } from "../../interfaces/Account";
 
 interface ActiveSavingCardProps {
@@ -11,6 +11,8 @@ interface ActiveSavingCardProps {
   onTransfer: (accountId: number) => void;
   onEdit: (accountId: number) => void;
   onDelete: (accountId: number, accountName: string) => void;
+  updatedSavingId?: number | null;
+  isUpdated?: boolean;
 }
 
 const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
@@ -22,137 +24,116 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
   onTransfer,
   onEdit,
   onDelete,
+  updatedSavingId,
+  isUpdated,
 }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [animate, setAnimate] = useState(false);
 
-  const calculateCompletionPercentage = () => {
-    if (!account.savingAccount || !account.savingAccount.targetAmount) {
-      return 0;
-    }
+  // Dynamic color styles based on completion percentage
+  const completionPercentage = account.savingAccount?.targetAmount
+    ? Math.min((account.amount / account.savingAccount.targetAmount) * 100, 100)
+    : 0;
 
-    const currentAmount = account.amount || 0;
-    const targetAmount = account.savingAccount.targetAmount || 0;
-
-    if (targetAmount <= 0) {
-      return 0;
-    }
-
-    const percentage = (currentAmount / targetAmount) * 100;
-    return Math.min(parseFloat(percentage.toFixed(2)), 99.99);
+  // Colors and styles based on completion percentage
+  const colors = {
+    primary: completionPercentage >= 75 ? "green" : "indigo",
+    accent: completionPercentage >= 75 ? "green" : "indigo",
+    gradient:
+      completionPercentage >= 75
+        ? "from-green-600 to-emerald-500"
+        : "from-indigo-600 to-blue-500",
   };
 
-  const completionPercentage = calculateCompletionPercentage();
+  const cardStyles =
+    completionPercentage >= 75
+      ? "border-green-100 hover:border-green-200"
+      : "border-indigo-100 hover:border-indigo-200";
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (activeMenu === String(account.id)) {
-        if (
-          menuRef.current &&
-          !menuRef.current.contains(event.target as Node) &&
-          buttonRef.current &&
-          !buttonRef.current.contains(event.target as Node)
-        ) {
-          setActiveMenu(null);
-        }
-      }
-    };
+  const waveColor =
+    completionPercentage >= 75 ? "bg-green-300" : "bg-indigo-300";
 
-    const handleScroll = () => {
-      if (activeMenu === String(account.id)) {
-        setActiveMenu(null);
-      }
-    };
+  const progressBarColor =
+    completionPercentage >= 75 ? "bg-green-500" : "bg-indigo-500";
 
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("scroll", handleScroll, true);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("scroll", handleScroll, true);
-    };
-  }, [activeMenu, account.id, setActiveMenu]);
-
-  useEffect(() => {
-    if (activeMenu === String(account.id) && menuRef.current) {
-      const button = document.getElementById(`menu-button-${account.id}`);
-      if (button) {
-        const buttonRect = button.getBoundingClientRect();
-        const el = menuRef.current;
-
-        // Position menu
-        el.style.left = `${buttonRect.right - el.offsetWidth}px`;
-        el.style.top = `${buttonRect.bottom + 8}px`;
-
-        // Calculate available space
-        const spaceBelow = window.innerHeight - buttonRect.bottom;
-
-        // Adjust position if not enough space below
-        if (
-          spaceBelow < el.offsetHeight + 10 &&
-          buttonRect.top > el.offsetHeight + 10
-        ) {
-          el.style.top = `${buttonRect.top - el.offsetHeight - 8}px`;
-          el.style.transformOrigin = "bottom right";
-        } else {
-          el.style.transformOrigin = "top right";
-        }
-
-        // Animate in
-        requestAnimationFrame(() => {
-          el.style.opacity = "1";
-          el.style.transition =
-            "opacity 0.2s ease-in-out, transform 0.2s ease-in-out";
-          el.style.transform = "scale(1)";
-        });
-      }
-    }
-  }, [activeMenu, account.id]);
-
-  const getColorScheme = () => {
-    if (completionPercentage < 33) {
-      return {
-        primary: "indigo",
-        accent: "bg-indigo-500",
-        gradient: "from-indigo-500 to-purple-500",
-      };
-    } else if (completionPercentage < 66) {
-      return {
-        primary: "blue",
-        accent: "bg-blue-500",
-        gradient: "from-blue-500 to-cyan-500",
-      };
-    } else {
-      return {
-        primary: "green",
-        accent: "bg-green-500",
-        gradient: "from-emerald-500 to-green-500",
-      };
-    }
-  };
-
-  const colors = getColorScheme();
-
-  const waveColor = "bg-green-400";
-  const progressBarColor = "bg-green-500";
-
+  // Format currency amounts
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: account.currency || "USD",
-      maximumFractionDigits: 2,
-      currencyDisplay: "code",
+      minimumFractionDigits: 2,
     }).format(amount);
   };
 
+  // Animation variants
+  const cardVariants = {
+    updated: {
+      scale: [1, 1.03, 1],
+      boxShadow: [
+        "0 8px 30px rgba(0,0,0,0.1)",
+        "0 8px 30px rgba(79, 70, 229, 0.4)",
+        "0 8px 30px rgba(0,0,0,0.1)",
+      ],
+      transition: {
+        duration: 0.7,
+      },
+    },
+  };
+
+  // Effect to close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node) &&
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node)
+      ) {
+        setOpenMenuId(null);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
+
+  // Effect to handle the highlight animation when card is updated
+  useEffect(() => {
+    if (updatedSavingId === account.id) {
+      setAnimate(true);
+      setTimeout(() => setAnimate(false), 2000);
+    }
+  }, [updatedSavingId, account.id]);
+
+  useEffect(() => {
+    if (isUpdated) {
+      setAnimate(true);
+      const timeout = setTimeout(() => setAnimate(false), 1000); // Animation duration
+      return () => clearTimeout(timeout);
+    }
+  }, [isUpdated]);
+
   return (
     <motion.div
-      key={account.id}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="relative bg-white p-4 rounded-xl shadow-md border border-indigo-100 overflow-hidden hover:shadow-lg transition-shadow"
+      animate={animate ? "updated" : {}}
+      variants={cardVariants}
+      className={`bg-white p-4 rounded-xl border ${cardStyles} transition-all duration-200 relative overflow-hidden ${animate ? "animate-highlight" : ""}`}
     >
+      <AnimatePresence>
+        {animate && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-indigo-50/30 z-0 pointer-events-none"
+          />
+        )}
+      </AnimatePresence>
+
       {/* Decorative corner accent */}
       <div
         className={`absolute top-0 right-0 w-20 h-20 ${colors.accent} opacity-10 rounded-bl-full`}
@@ -196,18 +177,18 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
               {account.name || "Unnamed Account"}
             </h3>
           </div>
-          
+
           {/* Three-dot menu moved to top right */}
           <div className="relative">
             <button
               id={`menu-button-${account.id}`}
               ref={buttonRef}
               onClick={() =>
-                setActiveMenu(
-                  activeMenu === String(account.id) ? null : String(account.id)
+                setOpenMenuId(
+                  openMenuId === String(account.id) ? null : String(account.id)
                 )
               }
-              className={`p-2 rounded-lg  hover:bg-gray-100 transition-all duration-100 group -mr-2 -mt-1`}
+              className={`p-2 rounded-lg hover:bg-gray-100 transition-all duration-100 group -mr-2 -mt-1`}
               aria-label="More options"
             >
               <svg
@@ -220,11 +201,11 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
               </svg>
             </button>
 
-            {activeMenu === String(account.id) && (
+            {openMenuId === String(account.id) && (
               <div
                 id={`menu-${account.id}`}
                 ref={menuRef}
-                className="fixed bg-white rounded-xl shadow-2xl border border-gray-100 z-50 opacity-0 w-64 transform scale-95 backdrop-blur-sm bg-white/95"
+                className="absolute top-full right-0 mt-1 bg-white rounded-xl shadow-2xl border border-gray-100 z-50 w-64 opacity-100 transform scale-100 backdrop-blur-sm bg-white/95"
                 onClick={(e: React.MouseEvent<HTMLDivElement>) =>
                   e.stopPropagation()
                 }

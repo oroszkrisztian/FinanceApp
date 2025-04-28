@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "../context/AuthContext";
 
 import { getAllBudgets } from "../services/budgetService";
@@ -26,9 +26,13 @@ const Budget: React.FC = () => {
 
     try {
       const budgetData = await getAllBudgets(user.id);
-      
-      const activeBudgets = budgetData.filter((budget: BudgetType) => !budget.deletedAt);
-      const deletedBudgetsList = budgetData.filter((budget: BudgetType) => budget.deletedAt);
+
+      const activeBudgets = budgetData.filter(
+        (budget: BudgetType) => !budget.deletedAt
+      );
+      const deletedBudgetsList = budgetData.filter(
+        (budget: BudgetType) => budget.deletedAt
+      );
 
       setBudgets(activeBudgets);
       setDeletedBudgets(deletedBudgetsList);
@@ -57,7 +61,6 @@ const Budget: React.FC = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        await new Promise((resolve) => setTimeout(resolve, 500));
         await Promise.all([fetchBudgets(), fetchCategories()]);
       } catch (err) {
         console.error("Error loading data:", err);
@@ -91,17 +94,11 @@ const Budget: React.FC = () => {
             </button>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            <Budgets
-              budgets={budgets}
-              categories={categories}
-              onSuccess={handleBudgetSuccess}
-            />
-          </motion.div>
+          <Budgets
+            budgets={budgets}
+            categories={categories}
+            onSuccess={handleBudgetSuccess}
+          />
         )}
       </div>
     </div>
