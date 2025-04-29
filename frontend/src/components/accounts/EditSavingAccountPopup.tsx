@@ -475,11 +475,12 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
                   value={formData.currency}
                   onChange={handleChange}
                   className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none appearance-none"
+                  disabled={fetchingRates}
                   required
                 >
-                  {Object.values(CurrencyType).map((currency) => (
-                    <option key={currency} value={currency}>
-                      {currency}
+                  {Object.keys(rates).map((curr) => (
+                    <option key={curr} value={curr}>
+                      {curr}
                     </option>
                   ))}
                 </motion.select>

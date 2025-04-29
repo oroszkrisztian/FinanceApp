@@ -188,6 +188,39 @@ enum CurrencyType {
   USD
   GBP
   CHF
+  AED
+  AUD
+  BGN
+  BRL
+  CAD
+  CNY
+  CZK
+  DKK
+  EGP
+  HKD
+  IDR
+  ILS
+  INR
+  ISK
+  JPY
+  KRW
+  MDL
+  MXN
+  MYR
+  NOK
+  NZD
+  PHP
+  PLN
+  RSD
+  RUB
+  SEK
+  SGD
+  THB
+  TRY
+  UAH
+  XAU
+  XDR
+  ZAR
 }
 
 enum PaymentType {

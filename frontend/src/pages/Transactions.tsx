@@ -499,6 +499,7 @@ const Transactions: React.FC = () => {
           isOpen={isCreateExpenseModalOpen}
           onClose={closeExpenseModal}
           accounts={defaultAccounts}
+          categories={categories}
           budgets={budgets}
           accountsLoading={accountsLoading}
           onSuccess={handleSuccess}
@@ -515,7 +516,7 @@ const Transactions: React.FC = () => {
       {/* Container to maintain consistent width */}
       <div className="max-w-7xl mx-auto pt-4">
         {/* Enhanced Navigation Bar */}
-        <div className="bg-white border-b rounded-lg border-gray-200 sticky top-0 z-30 shadow-sm">
+        <div className="bg-white border-b rounded-lg border-gray-200 sticky top-0  shadow-sm">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:h-16 justify-between gap-4 py-3 lg:py-0">
               {/* First row on mobile / right side on desktop */}
@@ -674,6 +675,7 @@ const Transactions: React.FC = () => {
         rates={rates}
         ratesError={ratesError}
         fetchingRates={fetchingRates}
+        categories={categories}
       />
 
       <AddIncomePopup

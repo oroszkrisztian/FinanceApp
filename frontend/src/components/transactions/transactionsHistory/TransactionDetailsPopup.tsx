@@ -29,21 +29,20 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
     return account ? account.name : `Account ${accountId}`;
   };
 
-
   const getTransactionIcon = (type: TransactionType) => {
     switch (type) {
       case TransactionType.INCOME:
         return (
           <svg
-            className="h-6 w-6 sm:h-8 sm:w-8"
+            className="w-6 h-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeWidth={2}
               d="M7 11l5-5m0 0l5 5m-5-5v12"
             />
           </svg>
@@ -51,15 +50,15 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
       case TransactionType.EXPENSE:
         return (
           <svg
-            className="h-6 w-6 sm:h-8 sm:w-8"
+            className="w-6 h-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeWidth={2}
               d="M17 13l-5 5m0 0l-5-5m5 5V6"
             />
           </svg>
@@ -67,15 +66,15 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
       case TransactionType.TRANSFER:
         return (
           <svg
-            className="h-6 w-6 sm:h-8 sm:w-8"
+            className="w-6 h-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeWidth={2}
               d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
             />
           </svg>
@@ -83,15 +82,15 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
       default:
         return (
           <svg
-            className="h-6 w-6 sm:h-8 sm:w-8"
+            className="w-6 h-6"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
-            strokeWidth={2}
           >
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeWidth={2}
               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
             />
           </svg>
@@ -103,59 +102,51 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
     switch (transaction.type) {
       case TransactionType.INCOME:
         return {
-          gradient: "bg-gradient-to-br from-green-400 to-emerald-600",
-          patternBg: "bg-green-100",
-          headerBg: "bg-green-500",
-          cardBg: "bg-white",
-          cardBorder: "border-green-200",
-          amountText: "text-green-500",
-          secondaryBg: "bg-green-50",
-          iconBg: "bg-green-400",
-          icon: "text-white",
-          button:
-            "bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 focus:ring-green-500",
+          gradient: "bg-gradient-to-r from-green-600 to-green-800",
+          textColor: "text-green-500",
+          bgLight: "bg-green-50/50",
+          border: "border-green-200",
+          buttonBg: "bg-gradient-to-r from-green-600 to-green-700",
+          buttonHover: "hover:from-green-600 hover:to-green-700",
+          buttonRing: "focus:ring-green-500",
+          iconBg: "bg-white",
+          detailsBg: "bg-gradient-to-r from-green-50 to-emerald-50",
         };
       case TransactionType.EXPENSE:
         return {
-          gradient: "bg-gradient-to-br from-red-400 to-pink-600",
-          patternBg: "bg-red-100",
-          headerBg: "bg-red-500",
-          cardBg: "bg-white",
-          cardBorder: "border-red-200",
-          amountText: "text-red-500",
-          secondaryBg: "bg-red-50",
-          iconBg: "bg-red-400",
-          icon: "text-white",
-          button:
-            "bg-gradient-to-r from-red-500 to-pink-600 hover:from-red-600 hover:to-pink-700 focus:ring-red-500",
+          gradient: "bg-gradient-to-r from-red-600 to-red-800",
+          textColor: "text-red-500",
+          bgLight: "bg-red-50/50",
+          border: "border-red-200",
+          buttonBg: "bg-gradient-to-r from-red-600 to-red-700",
+          buttonHover: "hover:from-red-600 hover:to-red-700",
+          buttonRing: "focus:ring-red-500",
+          iconBg: "bg-white",
+          detailsBg: "bg-gradient-to-r from-red-50 to-pink-50",
         };
       case TransactionType.TRANSFER:
         return {
-          gradient: "bg-gradient-to-br from-blue-400 to-indigo-600",
-          patternBg: "bg-blue-100",
-          headerBg: "bg-blue-500",
-          cardBg: "bg-white",
-          cardBorder: "border-blue-200",
-          amountText: "text-blue-500",
-          secondaryBg: "bg-blue-50",
-          iconBg: "bg-blue-400",
-          icon: "text-white",
-          button:
-            "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 focus:ring-blue-500",
+          gradient: "bg-gradient-to-r from-blue-600 to-blue-800",
+          textColor: "text-blue-500",
+          bgLight: "bg-blue-50/50",
+          border: "border-blue-200",
+          buttonBg: "bg-gradient-to-r from-blue-600 to-blue-700",
+          buttonHover: "hover:from-blue-600 hover:to-blue-700",
+          buttonRing: "focus:ring-blue-500",
+          iconBg: "bg-white",
+          detailsBg: "bg-gradient-to-r from-blue-50 to-indigo-50",
         };
       default:
         return {
-          gradient: "bg-gradient-to-br from-gray-400 to-gray-600",
-          patternBg: "bg-gray-100",
-          headerBg: "bg-gray-500",
-          cardBg: "bg-white",
-          cardBorder: "border-gray-200",
-          amountText: "text-gray-500",
-          secondaryBg: "bg-gray-50",
-          iconBg: "bg-gray-400",
-          icon: "text-white",
-          button:
-            "bg-gradient-to-r from-gray-500 to-gray-600 hover:from-gray-600 hover:to-gray-700 focus:ring-gray-500",
+          gradient: "bg-gradient-to-r from-gray-600 to-gray-800",
+          textColor: "text-gray-500",
+          bgLight: "bg-gray-50/50",
+          border: "border-gray-200",
+          buttonBg: "bg-gradient-to-r from-gray-600 to-gray-700",
+          buttonHover: "hover:from-gray-600 hover:to-gray-700",
+          buttonRing: "focus:ring-gray-500",
+          iconBg: "bg-white",
+          detailsBg: "bg-gradient-to-r from-gray-50 to-gray-100",
         };
     }
   };
@@ -168,225 +159,165 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
       onClose={onClose}
       closeOnBackdropClick={true}
       backdropBlur="md"
-      animationDuration={150}
+      animationDuration={300}
     >
-      <div className="bg-white rounded-2xl shadow-lg w-[95%] max-w-[95%] min-w-[300px] md:min-w-[400px] lg:max-w-[800px] mx-auto overflow-hidden max-h-[85vh] lg:max-h-[75vh] overflow-y-auto">
-        {/* Header with gradient background */}
-        <div
-          className={`${theme.gradient} px-3 sm:px-6 pt-4 sm:pt-8 pb-8 sm:pb-12 relative rounded-t-2xl`}
-        >
-          {/* Fun pattern overlay */}
-          <div className="absolute inset-0 opacity-10 mix-blend-overlay">
-            <div
-              className="w-full h-full"
-              style={{
-                backgroundImage:
-                  "radial-gradient(circle at 20px 20px, white 3px, transparent 4px)",
-                backgroundSize: "25px 25px",
-              }}
-            ></div>
-          </div>
+      <div
+        className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          maxWidth: window.innerWidth <= 768 ? "100%" : "36rem",
+          minWidth: window.innerWidth <= 768 ? "auto" : "28rem",
+          maxHeight: "90vh",
+        }}
+      >
+        {/* Fixed Header */}
+        <div className={`${theme.gradient} py-4 relative z-10`}>
+          {/* Decorative circles */}
+          <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
+          <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
+          <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
 
-          {/* Header content */}
-          <div className="relative flex items-center justify-between mb-3 sm:mb-6">
+          {/* Title in header */}
+          <div className="px-6 flex items-center justify-between relative">
             <div className="flex items-center">
-              <div
-                className={`mr-2 sm:mr-3 p-1.5 sm:p-3 rounded-full ${theme.iconBg} shadow-lg`}
-              >
-                <span className={theme.icon}>
+              <div className={`${theme.iconBg} w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg`}>
+                <div className={theme.textColor}>
                   {getTransactionIcon(transaction.type)}
-                </span>
-              </div>
-              <h3 className="text-base sm:text-xl font-bold text-white">
-                {transaction.type === TransactionType.INCOME
-                  ? "Income Detail"
-                  : transaction.type === TransactionType.EXPENSE
-                    ? "Expense Detail"
-                    : "Transfer Detail"}
-              </h3>
-            </div>
-          </div>
-        </div>
-
-        {/* Amount "card" that overlaps the header */}
-        <div className="relative px-3 sm:px-6 -mt-5 sm:-mt-8 mb-3 sm:mb-6">
-          <div className="bg-white rounded-xl shadow-lg px-3 py-2 sm:px-5 sm:py-4 flex items-center justify-center border-b-4 border-l border-r border-t border-gray-100">
-            <span
-              className={`text-xl sm:text-3xl font-extrabold ${theme.amountText} break-all`}
-            >
-              {transaction.currency} {formatAmount(transaction.amount)}
-            </span>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="px-3 sm:px-5 pt-1 pb-4 sm:pb-5">
-          <div className="space-y-3 sm:space-y-5">
-            {/* Transaction Info Card */}
-            <div
-              className={`bg-white rounded-xl overflow-hidden shadow-md border ${theme.cardBorder}`}
-            >
-              <div className="grid grid-cols-1 gap-3 sm:gap-x-4 sm:gap-y-5 p-3 sm:p-5">
-                <div>
-                  <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
-                    <svg
-                      className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                      />
-                    </svg>
-                    Date
-                  </p>
-                  <div className="flex">
-                    <p className="text-base font-medium text-gray-800 ml-5">
-                      {formatDate(transaction.date)}
-                      <div className="text-sm text-gray-500">
-                        {new Date(transaction.date).toLocaleTimeString([], {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </div>
-                    </p>
-                  </div>
                 </div>
-
-                {transaction.type === TransactionType.EXPENSE ||
-                transaction.type === TransactionType.INCOME ? (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
-                      <svg
-                        className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      Name
-                    </p>
-                    <div className="flex">
-                      <p
-                        className="text-base font-medium text-gray-800 break-words ml-5"
-                        title={transaction.name || "-"}
-                      >
-                        {transaction.name || "-"}
-                      </p>
-                    </div>
-                  </div>
-                ) : null}
-
-                {transaction.fromAccountId && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
-                      <svg
-                        className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                        />
-                      </svg>
-                      From Account
-                    </p>
-                    <div className="flex">
-                      <p
-                        className="text-base font-medium text-gray-800 break-words ml-5"
-                        title={getAccountName(transaction.fromAccountId)}
-                      >
-                        {getAccountName(transaction.fromAccountId)}
-                      </p>
-                    </div>
-                  </div>
-                )}
-
-                {transaction.toAccountId && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-500 uppercase mb-1.5 flex items-center">
-                      <svg
-                        className={`h-4 w-4 sm:h-4 sm:w-4 ${theme.amountText} mr-1.5`}
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                        />
-                      </svg>
-                      To Account
-                    </p>
-                    <div className="flex">
-                      <p
-                        className="text-base font-medium text-gray-800 break-words ml-5"
-                        title={getAccountName(transaction.toAccountId)}
-                      >
-                        {getAccountName(transaction.toAccountId)}
-                      </p>
-                    </div>
-                  </div>
-                )}
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  {transaction.type === TransactionType.INCOME
+                    ? "Income Details 💹"
+                    : transaction.type === TransactionType.EXPENSE
+                      ? "Expense Details 💸"
+                      : "Transfer Details 🔄"}
+                </h2>
               </div>
             </div>
 
-            {/* Description Card (if exists) */}
-            {transaction.description && (
-              <div
-                className={`bg-white rounded-xl shadow-md border ${theme.cardBorder} overflow-hidden`}
+            <button
+              onClick={onClose}
+              className="text-white/80 hover:text-white transition-colors"
+            >
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
               >
-                <div
-                  className={`${theme.secondaryBg} px-4 sm:px-5 py-2.5 sm:py-3 border-b ${theme.cardBorder}`}
-                >
-                  <h4
-                    className={`text-base font-bold ${theme.amountText} flex items-center`}
-                  >
-                    <svg
-                      className={`h-5 w-5 sm:h-5 sm:w-5 ${theme.amountText} mr-2.5 flex-shrink-0`}
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 6h16M4 12h16M4 18h7"
-                      />
-                    </svg>
-                    Description
-                  </h4>
-                </div>
-                <div className="p-4 sm:p-5">
-                  <p className="text-sm sm:text-base text-gray-700 break-words ml-7">
-                    {transaction.description}
-                  </p>
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Amount Display */}
+            <div className={`mb-6 p-5 ${theme.detailsBg} border ${theme.border} rounded-xl shadow-sm`}>
+              <h3 className={`font-bold ${theme.textColor} mb-3 flex items-center`}>
+                <span className="mr-1">💰</span>
+                Transaction Amount
+              </h3>
+              <div className="bg-white rounded-lg border shadow-sm overflow-hidden">
+                <div className="p-3 flex justify-center items-center">
+                  <span className={`text-2xl font-extrabold ${theme.textColor}`}>
+                    {transaction.currency} {formatAmount(transaction.amount)}
+                  </span>
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Bottom action buttons and layout improvements */}
-            <div className="pt-2 sm:pt-3 flex justify-center sm:justify-end">
+            {/* Transaction Info Card */}
+            <div className={`space-y-5 mb-6`}>
+              <div>
+                <label className={`block text-sm font-medium text-gray-700 mb-1 flex items-center`}>
+                  <span className={`${theme.textColor} mr-1`}>📅</span>
+                  Date
+                </label>
+                <div className={`w-full px-4 py-3 border ${theme.border} rounded-xl ${theme.bgLight}`}>
+                  <div className="font-medium text-gray-800">
+                    {formatDate(transaction.date)}
+                    <div className="text-sm text-gray-500">
+                      {new Date(transaction.date).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {transaction.type === TransactionType.EXPENSE ||
+              transaction.type === TransactionType.INCOME ? (
+                <div>
+                  <label className={`block text-sm font-medium text-gray-700 mb-1 flex items-center`}>
+                    <span className={`${theme.textColor} mr-1`}>🏷️</span>
+                    Name
+                  </label>
+                  <div className={`w-full px-4 py-3 border ${theme.border} rounded-xl ${theme.bgLight}`}>
+                    <div className="font-medium text-gray-800">
+                      {transaction.name || "-"}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              {transaction.fromAccountId && (
+                <div>
+                  <label className={`block text-sm font-medium text-gray-700 mb-1 flex items-center`}>
+                    <span className={`${theme.textColor} mr-1`}>💳</span>
+                    From Account
+                  </label>
+                  <div className={`w-full px-4 py-3 border ${theme.border} rounded-xl ${theme.bgLight}`}>
+                    <div className="font-medium text-gray-800">
+                      {getAccountName(transaction.fromAccountId)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {transaction.toAccountId && (
+                <div>
+                  <label className={`block text-sm font-medium text-gray-700 mb-1 flex items-center`}>
+                    <span className={`${theme.textColor} mr-1`}>💳</span>
+                    To Account
+                  </label>
+                  <div className={`w-full px-4 py-3 border ${theme.border} rounded-xl ${theme.bgLight}`}>
+                    <div className="font-medium text-gray-800">
+                      {getAccountName(transaction.toAccountId)}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Description Field */}
+              {transaction.description && (
+                <div>
+                  <label className={`block text-sm font-medium text-gray-700 mb-1 flex items-center`}>
+                    <span className={`${theme.textColor} mr-1`}>📝</span>
+                    Description
+                  </label>
+                  <div className={`w-full px-4 py-3 border ${theme.border} rounded-xl ${theme.bgLight}`}>
+                    <div className="text-gray-800">
+                      {transaction.description}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Close Button */}
+            <div className="pt-4 pb-2">
               <button
                 onClick={onClose}
-                className={`w-full sm:w-auto px-5 py-2.5 ${theme.button} text-white rounded-full text-base font-bold focus:outline-none focus:ring-2 focus:ring-offset-2 shadow-lg transition-all transform hover:scale-105 active:scale-95 duration-300 flex items-center justify-center`}
+                className={`w-full py-3 px-4 ${theme.buttonBg} text-white font-medium rounded-xl focus:outline-none focus:ring-2 ${theme.buttonRing} focus:ring-opacity-50 transition-all shadow-lg flex items-center justify-center`}
               >
                 <svg
                   className="h-5 w-5 mr-2"

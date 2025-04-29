@@ -1,4 +1,4 @@
-import {  TransactionType } from "../interfaces/enums";
+import { TransactionType } from "../interfaces/enums";
 
 export const getUserAllTransactions = async (userId: number) => {
   try {
@@ -182,7 +182,8 @@ export const createExpense = async (
   currency: string,
   fromAccountId: number,
   budgetId: number | null,
-  description: string | null
+  description: string | null,
+  customCategoriesId: number[] | null
 ) => {
   try {
     const response = await fetch(
@@ -200,6 +201,7 @@ export const createExpense = async (
           fromAccountId,
           budgetId,
           description,
+          customCategoriesId,
         }),
       }
     );
@@ -221,7 +223,7 @@ export const transferFundsDefault = async (
   userId: number,
   amount: number,
   fromAccountId: number,
-  toAccountId: number, 
+  toAccountId: number,
   type: TransactionType,
   currency: string
 ) => {

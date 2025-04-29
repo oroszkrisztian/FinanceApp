@@ -147,23 +147,45 @@ transaction.post("/addFundDefault", async (c) => {
 transaction.post("/createExpense", async (c) => {
   try {
     const body = await c.req.json();
-    const { userId, amount, currency } = body;
-    if (!userId || !amount) {
+    const {
+      userId,
+      amount,
+      currency,
+      fromAccountId,
+      budgetId,
+      customCategoriesId,
+    } = body;
+
+    if (!userId || !amount || !fromAccountId) {
       return c.json(
         {
-          error: "Missing required fields (userId, amount)",
+          error: "Missing required fields (userId, amount, fromAccountId)",
         },
         400
       );
     }
+
     if (!currency) {
       return c.json({
         error: "Missing currency",
       });
     }
+
     if (typeof amount !== "number" || amount <= 0) {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
+
+    if (budgetId && customCategoriesId) {
+      return c.json(
+        { error: "Cannot specify both budgetId and customCategoriesId" },
+        400
+      );
+    }
+
+    if (customCategoriesId && !Array.isArray(customCategoriesId)) {
+      return c.json({ error: "customCategoriesId must be an array" }, 400);
+    }
+
     const result = await transactionController.createExpense(c);
     return result;
   } catch (error) {

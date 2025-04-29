@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { motion } from "framer-motion";
 import AnimatedModal from "../animations/BlurPopup";
 import { Account } from "../../interfaces/Account";
 import { TransactionType } from "../../interfaces/enums";
@@ -22,6 +23,7 @@ interface CreateExpensePopupProps {
   rates: ExchangeRates;
   ratesError: string | null;
   fetchingRates: boolean;
+  categories?: { id: number; name: string }[];
 }
 
 const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
@@ -34,6 +36,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   rates,
   ratesError,
   fetchingRates,
+  categories = [],
 }) => {
   const { user } = useAuth();
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
@@ -45,6 +48,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     amount: number;
     currency: string;
     type: TransactionType;
+    selectedCategories: number[];
   }>({
     name: "",
     description: "",
@@ -53,6 +57,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     amount: 0,
     currency: "RON",
     type: TransactionType.EXPENSE,
+    selectedCategories: [],
   });
   const [isLoading, setIsLoading] = useState(false);
   const [budgetInput, setBudgetInput] = useState("");
@@ -77,6 +82,15 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     error: null,
   });
 
+  const [activeTab, setActiveTab] = useState<"budget" | "categories">("budget");
+
+  const [categoryInput, setCategoryInput] = useState("");
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const [progressPercentage, setProgressPercentage] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const categoryRef = useRef<HTMLDivElement>(null);
+
   const resetForm = () => {
     setFormData({
       name: "",
@@ -86,6 +100,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       amount: 0,
       currency: "RON",
       type: TransactionType.EXPENSE,
+      selectedCategories: [],
     });
     setAmountString("");
     setBudgetInput("");
@@ -100,11 +115,16 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       rate: 1,
       error: null,
     });
+    setError(null);
   };
 
   const handleClose = () => {
-    resetForm();
-    onClose();
+    setIsClosing(true);
+    setTimeout(() => {
+      resetForm();
+      setIsClosing(false);
+      onClose();
+    }, 150);
   };
 
   useEffect(() => {
@@ -135,14 +155,39 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       ) {
         setShowAccountDropdown(false);
       }
+      if (
+        categoryRef.current &&
+        !categoryRef.current.contains(event.target as Node) &&
+        showCategoryDropdown
+      ) {
+        setShowCategoryDropdown(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showBudgetDropdown, showAccountDropdown]);
+  }, [showBudgetDropdown, showAccountDropdown, showCategoryDropdown]);
 
   useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedAccount, rates]);
+
+  useEffect(() => {
+    // Calculate progress based on required fields
+    let progress = 0;
+    const totalRequiredFields = 2; // name and amount required
+
+    if (formData.name.trim() !== "") {
+      progress += 1;
+    }
+
+    if (formData.amount > 0) {
+      progress += 1;
+    }
+
+    // Calculate percentage (capped at 100%)
+    const percentage = Math.min((progress / totalRequiredFields) * 100, 100);
+    setProgressPercentage(percentage);
+  }, [formData]);
 
   const updateConversionDetails = () => {
     if (!selectedAccount || !rates || Object.keys(rates).length === 0) return;
@@ -250,8 +295,11 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     e.preventDefault();
 
     setIsLoading(true);
+    setError(null);
+
     if (user === null) {
-      console.error("User not found");
+      setError("User not found");
+      setIsLoading(false);
       return;
     }
 
@@ -265,7 +313,10 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         formData.currency,
         parseInt(formData.selectedAccount),
         formData.selectedBudget ? parseInt(formData.selectedBudget) : null,
-        formData.description || null
+        formData.description || null,
+        formData.selectedCategories.length > 0
+          ? formData.selectedCategories
+          : null
       );
 
       if (selectedAccount && formData.currency !== selectedAccount.currency) {
@@ -282,6 +333,9 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       onSuccess();
     } catch (error) {
       console.error("Failed to create expense:", error);
+      setError(
+        error instanceof Error ? error.message : "Failed to create expense"
+      );
     } finally {
       setIsLoading(false);
     }
@@ -293,6 +347,28 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   const filteredAccounts = accounts.filter((account) =>
     account.name.toLowerCase().includes(accountInput.toLowerCase())
+  );
+
+  const handleCategoryInputChange = (
+    e: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const value = e.target.value;
+    setCategoryInput(value);
+    setShowCategoryDropdown(true);
+  };
+
+  const selectCategory = (category: { id: number; name: string }) => {
+    setFormData({
+      ...formData,
+      selectedCategories: [...formData.selectedCategories, category.id],
+    });
+    setCategoryInput("");
+  };
+
+  const filteredCategories = categories.filter(
+    (category) =>
+      category.name.toLowerCase().includes(categoryInput.toLowerCase()) &&
+      !formData.selectedCategories.includes(category.id)
   );
 
   const getTransactionAmount = (): number => {
@@ -336,673 +412,272 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   return (
     <AnimatedModal
-      isOpen={isOpen}
+      isOpen={isOpen && !isClosing}
       onClose={handleClose}
       closeOnBackdropClick={true}
       backdropBlur="md"
-      animationDuration={150}
+      animationDuration={300}
     >
-      <div
-        className={`bg-white rounded-xl shadow-lg mx-auto flex flex-col max-h-[90vh] ${
-          isMobileScreen ? "w-[95%] min-w-0" : "max-w-4xl w-full mx-auto"
-        }`}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        style={{
+          maxWidth: isMobileScreen ? "100%" : "36rem",
+          minWidth: isMobileScreen ? "auto" : "36rem",
+          height: isMobileScreen ? "90vh" : "85vh",
+          maxHeight: "90vh",
+        }}
         ref={modalRef}
       >
-        {/* Header - Fixed */}
-        <div className="bg-gradient-to-r from-red-600 to-red-800 px-5 py-5 rounded-t-xl flex items-center flex-shrink-0 sticky top-0 z-10">
-          <div className="mr-3 p-2.5 rounded-full bg-red-700 shadow">
-            <svg
-              className="h-6 w-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+        {/* Fixed Header */}
+        <div className="bg-gradient-to-r from-red-600 to-red-800 py-4 relative z-10">
+          {/* Decorative circles */}
+          <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
+          <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
+          <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
+
+          {/* Title in header */}
+          <div className="px-6 flex items-center justify-between relative">
+            <div className="flex items-center">
+              <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
+                <motion.svg
+                  initial={{ rotate: 0 }}
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.3 }}
+                  className="w-6 h-6 text-red-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 13l-5 5m0 0l-5-5m5 5V6"
+                  />
+                </motion.svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  Add an Expense 💸
+                </h2>
+              </div>
+            </div>
+
+            <button
+              onClick={handleClose}
+              className="text-white/80 hover:text-white transition-colors"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M17 13l-5 5m0 0l-5-5m5 5V6"
-              />
-            </svg>
+              <svg
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
           </div>
-          <h3 className="text-lg font-bold text-white">Add an Expense</h3>
         </div>
 
         {/* Scrollable Content Area */}
-        <div className="overflow-y-auto flex-grow">
-          <form
-            onSubmit={handleSubmit}
-            className={`${isMobileScreen ? "p-3" : "p-5"}`}
-          >
-            <div className={`${!isMobileScreen ? "flex gap-6" : ""}`}>
-              {/* Left Column - Form Fields */}
-              <div className={`${!isMobileScreen ? "flex-1" : ""}`}>
-                {/* Amount Input with Currency */}
-                <div className="mb-4">
-                  <div
-                    className={`flex border border-gray-300 rounded-lg focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 transition-all ${
-                      isMobileScreen ? "flex-col" : ""
-                    }`}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Error message */}
+            {error && (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2 }}
+                className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg"
+              >
+                <div className="flex">
+                  <svg
+                    className="h-5 w-5 mr-2 text-red-500"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
                   >
-                    <div
-                      className={`relative ${
-                        isMobileScreen ? "w-full" : "flex-grow"
-                      }`}
-                    >
-                      <input
-                        type="text"
-                        id="amount"
-                        name="amount"
-                        value={amountString}
-                        onChange={(e) => {
-                          const value = e.target.value;
+                    <path
+                      fillRule="evenodd"
+                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span>{error}</span>
+                </div>
+              </motion.div>
+            )}
 
-                          if (
-                            value === "" ||
-                            /^[0-9]*([.,][0-9]*)?$/.test(value)
-                          ) {
-                            setAmountString(value);
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Amount Input with Currency */}
+              <div>
+                <label
+                  htmlFor="amount"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
+                >
+                  <span className="text-red-500 mr-1">💰</span>
+                  Amount<span className="text-red-500">*</span>
+                </label>
+                <div className="flex border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden">
+                  <input
+                    type="text"
+                    id="amount"
+                    name="amount"
+                    className="flex-1 min-w-0 px-4 py-3 focus:outline-none bg-transparent font-bold text-xl text-gray-800"
+                    placeholder="0.00"
+                    autoComplete="off"
+                    required
+                    value={amountString}
+                    onChange={(e) => {
+                      const value = e.target.value;
 
-                            if (value === "") {
-                              setFormData({
-                                ...formData,
-                                amount: 0,
-                              });
-                            } else {
-                              const numericValue = parseFloat(
-                                value.replace(",", ".")
-                              );
+                      if (value === "" || /^[0-9]*([.,][0-9]*)?$/.test(value)) {
+                        setAmountString(value);
 
-                              if (!isNaN(numericValue)) {
-                                setFormData({
-                                  ...formData,
-                                  amount: numericValue,
-                                });
-                              }
-                            }
+                        if (value === "") {
+                          setFormData({
+                            ...formData,
+                            amount: 0,
+                          });
+                        } else {
+                          const numericValue = parseFloat(
+                            value.replace(",", ".")
+                          );
+
+                          if (!isNaN(numericValue)) {
+                            setFormData({
+                              ...formData,
+                              amount: numericValue,
+                            });
                           }
-                        }}
-                        className={`w-full px-4 py-3 focus:outline-none ${
-                          isMobileScreen ? "rounded-t-lg" : "rounded-l-lg"
-                        } border-none ${
-                          isMobileScreen ? "text-xl" : "text-2xl"
-                        } font-bold text-gray-800`}
-                        placeholder="0.00"
-                        autoComplete="off"
-                        required
-                      />
-                    </div>
+                        }
+                      }
+                    }}
+                  />
 
+                  <div className="flex items-center">
                     <select
                       value={formData.currency}
                       onChange={(e) =>
                         setFormData({ ...formData, currency: e.target.value })
                       }
-                      className="px-3 py-3 bg-indigo-500 text-white font-medium focus:outline-none"
+                      className="h-full w-20 px-2 py-3 bg-red-600 text-white font-medium focus:outline-none appearance-none text-center"
                       disabled={isLoading || fetchingRates}
                     >
                       {fetchingRates ? (
-                        <option>Loading currencies...</option>
+                        <option>...</option>
                       ) : ratesError ? (
-                        <option>Error loading currencies</option>
+                        <option>Err</option>
                       ) : (
-                        Object.keys(rates).map((curr) => (
-                          <option key={curr} value={curr}>
-                            {curr}
-                          </option>
-                        ))
+                        // Limit to 5 most common currencies + current selected if not in top 5
+                        (() => {
+                          const topCurrencies = [
+                            "USD",
+                            "EUR",
+                            "GBP",
+                            "JPY",
+                            "RON",
+                          ]; // Most common currencies
+                          const currentCurrency = formData.currency;
+
+                          // Add current currency to the list if not already in top currencies
+                          if (!topCurrencies.includes(currentCurrency)) {
+                            topCurrencies.pop(); // Remove last element
+                            topCurrencies.unshift(currentCurrency); // Add current currency at the beginning
+                          }
+
+                          return topCurrencies
+                            .filter((curr) => rates[curr]) // Ensure the currency exists in rates
+                            .map((curr) => (
+                              <option key={curr} value={curr}>
+                                {curr}
+                              </option>
+                            ));
+                        })()
                       )}
                     </select>
+                    
                   </div>
                 </div>
 
-                {/* Name Field */}
-                <div className="mb-4">
-                  <label
-                    htmlFor="name"
-                    className="block text-xs font-semibold text-gray-500 uppercase mb-1"
-                  >
-                    Expense Name*
-                  </label>
-                  <div className="flex items-center border border-gray-300 rounded-md focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500">
-                    <div className="p-2 bg-gray-50 m-1.5 rounded-md">
-                      <svg
-                        className="h-5 w-5 text-gray-500"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                    </div>
-                    <input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={formData.name}
-                      onChange={handleInputChange}
-                      className="w-full py-2.5 px-2 bg-transparent outline-none text-gray-800"
-                      placeholder="Enter expense name"
-                      required
-                    />
+                {/* Show additional currency info for mobile */}
+                {isMobileScreen && (
+                  <div className="mt-1 text-xs text-gray-500 flex items-center">
+                    <svg
+                      className="w-3 h-3 mr-1 text-red-500"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    Tap to select currency
                   </div>
-                </div>
-
-                {/* Account Dropdown */}
-                <div className="mb-4">
-                  <label
-                    htmlFor="accountInput"
-                    className="block text-xs font-semibold text-gray-500 uppercase mb-1"
-                  >
-                    Account*
-                  </label>
-                  {accountsLoading ? (
-                    <div className="animate-pulse h-11 bg-gray-200 rounded-md"></div>
-                  ) : accounts.length === 0 ? (
-                    <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
-                      No accounts available. Please create one first.
-                    </div>
-                  ) : (
-                    <div className="relative" ref={accountRef}>
-                      <div
-                        className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 h-[42px]"
-                        onClick={() =>
-                          setShowAccountDropdown(!showAccountDropdown)
-                        }
-                      >
-                        <div className="p-2 bg-gray-50 m-1.5 rounded-md">
-                          <svg
-                            className="h-5 w-5 text-gray-500"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                            />
-                          </svg>
-                        </div>
-                        <div className="flex-grow">
-                          {selectedAccount ? (
-                            <input
-                              type="text"
-                              className={`w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium ${
-                                isMobileScreen ? "text-sm" : ""
-                              }`}
-                              value={[
-                                selectedAccount.name +
-                                  " (" +
-                                  selectedAccount.amount.toFixed(2) +
-                                  " " +
-                                  selectedAccount.currency +
-                                  ")",
-                              ]}
-                              readOnly
-                              onClick={() => setShowAccountDropdown(true)}
-                            />
-                          ) : (
-                            <input
-                              type="text"
-                              value={accountInput}
-                              onChange={handleAccountInputChange}
-                              className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
-                              placeholder="Type to search accounts"
-                              onClick={() => setShowAccountDropdown(true)}
-                            />
-                          )}
-                        </div>
-                        {(accountInput || selectedAccount) && (
-                          <button
-                            type="button"
-                            className="px-2 text-gray-400 hover:text-gray-600"
-                            onClick={clearAccountSelection}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        )}
-                        <div className="px-2 text-gray-400">
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${
-                              showAccountDropdown ? "transform rotate-180" : ""
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {showAccountDropdown && (
-                        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-md max-h-40 overflow-y-auto">
-                          {filteredAccounts.length === 0 ? (
-                            <div className="p-3 text-sm text-gray-500">
-                              No matching accounts
-                            </div>
-                          ) : (
-                            filteredAccounts.map((account) => (
-                              <div
-                                key={account.id}
-                                className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${
-                                  selectedAccount?.id === account.id
-                                    ? "bg-gray-100"
-                                    : ""
-                                }`}
-                                onClick={() => selectAccount(account)}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium truncate">
-                                    {account.name}
-                                  </span>
-                                  <span className="text-xs text-gray-500 ml-1">
-                                    {account.amount !== undefined
-                                      ? `${account.amount.toFixed(2)} ${account.currency}`
-                                      : ""}
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Budget Dropdown */}
-                <div className="mb-4">
-                  <label
-                    htmlFor="budgetInput"
-                    className="block text-xs font-semibold text-gray-500 uppercase mb-1"
-                  >
-                    Budget
-                  </label>
-                  {budgets.length === 0 ? (
-                    <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-md">
-                      No budgets available.
-                    </div>
-                  ) : (
-                    <div className="relative" ref={budgetRef}>
-                      <div
-                        className="flex items-center border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500 h-[42px]"
-                        onClick={() =>
-                          setShowBudgetDropdown(!showBudgetDropdown)
-                        }
-                      >
-                        <div className="p-2 bg-gray-50 m-1.5 rounded-md">
-                          <svg
-                            className="h-5 w-5 text-gray-500"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                            />
-                          </svg>
-                        </div>
-                        <div className="flex-grow">
-                          {selectedBudget ? (
-                            <input
-                              type="text"
-                              className={`w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium ${
-                                isMobileScreen ? "text-sm" : ""
-                              }`}
-                              value={selectedBudget.name}
-                              readOnly
-                              onClick={() => setShowBudgetDropdown(true)}
-                            />
-                          ) : (
-                            <input
-                              type="text"
-                              value={budgetInput}
-                              onChange={handleBudgetInputChange}
-                              className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
-                              placeholder="Type to search budgets"
-                              onClick={() => setShowBudgetDropdown(true)}
-                            />
-                          )}
-                        </div>
-                        {(budgetInput || selectedBudget) && (
-                          <button
-                            type="button"
-                            className="px-2 text-gray-400 hover:text-gray-600"
-                            onClick={clearBudgetSelection}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        )}
-                        <div className="px-2 text-gray-400">
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${
-                              showBudgetDropdown ? "transform rotate-180" : ""
-                            }`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {showBudgetDropdown && (
-                        <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-md shadow-md max-h-28 overflow-y-auto">
-                          {filteredBudgets.length === 0 ? (
-                            <div className="p-3 text-sm text-gray-500">
-                              No matching budgets
-                            </div>
-                          ) : (
-                            filteredBudgets.map((budget) => (
-                              <div
-                                key={budget.id}
-                                className={`px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm ${
-                                  selectedBudget?.id === budget.id
-                                    ? "bg-gray-100"
-                                    : ""
-                                }`}
-                                onClick={() => selectBudget(budget)}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="font-medium truncate">
-                                    {budget.name}
-                                  </span>
-                                  <span className="text-xs text-gray-500 ml-1">
-                                    {budget.currentSpent !== undefined
-                                      ? `${budget.currentSpent.toFixed(2)} ${budget.currency}`
-                                      : ""}
-                                  </span>
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Description Field */}
-                <div className="mb-4">
-                  <label
-                    htmlFor="description"
-                    className="block text-xs font-semibold text-gray-500 uppercase mb-1"
-                  >
-                    Description
-                  </label>
-                  <div className="border border-gray-300 rounded-md overflow-hidden focus-within:ring-1 focus-within:ring-red-500 focus-within:border-red-500">
-                    <textarea
-                      id="description"
-                      name="description"
-                      value={formData.description}
-                      onChange={handleInputChange}
-                      rows={isMobileScreen ? 2 : 3}
-                      className="w-full px-3 py-2.5 bg-transparent border-none outline-none text-gray-800"
-                      placeholder="Add expense details"
-                    />
-                  </div>
-                </div>
+                )}
               </div>
 
-              {/* Right Column - Transaction Summary (only shown on desktop) */}
-              {!isMobileScreen && selectedAccount && formData.amount > 0 && (
-                <div className="flex-1">
-                  {selectedAccount && (
-                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 sticky top-4">
-                      <h3 className="text-sm font-semibold text-gray-700 mb-4">
-                        Transaction Summary
-                      </h3>
+              {/* Name Field */}
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
+                >
+                  <span className="text-red-500 mr-1">🏷️</span>
+                  Expense Name<span className="text-red-500">*</span>
+                </label>
+                <motion.input
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50"
+                  placeholder="Enter expense name"
+                  required
+                />
+              </div>
 
-                      {formData.amount > 0 ? (
-                        balanceInfo && !balanceInfo.isValid ? (
-                          // Insufficient funds error state
-                          <div className="mb-4">
-                            <div className="p-3 bg-red-50 rounded-lg border border-red-200">
-                              <div className="flex items-center text-red-600 font-medium mb-2">
-                                <svg
-                                  className="w-5 h-5 mr-2 text-red-500"
-                                  fill="currentColor"
-                                  viewBox="0 0 20 20"
-                                >
-                                  <path
-                                    fillRule="evenodd"
-                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                                    clipRule="evenodd"
-                                  />
-                                </svg>
-                                Insufficient funds
-                              </div>
-                              <div className="bg-white p-2 rounded-lg border border-red-100">
-                                <p className="text-sm text-gray-700">
-                                  Amount exceeded by:
-                                  <span className="ml-2 font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
-                                    {Math.abs(balanceInfo.newBalance).toFixed(
-                                      2
-                                    )}{" "}
-                                    {selectedAccount.currency}
-                                  </span>
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        ) : balanceInfo ? (
-                          // Valid transaction summary
-                          <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden mb-4">
-                            <div className="grid grid-cols-1 divide-y divide-gray-100">
-                              {/* Current Balance */}
-                              <div className="p-3 flex justify-between items-center">
-                                <span className="text-sm text-gray-600">
-                                  Current Balance:
-                                </span>
-                                <span className="font-medium">
-                                  {balanceInfo.currentBalance.toFixed(2)}{" "}
-                                  {selectedAccount.currency}
-                                </span>
-                              </div>
-
-                              {/* Transaction Amount */}
-                              <div className="p-3 flex justify-between items-center">
-                                <span className="text-sm text-gray-600">
-                                  Transaction:
-                                </span>
-                                <span className="text-red-500 font-medium">
-                                  -{balanceInfo.transactionAmount.toFixed(2)}{" "}
-                                  {selectedAccount.currency}
-                                </span>
-                              </div>
-
-                              {/* New Balance */}
-                              <div className="p-3 flex justify-between items-center bg-gray-50">
-                                <span className="text-sm font-medium text-gray-700">
-                                  New Balance:
-                                </span>
-                                <span className="font-bold">
-                                  {balanceInfo.newBalance.toFixed(2)}{" "}
-                                  {selectedAccount.currency}
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ) : null
-                      ) : (
-                        <div className="p-4 bg-gray-50 rounded-lg text-center text-sm text-gray-500">
-                          Enter an amount to see transaction details
-                        </div>
-                      )}
-
-                      {/* Currency Conversion Info */}
-                      {selectedAccount &&
-                        formData.currency !== selectedAccount.currency &&
-                        !conversionDetails.error &&
-                        !fetchingRates && (
-                          <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 text-sm">
-                            <div className="flex items-center mb-2 text-blue-700">
-                              <svg
-                                className="h-4 w-4 mr-2"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                                />
-                              </svg>
-                              <span className="font-medium">
-                                Currency Conversion
-                              </span>
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              <p className="mb-1">
-                                1 {formData.currency} ={" "}
-                                {conversionDetails.rate.toFixed(4)}{" "}
-                                {selectedAccount.currency}
-                              </p>
-                              <p>
-                                {formData.amount} {formData.currency} ={" "}
-                                {conversionDetails.convertedAmount.toFixed(2)}{" "}
-                                {selectedAccount.currency}
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Transaction Summary for Mobile */}
-            {isMobileScreen && selectedAccount && formData.amount > 0 && (
-              <div className="mt-3 mb-3">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">
-                  Transaction Summary
-                </h3>
-
-                {balanceInfo && !balanceInfo.isValid ? (
-                  // Insufficient funds error state
-                  <div className="p-2 bg-red-50 rounded-lg border border-red-200">
-                    <div className="flex items-center text-red-600 font-medium mb-1 text-sm">
-                      <svg
-                        className="w-4 h-4 mr-1 text-red-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      Insufficient funds
-                    </div>
-                    <div className="bg-white p-2 rounded-lg border border-red-100">
-                      <p className="text-xs text-gray-700">
-                        Amount exceeded by:
-                        <span className="ml-1 font-medium text-red-600 bg-red-50 px-2 py-0.5 rounded text-xs">
-                          {Math.abs(balanceInfo.newBalance).toFixed(2)}{" "}
-                          {selectedAccount.currency}
-                        </span>
-                      </p>
-                    </div>
+              {/* Account Dropdown */}
+              <div>
+                <label
+                  htmlFor="accountInput"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
+                >
+                  <span className="text-red-500 mr-1">💳</span>
+                  Account<span className="text-red-500">*</span>
+                </label>
+                {accountsLoading ? (
+                  <div className="animate-pulse h-11 bg-gray-200 rounded-xl"></div>
+                ) : accounts.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                    No accounts available. Please create one first.
                   </div>
-                ) : balanceInfo ? (
-                  // Valid transaction summary
-                  <div className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
-                    <div className="grid grid-cols-1 divide-y divide-gray-100">
-                      {/* Current Balance */}
-                      <div className="p-2 flex justify-between items-center">
-                        <span className="text-xs text-gray-600">
-                          Current Balance:
-                        </span>
-                        <span className="font-medium text-sm">
-                          {balanceInfo.currentBalance.toFixed(2)}{" "}
-                          {selectedAccount.currency}
-                        </span>
-                      </div>
-
-                      {/* Transaction Amount */}
-                      <div className="p-2 flex justify-between items-center">
-                        <span className="text-xs text-gray-600">
-                          Transaction:
-                        </span>
-                        <span className="text-red-500 font-medium text-sm">
-                          -{balanceInfo.transactionAmount.toFixed(2)}{" "}
-                          {selectedAccount.currency}
-                        </span>
-                      </div>
-
-                      {/* New Balance */}
-                      <div className="p-2 flex justify-between items-center bg-gray-50">
-                        <span className="text-xs font-medium text-gray-700">
-                          New Balance:
-                        </span>
-                        <span className="font-bold text-sm">
-                          {balanceInfo.newBalance.toFixed(2)}{" "}
-                          {selectedAccount.currency}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Currency Conversion Info */}
-                {selectedAccount &&
-                  formData.currency !== selectedAccount.currency &&
-                  !conversionDetails.error &&
-                  !fetchingRates && (
-                    <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200 text-xs">
-                      <div className="flex items-center text-blue-700">
+                ) : (
+                  <div className="relative" ref={accountRef}>
+                    <div
+                      className="flex items-center border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden h-[42px]"
+                      onClick={() =>
+                        setShowAccountDropdown(!showAccountDropdown)
+                      }
+                    >
+                      <div className="p-2 m-1.5 rounded-md">
                         <svg
-                          className="h-3 w-3 mr-1"
+                          className="h-5 w-5 text-red-500"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -1011,77 +686,674 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                             strokeLinecap="round"
                             strokeLinejoin="round"
                             strokeWidth={2}
-                            d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
                           />
                         </svg>
-                        <span className="font-medium">
-                          {formData.amount} {formData.currency} ={" "}
-                          {conversionDetails.convertedAmount.toFixed(2)}{" "}
-                          {selectedAccount.currency}
-                        </span>
+                      </div>
+                      <div className="flex-grow">
+                        {selectedAccount ? (
+                          <input
+                            type="text"
+                            className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium"
+                            value={[
+                              selectedAccount.name +
+                                " (" +
+                                selectedAccount.amount.toFixed(2) +
+                                " " +
+                                selectedAccount.currency +
+                                ")",
+                            ]}
+                            readOnly
+                            onClick={() => setShowAccountDropdown(true)}
+                          />
+                        ) : (
+                          <input
+                            type="text"
+                            value={accountInput}
+                            onChange={handleAccountInputChange}
+                            className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
+                            placeholder="Type to search accounts"
+                            onClick={() => setShowAccountDropdown(true)}
+                          />
+                        )}
+                      </div>
+                      {(accountInput || selectedAccount) && (
+                        <button
+                          type="button"
+                          className="px-2 text-gray-400 hover:text-gray-600"
+                          onClick={clearAccountSelection}
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+                      )}
+                      <div className="px-2 text-gray-400">
+                        <svg
+                          className={`w-4 h-4 transition-transform duration-200 ${
+                            showAccountDropdown ? "transform rotate-180" : ""
+                          }`}
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
                       </div>
                     </div>
-                  )}
-              </div>
-            )}
 
-            {/* Buttons */}
-            <div
-              className={`${
-                isMobileScreen
-                  ? "flex flex-col-reverse space-y-2 space-y-reverse"
-                  : "flex justify-end space-x-3"
-              } mt-4 pb-3`}
-            >
-              <button
-                type="button"
-                onClick={handleClose}
-                className={`${
-                  isMobileScreen ? "w-full mt-2" : "px-5"
-                } py-2 border border-gray-300 text-gray-700 rounded-full text-sm font-medium focus:outline-none shadow-sm hover:bg-gray-50`}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className={`${
-                  isMobileScreen ? "w-full" : "px-5"
-                } py-2 bg-gradient-to-r from-red-600 to-red-800 text-white rounded-full text-sm font-medium focus:outline-none shadow-sm hover:from-red-700 hover:to-red-900 disabled:opacity-50`}
-                disabled={
-                  isLoading || (balanceInfo ? !balanceInfo.isValid : false)
-                }
-              >
-                {isLoading ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Creating...
-                  </span>
-                ) : (
-                  "Create"
+                    {showAccountDropdown && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-md max-h-40 overflow-y-auto"
+                      >
+                        {filteredAccounts.length === 0 ? (
+                          <div className="p-3 text-sm text-gray-500">
+                            No matching accounts
+                          </div>
+                        ) : (
+                          filteredAccounts.map((account) => (
+                            <motion.div
+                              key={account.id}
+                              whileHover={{
+                                backgroundColor: "rgba(254, 202, 202, 0.2)",
+                              }}
+                              className={`px-3 py-2 cursor-pointer text-sm ${
+                                selectedAccount?.id === account.id
+                                  ? "bg-red-100"
+                                  : ""
+                              }`}
+                              onClick={() => selectAccount(account)}
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium truncate">
+                                  {account.name}
+                                </span>
+                                <span className="text-xs text-gray-500 ml-1">
+                                  {account.amount !== undefined
+                                    ? `${account.amount.toFixed(2)} ${account.currency}`
+                                    : ""}
+                                </span>
+                              </div>
+                            </motion.div>
+                          ))
+                        )}
+                      </motion.div>
+                    )}
+                  </div>
                 )}
-              </button>
-            </div>
-          </form>
+              </div>
+
+              {/* Budget and Categories Toggle */}
+              <div>
+                <div className="flex border-b border-gray-200 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("budget")}
+                    className={`py-2 px-4 text-sm font-medium ${
+                      activeTab === "budget"
+                        ? "text-red-600 border-b-2 border-red-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Budget
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("categories")}
+                    className={`py-2 px-4 text-sm font-medium ${
+                      activeTab === "categories"
+                        ? "text-red-600 border-b-2 border-red-600"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                  >
+                    Categories
+                  </button>
+                </div>
+
+                {/* Show Budget or Categories based on active tab */}
+                {activeTab === "budget" ? (
+                  /* Budget Dropdown */
+                  <div>
+                    <label
+                      htmlFor="budgetInput"
+                      className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
+                    >
+                      <span className="text-red-500 mr-1">📊</span>
+                      Budget (Optional)
+                    </label>
+                    {budgets.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                        No budgets available.
+                      </div>
+                    ) : (
+                      <div className="relative" ref={budgetRef}>
+                        <div
+                          className="flex items-center border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden h-[42px]"
+                          onClick={() =>
+                            setShowBudgetDropdown(!showBudgetDropdown)
+                          }
+                        >
+                          <div className="p-2 m-1.5 rounded-md">
+                            <svg
+                              className="h-5 w-5 text-red-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                          <div className="flex-grow">
+                            {selectedBudget ? (
+                              <input
+                                type="text"
+                                className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium"
+                                value={selectedBudget.name}
+                                readOnly
+                                onClick={() => setShowBudgetDropdown(true)}
+                              />
+                            ) : (
+                              <input
+                                type="text"
+                                value={budgetInput}
+                                onChange={handleBudgetInputChange}
+                                className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
+                                placeholder="Type to search budgets"
+                                onClick={() => setShowBudgetDropdown(true)}
+                              />
+                            )}
+                          </div>
+                          {(budgetInput || selectedBudget) && (
+                            <button
+                              type="button"
+                              className="px-2 text-gray-400 hover:text-gray-600"
+                              onClick={clearBudgetSelection}
+                            >
+                              <svg
+                                className="w-4 h-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M6 18L18 6M6 6l12 12"
+                                />
+                              </svg>
+                            </button>
+                          )}
+                          <div className="px-2 text-gray-400">
+                            <svg
+                              className={`w-4 h-4 transition-transform duration-200 ${
+                                showBudgetDropdown ? "transform rotate-180" : ""
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+
+                        {showBudgetDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-md max-h-40 overflow-y-auto"
+                          >
+                            {filteredBudgets.length === 0 ? (
+                              <div className="p-3 text-sm text-gray-500">
+                                No matching budgets
+                              </div>
+                            ) : (
+                              filteredBudgets.map((budget) => (
+                                <motion.div
+                                  key={budget.id}
+                                  whileHover={{
+                                    backgroundColor: "rgba(254, 202, 202, 0.2)",
+                                  }}
+                                  className={`px-3 py-2 cursor-pointer text-sm ${
+                                    selectedBudget?.id === budget.id
+                                      ? "bg-red-100"
+                                      : ""
+                                  }`}
+                                  onClick={() => selectBudget(budget)}
+                                >
+                                  <div className="flex items-center justify-between">
+                                    <span className="font-medium truncate">
+                                      {budget.name}
+                                    </span>
+                                    <span className="text-xs text-gray-500 ml-1">
+                                      {budget.currentSpent !== undefined
+                                        ? `${budget.currentSpent.toFixed(2)} ${budget.currency}`
+                                        : ""}
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              ))
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Categories Selection */
+                  <div>
+                    <label
+                      htmlFor="categoryInput"
+                      className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
+                    >
+                      <span className="text-red-500 mr-1">🏷️</span>
+                      Categories (Optional)
+                    </label>
+                    {categories.length === 0 ? (
+                      <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                        No categories available.
+                      </div>
+                    ) : (
+                      <div className="relative" ref={categoryRef}>
+                        <div className="flex items-center border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden h-[42px]">
+                          <div className="p-2 m-1.5 rounded-md">
+                            <svg
+                              className="h-5 w-5 text-red-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                              />
+                            </svg>
+                          </div>
+                          <input
+                            type="text"
+                            value={categoryInput}
+                            onChange={handleCategoryInputChange}
+                            className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
+                            placeholder="Search categories"
+                            onClick={() => setShowCategoryDropdown(true)}
+                          />
+                          <div className="px-2 text-gray-400">
+                            <svg
+                              className={`w-4 h-4 transition-transform duration-200 ${
+                                showCategoryDropdown
+                                  ? "transform rotate-180"
+                                  : ""
+                              }`}
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 9l-7 7-7-7"
+                              />
+                            </svg>
+                          </div>
+                        </div>
+
+                        {/* Display selected categories as tags */}
+                        {formData.selectedCategories.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-2">
+                            {formData.selectedCategories.map((catId) => {
+                              const category = categories.find(
+                                (c) => c.id === catId
+                              );
+                              return (
+                                category && (
+                                  <motion.div
+                                    key={category.id}
+                                    initial={{ scale: 0.8, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="inline-flex items-center bg-red-50 text-red-700 px-2 py-1 rounded-full text-xs"
+                                  >
+                                    <span>{category.name}</span>
+                                    <button
+                                      type="button"
+                                      className="ml-1 text-red-500 hover:text-red-700"
+                                      onClick={() => {
+                                        setFormData({
+                                          ...formData,
+                                          selectedCategories:
+                                            formData.selectedCategories.filter(
+                                              (id) => id !== category.id
+                                            ),
+                                        });
+                                      }}
+                                    >
+                                      <svg
+                                        className="w-3 h-3"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        viewBox="0 0 24 24"
+                                      >
+                                        <path
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round"
+                                          strokeWidth={2}
+                                          d="M6 18L18 6M6 6l12 12"
+                                        />
+                                      </svg>
+                                    </button>
+                                  </motion.div>
+                                )
+                              );
+                            })}
+                          </div>
+                        )}
+
+                        {/* Dropdown for category search results */}
+                        {showCategoryDropdown && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-md max-h-40 overflow-y-auto"
+                          >
+                            {filteredCategories.length === 0 ? (
+                              <div className="p-3 text-sm text-gray-500">
+                                No matching categories
+                              </div>
+                            ) : (
+                              filteredCategories.map((category) => (
+                                <motion.div
+                                  key={category.id}
+                                  whileHover={{
+                                    backgroundColor: "rgba(254, 202, 202, 0.2)",
+                                  }}
+                                  className="px-3 py-2 cursor-pointer text-sm"
+                                  onClick={() => selectCategory(category)}
+                                >
+                                  <div className="flex items-center">
+                                    <span className="font-medium truncate">
+                                      {category.name}
+                                    </span>
+                                  </div>
+                                </motion.div>
+                              ))
+                            )}
+                          </motion.div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Description Field */}
+              <div>
+                <label
+                  htmlFor="description"
+                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
+                >
+                  <span className="text-red-500 mr-1">📝</span>
+                  Description (Optional)
+                </label>
+                <motion.textarea
+                  whileFocus={{ scale: 1.01 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50"
+                  placeholder="Add expense details"
+                />
+              </div>
+
+              {/* Transaction Summary */}
+              {selectedAccount && formData.amount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="p-5 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm mt-4"
+                >
+                  <h3 className="font-bold text-red-700 mb-3 flex items-center">
+                    <span className="mr-1">💰</span>
+                    Transaction Summary
+                  </h3>
+
+                  {balanceInfo && !balanceInfo.isValid ? (
+                    <div className="p-3 bg-red-100 rounded-lg border border-red-200">
+                      <div className="flex items-center text-red-600 font-medium mb-2">
+                        <svg
+                          className="w-5 h-5 mr-2 text-red-500"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Insufficient funds
+                      </div>
+                      <div className="bg-white p-2 rounded-lg border border-red-100">
+                        <p className="text-sm text-gray-700">
+                          Amount exceeded by:
+                          <span className="ml-2 font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
+                            {Math.abs(balanceInfo.newBalance).toFixed(2)}{" "}
+                            {selectedAccount.currency}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                  ) : balanceInfo ? (
+                    <div className="bg-white rounded-lg border border-red-100 shadow-sm overflow-hidden">
+                      <div className="grid grid-cols-1 divide-y divide-red-50">
+                        {/* Current Balance */}
+                        <div className="p-3 flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Current Balance:
+                          </span>
+                          <span className="font-medium">
+                            {balanceInfo.currentBalance.toFixed(2)}{" "}
+                            {selectedAccount.currency}
+                          </span>
+                        </div>
+
+                        {/* Transaction Amount */}
+                        <div className="p-3 flex justify-between items-center">
+                          <span className="text-sm text-gray-600">
+                            Transaction:
+                          </span>
+                          <span className="text-red-500 font-medium">
+                            -{balanceInfo.transactionAmount.toFixed(2)}{" "}
+                            {selectedAccount.currency}
+                          </span>
+                        </div>
+
+                        {/* New Balance */}
+                        <div className="p-3 flex justify-between items-center bg-red-50/50">
+                          <span className="text-sm font-medium text-gray-700">
+                            New Balance:
+                          </span>
+                          <span className="font-bold">
+                            {balanceInfo.newBalance.toFixed(2)}{" "}
+                            {selectedAccount.currency}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {/* Currency Conversion Info */}
+                  {selectedAccount &&
+                    formData.currency !== selectedAccount.currency &&
+                    !conversionDetails.error &&
+                    !fetchingRates && (
+                      <div className="mt-3 text-sm">
+                        <div className="flex items-center text-red-700 mb-2">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-4 w-4 mr-1"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
+                            />
+                          </svg>
+                          <span className="font-medium">
+                            Currency Conversion
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between">
+                          <div className="px-3 py-2 bg-white rounded-lg border border-red-200 text-red-900">
+                            <p className="text-sm font-medium">
+                              {formData.amount.toFixed(2)} {formData.currency}
+                            </p>
+                          </div>
+
+                          <div className="flex items-center justify-center px-2">
+                            <motion.div
+                              animate={{ x: [-5, 5, -5] }}
+                              transition={{ repeat: Infinity, duration: 1.5 }}
+                            >
+                              <svg
+                                className="h-5 w-5 text-red-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                />
+                              </svg>
+                            </motion.div>
+                          </div>
+
+                          <div className="px-3 py-2 bg-red-500 text-white rounded-lg shadow-md">
+                            <p className="text-sm font-medium">
+                              {conversionDetails.convertedAmount.toFixed(2)}{" "}
+                              {selectedAccount.currency}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="text-xs mt-2 text-red-600 border-t border-red-100 pt-2">
+                          <p className="flex items-center">
+                            <span className="mr-1">💱</span>
+                            Exchange rate: 1 {formData.currency} ={" "}
+                            {conversionDetails.rate.toFixed(4)}{" "}
+                            {selectedAccount.currency}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                </motion.div>
+              )}
+
+              {/* Buttons */}
+              <div
+                className={`flex ${isMobileScreen ? "flex-col-reverse gap-2" : "gap-3"} pt-4 pb-2`}
+              >
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.1 }}
+                  type="button"
+                  onClick={handleClose}
+                  className={`${isMobileScreen ? "w-full" : "flex-1"} py-3 px-4 border-2 border-red-200 rounded-xl text-red-600 font-medium bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all shadow-sm`}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </motion.button>
+                <motion.button
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.2)",
+                  }}
+                  whileTap={{ scale: 0.98 }}
+                  transition={{ duration: 0.1 }}
+                  type="submit"
+                  className={`${isMobileScreen ? "w-full" : "flex-1"} py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center shadow-lg`}
+                  disabled={
+                    isLoading ||
+                    progressPercentage < 100 ||
+                    !selectedAccount ||
+                    (balanceInfo ? !balanceInfo.isValid : false)
+                  }
+                >
+                  {isLoading ? (
+                    <>
+                      <svg
+                        className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Creating...
+                    </>
+                  ) : (
+                    "Create Expense"
+                  )}
+                </motion.button>
+              </div>
+            </form>
+          </div>
         </div>
-      </div>
+      </motion.div>
     </AnimatedModal>
   );
 };

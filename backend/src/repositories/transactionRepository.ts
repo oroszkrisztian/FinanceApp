@@ -382,7 +382,8 @@ export class TransactionRepository {
     name: string,
     fromAccountId: number,
     budgetId: number | null,
-    description: string | null
+    description: string | null,
+    customCategoriesId: number[] | null
   ) {
     const account = await this.prisma.account.findFirst({
       where: {
@@ -399,7 +400,6 @@ export class TransactionRepository {
     let amountToWithdraw = amount;
     const rates = await this.getExchangeRates();
 
-    // Convert for account withdrawal if currencies differ
     if (account.currency !== currency) {
       if (!rates[account.currency] || !rates[currency]) {
         throw new Error(
@@ -436,6 +436,7 @@ export class TransactionRepository {
         data: { amount: { decrement: amountToWithdraw } },
       });
 
+      // Handle single budget update
       if (budgetId) {
         const budget = await prisma.budget.findFirst({
           where: {
@@ -447,14 +448,39 @@ export class TransactionRepository {
 
         if (budget) {
           let budgetAmount = amount;
+          if (currency !== budget.currency && rates[budget.currency]) {
+            budgetAmount = amount * (rates[currency] / rates[budget.currency]);
+          }
 
-          if (currency !== budget.currency) {
-            if (!rates[budget.currency]) {
-              console.error(
-                `Exchange rate not found for ${budget.currency}, skipping budget update`
-              );
-              return transaction;
+          await prisma.budget.update({
+            where: { id: budget.id },
+            data: {
+              currentSpent: { increment: budgetAmount },
+              transactions: { connect: { id: transaction.id } },
+            },
+          });
+        }
+      }
+
+      // Handle multiple category-based budget updates
+      if (customCategoriesId && customCategoriesId.length > 0) {
+        const budgets = await prisma.budget.findMany({
+          where: {
+            userId: userId,
+            deletedAt: null,
+            budgetCategories: {
+              some: {
+                customCategoryId: {
+                  in: customCategoriesId
+                }
+              }
             }
+          }
+        });
+
+        for (const budget of budgets) {
+          let budgetAmount = amount;
+          if (currency !== budget.currency && rates[budget.currency]) {
             budgetAmount = amount * (rates[currency] / rates[budget.currency]);
           }
 

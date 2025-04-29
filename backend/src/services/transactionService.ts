@@ -12,7 +12,7 @@ export class TransactionService {
     try {
       const allTransactions =
         await this.transactionRepo.getUserAllTransactions(userId);
-     
+
       return allTransactions;
     } catch (error) {
       console.error(
@@ -108,8 +108,9 @@ export class TransactionService {
     userId: number,
     name: string,
     fromAccountId: number,
-    budgetId: number,
-    description: string
+    budgetId: number | null,
+    description: string | null,
+    customCategoriesId: number[] | null
   ) {
     try {
       const expenseTransaction = await this.transactionRepo.createExpense(
@@ -119,7 +120,8 @@ export class TransactionService {
         name,
         fromAccountId,
         budgetId,
-        description
+        description,
+        customCategoriesId
       );
       return expenseTransaction;
     } catch (error) {
@@ -137,14 +139,15 @@ export class TransactionService {
     currency: CurrencyType
   ) {
     try {
-      const transferTransaction = await this.transactionRepo.transferFundsDefault(
-        userId,
-        amount,
-        fromAccountId,
-        toAccountId,
-        type,
-        currency
-      );
+      const transferTransaction =
+        await this.transactionRepo.transferFundsDefault(
+          userId,
+          amount,
+          fromAccountId,
+          toAccountId,
+          type,
+          currency
+        );
       return transferTransaction;
     } catch (error) {
       console.error("Error in TransactionService.trasnferFundsDefault:", error);

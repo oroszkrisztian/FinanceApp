@@ -31,16 +31,53 @@ const Budgets: React.FC<BudgetsProps> = ({
     useState<Budget | null>(null);
   const [isReloading, setIsReloading] = useState<boolean>(false);
   const [updatedBudgetId, setUpdatedBudgetId] = useState<number | null>(null);
+  const [animate, setAnimate] = useState<number | null>(null);
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Ref to store references to menu buttons
+  const cardVariants = {
+    updated: {
+      scale: [1, 1.02, 1],
+      boxShadow: [
+        "0 8px 30px rgba(0,0,0,0.1)",
+        "0 8px 30px rgba(79, 70, 229, 0.4)",
+        "0 8px 30px rgba(0,0,0,0.1)",
+      ],
+      transition: {
+        duration: 0.5,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.08,
+        delayChildren: 0.3,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { 
+      opacity: 1, 
+      y: 0,
+      transition: {
+        duration: 0.5,
+        ease: "easeOut",
+      }
+    },
+  };
+
   const menuButtonRefs = useRef<Map<string, HTMLButtonElement | null>>(
     new Map()
   );
 
-  // Handle closing menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openMenuId) {
@@ -188,15 +225,12 @@ const Budgets: React.FC<BudgetsProps> = ({
 
   const handleSuccessCallback = useCallback(
     (budgetId?: number) => {
-      // Store the updated budget ID for targeted animation
       if (budgetId) {
         setUpdatedBudgetId(budgetId);
       }
 
-      // Call parent success callback to refresh data
       onSuccess?.();
 
-      // Reset animation state after a delay
       setTimeout(() => {
         setUpdatedBudgetId(null);
       }, 1500);
@@ -204,14 +238,13 @@ const Budgets: React.FC<BudgetsProps> = ({
     [onSuccess]
   );
 
-  // Wrap budget cards in AnimatePresence for animation effects
   const renderBudgetCards = () => (
     <AnimatePresence mode="wait">
       <motion.div
         key={isReloading ? "reloading" : "loaded"}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: "easeOut" }}
+        initial="hidden"
+        animate="show"
+        variants={containerVariants}
         className="py-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto pr-1 h-full max-h-[calc(100vh-200px)] pb-4"
       >
         {filteredBudgets.map((budget, index) => {
@@ -228,14 +261,10 @@ const Budgets: React.FC<BudgetsProps> = ({
           return (
             <motion.div
               key={budget.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{
-                duration: 0.4,
-                delay: index * 0.05,
-                ease: "easeOut",
-              }}
+              variants={itemVariants}
+              animate={
+                updatedBudgetId === budget.id ? "updated" : undefined
+              }
               whileHover={{
                 y: -5,
                 transition: { duration: 0.2 },
@@ -245,13 +274,11 @@ const Budgets: React.FC<BudgetsProps> = ({
                 background: `radial-gradient(circle at top right, ${getLightColor(mainColor)}, white 70%)`,
               }}
             >
-              {/* Decorative corner accent */}
               <div
                 className="absolute top-0 right-0 w-24 h-24 opacity-20 rounded-bl-[100%]"
                 style={{ backgroundColor: mainColor }}
               ></div>
 
-              {/* Wave background at bottom */}
               <div className="absolute bottom-0 left-0 right-0 h-20 z-0 overflow-hidden opacity-60">
                 <div
                   className="absolute bottom-0 left-0 w-full h-full z-0"
@@ -264,7 +291,6 @@ const Budgets: React.FC<BudgetsProps> = ({
               </div>
 
               <div className="relative">
-                {/* Top section with account name and menu button */}
                 <div className="flex justify-between items-start mb-2">
                   <div className="flex-1">
                     <h3 className="text-xl font-bold text-gray-800 tracking-tight truncate group-hover:text-gray-900">
@@ -272,7 +298,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                     </h3>
                   </div>
 
-                  {/* Options Menu Button */}
                   <div className="relative">
                     <button
                       id={`menu-button-${budget.id}`}
@@ -309,7 +334,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                             "0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)",
                         }}
                       >
-                        {/* Menu Header */}
                         <div className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100 mb-1">
                           Budget Options
                         </div>
@@ -383,7 +407,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                 </span>
 
                 <div className="space-y-4">
-                  {/* Amount Display */}
                   <div className="flex justify-between items-end">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-gray-500 font-medium mb-1">
@@ -404,7 +427,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                     </div>
                   </div>
 
-                  {/* Progress Bar */}
                   <div>
                     <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
                       <div
@@ -417,7 +439,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                     </div>
                   </div>
 
-                  {/* Remaining amount */}
                   <div className="bg-gray-50 rounded-lg p-3">
                     <div className="flex flex-col gap-1">
                       <div className="flex justify-between items-center">
@@ -471,7 +492,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                     </div>
                   </div>
 
-                  {/* Categories */}
                   <div className="flex flex-wrap gap-1.5">
                     {budget.customCategories.map((category) => (
                       <span
@@ -716,7 +736,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                   selectedBudget.currentSpent,
                   selectedBudget.limitAmount
                 )
-              )} // Pass budget color
+              )}
             />
           )}
         </div>
