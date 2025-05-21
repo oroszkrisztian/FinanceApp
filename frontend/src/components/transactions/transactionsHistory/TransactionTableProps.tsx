@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { ChevronRight, Calendar, Clock, Tag, ArrowRight } from "lucide-react";
-import { motion } from "framer-motion";
 
 import TransactionDetailsPopup from "./TransactionDetailsPopup";
 import { useAuth } from "../../../context/AuthContext";
@@ -225,14 +224,14 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
 
   return (
     <>
-      <div className="bg-white  rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-        <div className="lg:max-h-[calc(100vh-210px)] max-h-[calc(100vh-250px)]   overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="lg:max-h-[calc(100vh-210px)] max-h-[calc(100vh-250px)] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
           <div className="divide-y divide-gray-100">
-            {transactions.map((transaction, index) => {
+            {transactions.map((transaction) => {
               const theme = getThemeColors(transaction.type);
 
               return (
-                <motion.div
+                <div
                   key={transaction.id}
                   className={`group hover:bg-gray-50 transition-all duration-300 cursor-pointer relative overflow-hidden`}
                   onClick={() => handleRowClick(transaction)}
@@ -241,7 +240,7 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                     <div className="flex items-start gap-3 sm:gap-4">
                       {/* Transaction icon */}
                       <div
-                        className={`flex-shrink-0 ${theme.gradient} p-2 sm:p-3 rounded-xl shadow-lg backdrop-blur-sm transform transition-transform group-hover:scale-110 duration-300`}
+                        className={`flex-shrink-0 ${theme.gradient} p-2 sm:p-3 rounded-xl shadow-lg transition-transform group-hover:scale-110 duration-300`}
                       >
                         {getTransactionIcon(transaction.type)}
                       </div>
@@ -301,13 +300,13 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                         {/* Metadata */}
                         <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-600">
                           <div
-                            className={`px-2 sm:px-3 py-1 rounded-full ${theme.secondaryBg} backdrop-blur-sm flex items-center gap-1 sm:gap-1.5`}
+                            className={`px-2 sm:px-3 py-1 rounded-full ${theme.secondaryBg} flex items-center gap-1 sm:gap-1.5`}
                           >
                             <Calendar className="h-3 w-3 sm:h-4 sm:w-4" />
                             {formatDate(transaction.date)}
                           </div>
                           <div
-                            className={`px-2 sm:px-3 py-1 rounded-full ${theme.secondaryBg} backdrop-blur-sm flex items-center gap-1 sm:gap-1.5`}
+                            className={`px-2 sm:px-3 py-1 rounded-full ${theme.secondaryBg} flex items-center gap-1 sm:gap-1.5`}
                           >
                             <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
                             {new Date(transaction.date).toLocaleTimeString([], {
@@ -331,9 +330,9 @@ const TransactionTable: React.FC<TransactionTableProps> = ({
                   </div>
                   {/* Colored border indicator */}
                   <div
-                    className={`absolute left-0 top-0 bottom-0 w-1 ${theme.gradient} transform transition-transform duration-300 group-hover:scale-y-100`}
+                    className={`absolute left-0 top-0 bottom-0 w-1 ${theme.gradient}`}
                   ></div>
-                </motion.div>
+                </div>
               );
             })}
           </div>

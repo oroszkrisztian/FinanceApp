@@ -37,6 +37,9 @@ const Transactions: React.FC = () => {
   const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
 
+  const isAnyModalOpen =
+    isCreateExpenseModalOpen || isAddIncomeModalOpen || isTransferModalOpen;
+
   const [dateRange, setDateRange] = useState<{
     start: Date | null;
     end: Date | null;
@@ -516,7 +519,10 @@ const Transactions: React.FC = () => {
       {/* Container to maintain consistent width */}
       <div className="max-w-7xl mx-auto pt-4">
         {/* Enhanced Navigation Bar */}
-        <div className="bg-white border-b rounded-lg border-gray-200 sticky top-0  shadow-sm">
+        <div
+          className="bg-white border-b rounded-lg border-gray-200 sticky top-0 shadow-sm"
+          style={ {position:'relative'}}
+        >
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col lg:flex-row lg:items-center lg:h-16 justify-between gap-4 py-3 lg:py-0">
               {/* First row on mobile / right side on desktop */}
@@ -594,20 +600,27 @@ const Transactions: React.FC = () => {
               )}
 
               {/* Third row on mobile / right side on desktop */}
-              <div className="w-full lg:w-auto lg:flex-1 lg:max-w-xs order-3 lg:order-none">
+              <div
+                className="w-full lg:w-auto lg:flex-1 lg:max-w-xs order-3 lg:order-none"
+                //style={{ position: "relative" }}
+              >
                 <SearchBar
                   searchQuery={searchQuery}
                   setSearchQuery={setSearchQuery}
                   activeTab={activeTab}
                   dateRange={dateRange}
                   setDateRange={setDateRange}
+                  
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="lg:py-10 py-2">
+        <div
+          className="lg:py-10 py-2"
+          
+        >
           {/* Transaction List */}
           <AnimatePresence mode="wait">
             <motion.div
