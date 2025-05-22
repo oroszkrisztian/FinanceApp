@@ -36,8 +36,7 @@ model CustomCategory {
 
   user            User?                   @relation(fields: [userId], references: [id])
   budgetCategories BudgetCategory[]
-  recurringBills  RecurringFundAndBill[]  @relation("CustomCategoryRecurringBills")
-
+  recurringBillCategories RecurringBillCategory[]
 
   @@index([userId])
   @@unique([name, type])  
@@ -93,10 +92,26 @@ model Account {
   user                    User                    @relation(fields: [userId], references: [id])
   transactionsFrom        Transaction[]           @relation("FromAccount") 
   transactionsTo          Transaction[]           @relation("ToAccount")
-  recurringFundsAndBills  RecurringFundAndBill[]  @relation("AccountRecurringFunds")
   recurringFundsAndBillsRelation RecurringFundAndBill[]
 
   @@index([userId])
+}
+
+
+model RecurringBillCategory {
+  id                      Int                   @id @default(autoincrement())
+  recurringFundAndBillId  Int
+  customCategoryId        Int
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  deletedAt               DateTime?
+
+  recurringFundAndBill    RecurringFundAndBill  @relation(fields: [recurringFundAndBillId], references: [id])
+  customCategory          CustomCategory        @relation(fields: [customCategoryId], references: [id])
+
+  @@index([recurringFundAndBillId])
+  @@index([customCategoryId])
+  @@unique([recurringFundAndBillId, customCategoryId])
 }
 
 model RecurringFundAndBill {
@@ -105,7 +120,6 @@ model RecurringFundAndBill {
   amount              Float
   description         String?
   accountId           Int
-  startDate           DateTime
   frequency           Frequency
   isActive            Boolean           @default(true)
   emailNotification   Boolean           @default(false)
@@ -118,15 +132,12 @@ model RecurringFundAndBill {
   deletedAt           DateTime?
   type                PaymentType
   currency            CurrencyType
-  customCategoryId    Int? 
 
   account             Account           @relation(fields: [accountId], references: [id])
-  customCategory      CustomCategory?   @relation(fields: [customCategoryId], references: [id], name: "CustomCategoryRecurringBills")
-  accounts            Account[]         @relation("AccountRecurringFunds")
-  users               User[]
+  user                User[]
+  categories          RecurringBillCategory[]
 
   @@index([accountId])
-  @@index([customCategoryId]) 
 }
 
 model Transaction {
@@ -166,6 +177,7 @@ model SavingAccount {
 }
 
 enum Frequency {
+  ONCE
   DAILY
   WEEKLY
   BIWEEKLY

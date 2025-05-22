@@ -9,6 +9,7 @@ import categories from "./routes/categories";
 import budget from "./routes/budget";
 
 import "dotenv/config";
+import payments from "./routes/payment";
 
 const app = new Hono();
 const port = parseInt(process.env.PORT || "3000");
@@ -32,6 +33,7 @@ app.route("/accounts", accounts);
 app.route("/transaction", transaction);
 app.route("/categories", categories);
 app.route("/budget", budget);
+app.route("/payment", payments);
 
 app.get("/exchange-rates", async (c) => {
   try {

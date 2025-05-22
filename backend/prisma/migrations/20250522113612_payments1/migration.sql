@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `RecurringFundAndBill` MODIFY `frequency` ENUM('ONCE', 'DAILY', 'WEEKLY', 'BIWEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY', 'CUSTOM') NOT NULL;
