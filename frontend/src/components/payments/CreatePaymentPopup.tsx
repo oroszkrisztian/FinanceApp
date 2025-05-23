@@ -14,7 +14,14 @@ import {
   ArrowLeft,
   ChevronDown,
   Search,
+  Edit,
 } from "lucide-react";
+import {
+  ExchangeRates,
+  fetchExchangeRates,
+  convertAmount,
+  validateCurrencyConversion,
+} from "../../services/exchangeRateService";
 import { CurrencyType, Frequency, PaymentType } from "../../interfaces/enums";
 import { createPayment } from "../../services/paymentService";
 
@@ -31,6 +38,22 @@ interface CreatePaymentPopupProps {
   }>;
   categories: Array<{ id: number; name: string }>;
   defaultType?: PaymentType;
+  editPayment?: {
+    id: number;
+    name: string;
+    amount: number;
+    frequency: string;
+    nextExecution: string;
+    currency: string;
+    category: string;
+    categories?: string[];
+    account: string;
+    isDue: boolean;
+    type?: PaymentType;
+    description?: string;
+    emailNotification?: boolean;
+    automaticPayment?: boolean;
+  } | null;
 }
 
 const SearchWithSuggestions: React.FC<{
@@ -95,7 +118,7 @@ const SearchWithSuggestions: React.FC<{
   };
 
   const baseClasses =
-    "w-full pl-8 pr-3 py-2 text-sm border rounded-lg focus:ring-2 focus:border-transparent transition-colors";
+    "w-full pl-8 pr-3 py-2 text-sm border rounded-xl focus:ring-2 focus:border-transparent transition-colors shadow-sm";
   const variantClasses =
     variant === "expense"
       ? "border-red-200 focus:ring-red-500 bg-red-50/50"
@@ -124,7 +147,7 @@ const SearchWithSuggestions: React.FC<{
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
@@ -177,6 +200,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   accounts,
   categories,
   defaultType = PaymentType.EXPENSE,
+  editPayment = null,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -196,12 +220,14 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
 
-  // Search states
+ 
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
-
+  const [rates, setRates] = useState<ExchangeRates>({});
+  const [originalCurrency, setOriginalCurrency] = useState<string>("");
   const currencyRef = useRef<HTMLDivElement>(null);
 
   const steps = [
@@ -214,6 +240,110 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const [isNotificationDayOpen, setIsNotificationDayOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  const getThemeColors = () => {
+    if (defaultType === PaymentType.EXPENSE) {
+      return {
+        gradient: "bg-gradient-to-r from-red-600 to-red-800",
+        editButtonBg: "bg-gradient-to-r from-blue-600 to-blue-700",
+        createButtonBg: "bg-gradient-to-r from-red-600 to-red-700",
+      };
+    } else {
+      return {
+        gradient: "bg-gradient-to-r from-green-600 to-green-800",
+        editButtonBg: "bg-gradient-to-r from-blue-600 to-blue-700",
+        createButtonBg: "bg-gradient-to-r from-green-600 to-green-700",
+      };
+    }
+  };
+
+  const theme = getThemeColors();
+
+  useEffect(() => {
+    const loadExchangeRates = async () => {
+      try {
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
+      } catch (err) {
+        console.error("Error fetching exchange rates:", err);
+      }
+    };
+    loadExchangeRates();
+  }, []);
+
+  useEffect(() => {
+    if (editPayment && isOpen) {
+      setIsEditMode(true);
+
+      const account = accounts.find((acc) => acc.name === editPayment.account);
+
+      const categoryIds =
+        editPayment.categories && editPayment.categories.length > 0
+          ? categories
+              .filter((cat) => editPayment.categories!.includes(cat.name))
+              .map((cat) => cat.id)
+          : categories
+              .filter((cat) => cat.name === editPayment.category)
+              .map((cat) => cat.id);
+
+      
+      setOriginalCurrency(editPayment.currency);
+
+      setFormData({
+        name: editPayment.name,
+        amount: editPayment.amount.toString(),
+        description: editPayment.description || "",
+        accountId: account ? account.id.toString() : "",
+        frequency: editPayment.frequency.toUpperCase() as Frequency,
+        emailNotification: editPayment.emailNotification || false,
+        notificationDay: 0,
+        automaticPayment: editPayment.automaticPayment || false,
+        type: editPayment.type || defaultType,
+        currency: editPayment.currency as CurrencyType, 
+        categoriesId: categoryIds,
+        startDate:
+          editPayment.nextExecution || new Date().toISOString().split("T")[0],
+      });
+    } else if (!editPayment && isOpen) {
+      setIsEditMode(false);
+      setOriginalCurrency("");
+      resetForm();
+    }
+  }, [editPayment, isOpen, accounts, categories, defaultType]);
+
+  const convertCurrency = (
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string
+  ): number => {
+    if (fromCurrency === toCurrency || Object.keys(rates).length === 0) {
+      return amount;
+    }
+    try {
+      
+      if (
+        !Object.values(CurrencyType).includes(fromCurrency as CurrencyType) ||
+        !Object.values(CurrencyType).includes(toCurrency as CurrencyType)
+      ) {
+        console.error("Invalid currency type");
+        return amount;
+      }
+
+      const validation = validateCurrencyConversion(
+        fromCurrency as CurrencyType,
+        toCurrency as CurrencyType,
+        rates
+      );
+      if (!validation.valid) {
+        console.error(validation.error);
+        return amount;
+      }
+      return convertAmount(amount, fromCurrency, toCurrency, rates);
+    } catch (err) {
+      console.error("Conversion error:", err);
+      return amount;
+    }
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -239,7 +369,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     }
   }, [accounts]);
 
-  // Close currency dropdown on outside click
+ 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -339,7 +469,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     }
   };
 
-  // Get filtered data based on search terms
+  
   const filteredAccounts = accounts.filter((acc) =>
     acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
   );
@@ -348,7 +478,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
   );
 
-  // Get suggestion arrays
+
   const accountSuggestions = filteredAccounts.map((acc) => acc.name);
   const categorySuggestions = filteredCategories.map((cat) => cat.name);
   const selectedCategoryNames = categories
@@ -406,13 +536,18 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         currency: formData.currency,
         categoriesId:
           formData.categoriesId.length > 0 ? formData.categoriesId : undefined,
+        paymentId: editPayment?.id,
       });
 
       onSuccess();
       onClose();
       resetForm();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create payment");
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Failed to ${isEditMode ? "update" : "create"} payment`
+      );
     } finally {
       setLoading(false);
     }
@@ -420,6 +555,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const resetForm = () => {
     setCurrentStep(1);
+    setIsEditMode(false);
+    setOriginalCurrency("");
     setFormData({
       name: "",
       amount: "",
@@ -427,7 +564,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       accountId: accounts[0]?.id.toString() || "",
       frequency: Frequency.MONTHLY,
       emailNotification: false,
-      notificationDay: 0, // Reset to default
+      notificationDay: 0,
       automaticPayment: false,
       type: defaultType,
       currency: accounts[0]?.currency || CurrencyType.RON,
@@ -452,7 +589,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 placeholder="e.g., Monthly Rent, Salary"
                 required
               />
@@ -475,7 +612,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     onChange={(e) =>
                       handleInputChange("amount", e.target.value)
                     }
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                     placeholder="0.00"
                     required
                   />
@@ -490,7 +627,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   <button
                     type="button"
                     onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
                   >
                     <span>{formData.currency}</span>
                     <ChevronDown size={16} className="text-gray-400" />
@@ -500,14 +637,35 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto"
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
                     >
                       {Object.values(CurrencyType).map((currency) => (
                         <button
                           key={currency}
                           type="button"
                           onClick={() => {
-                            handleInputChange("currency", currency);
+                           
+                            if (
+                              isEditMode &&
+                              currency !== formData.currency &&
+                              originalCurrency
+                            ) {
+                              const currentAmount =
+                                parseFloat(formData.amount) || 0;
+                              const convertedAmount = convertCurrency(
+                                currentAmount,
+                                formData.currency,
+                                currency
+                              );
+
+                              handleInputChange("currency", currency);
+                              handleInputChange(
+                                "amount",
+                                convertedAmount.toFixed(2)
+                              );
+                            } else {
+                              handleInputChange("currency", currency);
+                            }
                             setIsCurrencyOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
@@ -534,7 +692,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 rows={3}
                 placeholder="Optional description..."
               />
@@ -553,7 +711,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => handleInputChange("startDate", e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 required
               />
             </div>
@@ -568,7 +726,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     key={freq}
                     type="button"
                     onClick={() => handleInputChange("frequency", freq)}
-                    className={`p-3 rounded-lg border text-sm transition-colors ${
+                    className={`p-3 rounded-xl border text-sm transition-colors shadow-sm ${
                       formData.frequency === freq
                         ? "border-blue-500 bg-blue-50 text-blue-700"
                         : "border-gray-300 hover:border-gray-400"
@@ -583,7 +741,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             {formData.amount && formData.startDate && (
               <div className="space-y-3">
                 <div
-                  className={`p-3 rounded-lg ${
+                  className={`p-3 rounded-xl shadow-sm ${
                     defaultType === PaymentType.EXPENSE
                       ? "bg-red-50 border border-red-200"
                       : "bg-green-50 border border-green-200"
@@ -612,7 +770,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   </p>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded-lg">
+                <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar size={14} className="text-blue-600" />
                     <span className="text-sm font-medium text-blue-800">
@@ -664,7 +822,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 }
               />
               {formData.accountId && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-lg">
+                <div className="mt-2 p-2 bg-gray-50 rounded-xl shadow-sm">
                   <div className="text-sm text-gray-600">
                     Selected:{" "}
                     <span className="font-medium">
@@ -713,7 +871,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       case 4:
         return (
           <div className="space-y-4">
-            <div className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 ">
+            <div className="p-4 border border-gray-200 rounded-xl hover:border-gray-300 shadow-sm">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 flex items-center cursor-pointer">
                   <Bell size={16} className="mr-2 text-blue-500" />
@@ -740,7 +898,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                       onClick={() =>
                         setIsNotificationDayOpen(!isNotificationDayOpen)
                       }
-                      className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between text-sm"
+                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between text-sm shadow-sm"
                     >
                       <span>
                         {formData.notificationDay === 0 && "On the payment day"}
@@ -760,7 +918,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-1 max-h-28 bg-white border border-gray-200 rounded-lg shadow-lg z-50 overflow-y-auto"
+                        className="absolute top-full left-0 right-0 mt-1 max-h-28 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-y-auto"
                       >
                         {[
                           { value: 0, label: "On the payment day" },
@@ -798,7 +956,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
-            <div className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 transition-colors">
+            <div className="p-4 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors shadow-sm">
               <div className="flex items-center justify-between">
                 <label className="text-sm font-medium text-gray-700 flex items-center cursor-pointer">
                   <Zap size={16} className="mr-2 text-blue-500" />
@@ -828,7 +986,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         return (
           <div className="space-y-4">
             <div
-              className={`p-4 rounded-lg border ${defaultType === PaymentType.EXPENSE ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}
+              className={`p-4 rounded-xl border shadow-sm ${defaultType === PaymentType.EXPENSE ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}
             >
               <h3 className="font-semibold text-lg mb-3">{formData.name}</h3>
 
@@ -877,7 +1035,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             </div>
 
             <div
-              className={`p-3 rounded-lg ${defaultType === PaymentType.EXPENSE ? "bg-red-50" : "bg-green-50"}`}
+              className={`p-3 rounded-xl shadow-sm ${defaultType === PaymentType.EXPENSE ? "bg-red-50" : "bg-green-50"}`}
             >
               <p
                 className={`text-sm ${defaultType === PaymentType.EXPENSE ? "text-red-700" : "text-green-700"}`}
@@ -911,23 +1069,26 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-lg max-w-md w-full max-h-[90vh] overflow-hidden shadow-lg"
+            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div
-              className={`p-4 ${defaultType === PaymentType.EXPENSE ? "bg-gradient-to-r from-red-600 to-red-500 text-white" : "bg-gradient-to-r from-green-600 to-green-500 text-white"}`}
-            >
-              <div className="flex justify-between items-center mb-3">
+            <div className={`p-4 ${theme.gradient} text-white relative`}>
+              {/* Decorative circles */}
+              <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
+              <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
+              <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
+              
+              <div className="flex justify-between items-center mb-3 relative z-10">
                 <div className="flex items-center gap-2">
                   <div
-                    className={`bg-white rounded-full p-1.5 shadow-md ${defaultType === PaymentType.EXPENSE ? "text-red-600" : "text-green-600"}`}
+                    className={`bg-white rounded-full p-1.5 shadow-lg ${defaultType === PaymentType.EXPENSE ? "text-red-600" : "text-green-600"}`}
                   >
                     {defaultType === PaymentType.EXPENSE ? "💸" : "💰"}
                   </div>
                   <div>
                     <h2 className="text-lg font-semibold">
-                      Create{" "}
+                      {isEditMode ? "Edit" : "Create"}{" "}
                       {defaultType === PaymentType.EXPENSE ? "Bill" : "Income"}
                     </h2>
                     <p className="text-sm opacity-90">
@@ -937,14 +1098,14 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 </div>
                 <button
                   onClick={onClose}
-                  className="text-white hover:text-gray-200"
+                  className="text-white/80 hover:text-white transition-colors"
                 >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Progress */}
-              <div className="flex gap-1">
+              <div className="flex gap-1 relative z-10">
                 {steps.map((_, index) => (
                   <div
                     key={index}
@@ -959,7 +1120,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             {/* Content */}
             <div className="p-4 min-h-[300px]">
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2 mb-4">
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
                   <AlertCircle size={16} />
                   {error}
                 </div>
@@ -969,11 +1130,11 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t bg-gray-50 flex justify-between">
+            <div className="p-4 border-t bg-gray-50/50 flex justify-between">
               <button
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <ArrowLeft size={16} />
                 Back
@@ -983,7 +1144,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 <button
                   onClick={nextStep}
                   disabled={!canProceed()}
-                  className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
                 >
                   Continue
                   <ArrowRight size={16} />
@@ -992,18 +1153,16 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 <button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className={`flex items-center gap-2 px-6 py-2 text-white rounded-lg transition-colors ${
-                    defaultType === PaymentType.EXPENSE
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-green-600 hover:bg-green-700"
-                  } disabled:opacity-50`}
+                  className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all shadow-md disabled:opacity-50 ${
+                    isEditMode ? theme.editButtonBg + " focus:ring-blue-500" : theme.createButtonBg + " focus:ring-" + (defaultType === PaymentType.EXPENSE ? "red" : "green") + "-500"
+                  }`}
                 >
                   {loading ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   ) : (
-                    <Plus size={16} />
+                    <Edit size={16} />
                   )}
-                  Create
+                  {isEditMode ? "Update" : "Create"}
                 </button>
               )}
             </div>

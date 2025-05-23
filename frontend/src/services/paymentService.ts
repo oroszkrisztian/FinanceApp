@@ -57,6 +57,7 @@ export const createPayment = async (paymentData: {
   type: string;
   currency: string;
   categoriesId?: number[];
+  paymentId?: number;
 }) => {
   try {
     const response = await fetch(

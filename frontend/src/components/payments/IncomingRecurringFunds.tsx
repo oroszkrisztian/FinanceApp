@@ -9,6 +9,7 @@ import {
   ChevronDown,
   Filter,
   Plus,
+  DollarSign,
 } from "lucide-react";
 import {
   ExchangeRates,
@@ -27,6 +28,7 @@ import { Account } from "../../interfaces/Account";
 import { CustomCategory } from "../../interfaces/CustomCategory";
 import { useAuth } from "../../context/AuthContext";
 import { deletePayment } from "../../services/paymentService";
+import { executeRecurringIncome } from "../../services/transactionService";
 
 interface IncomingRecurringFundsProps {
   isSmallScreen: boolean;
@@ -63,7 +65,25 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isGetIncomeDialogOpen, setIsGetIncomeDialogOpen] = useState(false);
+  const [incomeToExecute, setIncomeToExecute] = useState<any>(null);
   const dateFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
+
+  const handleEditPayment = (paymentId: number) => {
+    const paymentToEdit = filteredFunds.find((fund) => fund.id === paymentId);
+    if (paymentToEdit) {
+      setEditingPayment(paymentToEdit);
+      setIsCreatePopupOpen(true);
+      setIsDetailsOpen(false);
+    }
+  };
+
+ 
+  const handleCloseCreatePopup = () => {
+    setIsCreatePopupOpen(false);
+    setEditingPayment(null);
+  };
 
   useEffect(() => {
     const loadExchangeRates = async () => {
@@ -97,7 +117,10 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         currency: payment.currency,
         category:
           payment.categories?.[0]?.customCategory?.name || "Uncategorized",
-        categories: payment.categories?.map(cat => cat.customCategory?.name).filter(Boolean) || [],
+        categories:
+          payment.categories
+            ?.map((cat) => cat.customCategory?.name)
+            .filter(Boolean) || [],
         account: payment.account?.name || "Unknown Account",
         isDue: payment.nextExecution
           ? new Date(payment.nextExecution) <= new Date()
@@ -159,6 +182,31 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isCurrencyMenuOpen, isDateFilterOpen]);
+
+  const convertCurrency = (
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string
+  ): number => {
+    if (fromCurrency === toCurrency || Object.keys(rates).length === 0) {
+      return amount;
+    }
+    try {
+      const validation = validateCurrencyConversion(
+        fromCurrency as CurrencyType,
+        toCurrency as CurrencyType,
+        rates
+      );
+      if (!validation.valid) {
+        console.error(validation.error);
+        return amount;
+      }
+      return convertAmount(amount, fromCurrency, toCurrency, rates);
+    } catch (err) {
+      console.error("Conversion error:", err);
+      return amount;
+    }
+  };
 
   const convertToDisplayCurrency = (
     amount: number,
@@ -237,12 +285,59 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
     setDateRange({ start: null, end: null });
   };
 
-  const handleFundClick = (fund: any) => {
+  const handleFundClick = (fund: any, event: React.MouseEvent) => {
+    
+    if ((event.target as HTMLElement).closest(".get-income-button")) {
+      return;
+    }
+
     setSelectedPayment({
       ...fund,
       type: PaymentType.INCOME,
     });
     setIsDetailsOpen(true);
+  };
+
+  const handleGetIncomeClick = (fund: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setIncomeToExecute(fund);
+    setIsGetIncomeDialogOpen(true);
+  };
+
+  const handleConfirmGetIncome = async () => {
+    if (incomeToExecute && user?.id) {
+      try {
+      
+        const account = accounts.find(
+          (acc) => acc.name === incomeToExecute.account
+        );
+        if (!account) {
+          console.error("Account not found for income");
+          return;
+        }
+
+       
+        await executeRecurringIncome(
+          user.id,
+          incomeToExecute.id,
+          incomeToExecute.amount,
+          incomeToExecute.currency,
+          account.id,
+          incomeToExecute.name,
+          incomeToExecute.description || null
+        );
+
+        console.log("Income executed successfully:", incomeToExecute);
+
+        
+        onPaymentCreated();
+      } catch (error) {
+        console.error("Failed to execute income:", error);
+      
+      }
+    }
+    setIsGetIncomeDialogOpen(false);
+    setIncomeToExecute(null);
   };
 
   const totalMonthly = filteredFunds.reduce((sum, fund) => {
@@ -508,7 +603,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                   className={`group p-4 hover:bg-green-50 transition-colors cursor-pointer relative ${
                     fund.isDue ? "bg-green-50" : ""
                   }`}
-                  onClick={() => handleFundClick(fund)}
+                  onClick={(e) => handleFundClick(fund, e)}
                 >
                   {isSmallScreen ? (
                     <>
@@ -521,8 +616,14 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                             {fund.account}
                           </div>
                           <div className="flex items-center mt-2 gap-1.5 flex-wrap">
-                            {(fund.categories && fund.categories.length > 0 ? fund.categories : [fund.category]).map((category, index) => (
-                              <span key={index} className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1 bg-gray-100 text-gray-700">
+                            {(fund.categories && fund.categories.length > 0
+                              ? fund.categories
+                              : [fund.category]
+                            ).map((category, index) => (
+                              <span
+                                key={index}
+                                className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1 bg-gray-100 text-gray-700"
+                              >
                                 <Tag size={12} />
                                 {category}
                               </span>
@@ -566,7 +667,16 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                           </span>
                         </div>
                       </div>
-                      <div className="flex justify-end mt-2">
+                      <div className="flex justify-between items-center mt-3">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="get-income-button flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
+                          onClick={(e) => handleGetIncomeClick(fund, e)}
+                        >
+                          <DollarSign size={14} />
+                          Get Income Now
+                        </motion.button>
                         <div className="flex items-center gap-1">
                           <span className="text-xs text-gray-500">
                             View Details
@@ -614,8 +724,14 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                           <div className="flex items-center gap-1 flex-wrap">
                             <Tag size={14} />
                             <div className="flex flex-wrap gap-1">
-                              {(fund.categories && fund.categories.length > 0 ? fund.categories : [fund.category]).map((category, index) => (
-                                <span key={index} className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">
+                              {(fund.categories && fund.categories.length > 0
+                                ? fund.categories
+                                : [fund.category]
+                              ).map((category, index) => (
+                                <span
+                                  key={index}
+                                  className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700"
+                                >
                                   {category}
                                 </span>
                               ))}
@@ -640,11 +756,22 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500">
-                            View Details
-                          </span>
-                          <ChevronRight size={16} className="text-gray-400" />
+                        <div className="flex items-center gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="get-income-button opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs font-medium"
+                            onClick={(e) => handleGetIncomeClick(fund, e)}
+                          >
+                            <DollarSign size={12} />
+                            Get Income Now
+                          </motion.button>
+                          <div className="flex items-center gap-1">
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500">
+                              View Details
+                            </span>
+                            <ChevronRight size={16} className="text-gray-400" />
+                          </div>
                         </div>
                       </div>
                     </>
@@ -687,10 +814,139 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         </div>
       </div>
 
+      {/* Get Income Now Confirmation Dialog */}
+      <AnimatePresence>
+        {isGetIncomeDialogOpen && incomeToExecute && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setIsGetIncomeDialogOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-green-100 p-2 rounded-full">
+                  <DollarSign className="text-green-600" size={24} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Confirm Income
+                </h3>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to get this income now?
+                </p>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-gray-800">
+                      {incomeToExecute.name}
+                    </span>
+                    <span className="text-green-600 font-semibold">
+                      +{formatAmount(incomeToExecute.amount)}{" "}
+                      {incomeToExecute.currency}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 mb-3">
+                    To: {incomeToExecute.account}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-3">
+                    Category: {incomeToExecute.category}
+                  </div>
+
+                  {/* Account Balance Change Section */}
+                  <div className="border-t border-green-200 pt-3 mt-3">
+                    <div className="text-sm text-gray-700 mb-2 font-medium">
+                      Account Balance Change:
+                    </div>
+                    {(() => {
+                      const account = accounts.find(
+                        (acc) => acc.name === incomeToExecute.account
+                      );
+                      const accountBalance = account?.amount || 0;
+                      const accountCurrency =
+                        account?.currency || incomeToExecute.currency;
+
+                     
+                      const incomeInAccountCurrency =
+                        incomeToExecute.currency === accountCurrency
+                          ? incomeToExecute.amount
+                          : convertCurrency(
+                              incomeToExecute.amount,
+                              incomeToExecute.currency,
+                              accountCurrency
+                            );
+
+                      const newBalance =
+                        accountBalance + incomeInAccountCurrency;
+
+                      return (
+                        <>
+                          <div className="flex justify-between items-center bg-white p-2 rounded">
+                            <span className="text-sm text-gray-600">
+                              Current Balance:
+                            </span>
+                            <span className="text-sm font-medium">
+                              {formatAmount(accountBalance)} {accountCurrency}
+                            </span>
+                          </div>
+                          {incomeToExecute.currency !== accountCurrency && (
+                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded mt-1 text-xs">
+                              <span className="text-gray-500">
+                                Income ({formatAmount(incomeToExecute.amount)}{" "}
+                                {incomeToExecute.currency}):
+                              </span>
+                              <span className="text-gray-700">
+                                +{formatAmount(incomeInAccountCurrency)}{" "}
+                                {accountCurrency}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center bg-white p-2 rounded mt-1">
+                            <span className="text-sm text-gray-600">
+                              After Income:
+                            </span>
+                            <span className="text-sm font-semibold text-green-600">
+                              {formatAmount(newBalance)} {accountCurrency}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  onClick={() => setIsGetIncomeDialogOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                  onClick={handleConfirmGetIncome}
+                >
+                  Get Income Now
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {user && (
         <CreatePaymentPopup
           isOpen={isCreatePopupOpen}
-          onClose={() => setIsCreatePopupOpen(false)}
+          onClose={handleCloseCreatePopup}
           onSuccess={onPaymentCreated}
           userId={user.id}
           accounts={accounts.map((acc) => ({
@@ -701,6 +957,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           }))}
           categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
           defaultType={PaymentType.INCOME}
+          editPayment={editingPayment}
         />
       )}
 
@@ -708,15 +965,12 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
         payment={selectedPayment}
-        onEdit={(id) => {
-          console.log("Edit payment:", id);
-          setIsDetailsOpen(false);
-        }}
+        onEdit={handleEditPayment}
         onDelete={async (id) => {
           try {
             if (user?.id) {
               await deletePayment(user.id, id);
-              onPaymentCreated(); 
+              onPaymentCreated();
             }
             setIsDetailsOpen(false);
           } catch (error) {

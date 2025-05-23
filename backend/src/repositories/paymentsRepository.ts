@@ -25,47 +25,105 @@ export class PaymentsRepository {
     automaticPayment: boolean,
     type: PaymentType,
     currency: CurrencyType,
-    categoriesId: number[] | null
+    categoriesId: number[] | null,
+    paymentId?: number 
   ) {
+    return await this.prisma.$transaction(async (tx) => {
+      if (paymentId) {
+        // Update existing payment
 
-    
-    const payment = await this.prisma.recurringFundAndBill.create({
-      data: {
-        name: name,
-        amount: amount,
-        description: description,
-        accountId: accountId,
-        frequency: frequency,
-        emailNotification: emailNotification,
-        notificationDay : notificationDay || 0,
-        automaticAddition: automaticPayment,
-        nextExecution: startDate,
-        type: type,
-        currency: currency,
-        user: {
-          connect: { id: userId },
-        },
-        ...(categoriesId &&
-          categoriesId.length > 0 && {
-            categories: {
-              create: categoriesId.map((categoryId) => ({
-                customCategoryId: categoryId,
-              })),
-            },
-          }),
-      },
-      include: {
-        account: true,
-        user: true,
-        categories: {
-          include: {
-            customCategory: true,
+        // First, delete existing categories
+        await tx.recurringBillCategory.deleteMany({
+          where: {
+            recurringFundAndBillId: paymentId,
           },
-        },
-      },
-    });
+        });
 
-    return payment;
+        // Update the payment
+        const updatedPayment = await tx.recurringFundAndBill.update({
+          where: {
+            id: paymentId,
+            user: {
+              some: {
+                id: userId,
+              },
+            },
+          },
+          data: {
+            name: name,
+            amount: amount,
+            description: description,
+            accountId: accountId,
+            frequency: frequency,
+            emailNotification: emailNotification,
+            notificationDay: notificationDay || 0,
+            automaticAddition: automaticPayment,
+            nextExecution: startDate,
+            type: type,
+            currency: currency,
+            // Add new categories if provided
+            ...(categoriesId &&
+              categoriesId.length > 0 && {
+                categories: {
+                  create: categoriesId.map((categoryId) => ({
+                    customCategoryId: categoryId,
+                  })),
+                },
+              }),
+          },
+          include: {
+            account: true,
+            user: true,
+            categories: {
+              include: {
+                customCategory: true,
+              },
+            },
+          },
+        });
+
+        return updatedPayment;
+      } else {
+        // Create new payment
+        const payment = await tx.recurringFundAndBill.create({
+          data: {
+            name: name,
+            amount: amount,
+            description: description,
+            accountId: accountId,
+            frequency: frequency,
+            emailNotification: emailNotification,
+            notificationDay: notificationDay || 0,
+            automaticAddition: automaticPayment,
+            nextExecution: startDate,
+            type: type,
+            currency: currency,
+            user: {
+              connect: { id: userId },
+            },
+            ...(categoriesId &&
+              categoriesId.length > 0 && {
+                categories: {
+                  create: categoriesId.map((categoryId) => ({
+                    customCategoryId: categoryId,
+                  })),
+                },
+              }),
+          },
+          include: {
+            account: true,
+            user: true,
+            categories: {
+              include: {
+                customCategory: true,
+              },
+            },
+          },
+        });
+
+        return payment;
+      }
+    });
   }
 
   async getAllPayments(userId: number) {

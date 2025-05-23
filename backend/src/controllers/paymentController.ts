@@ -26,6 +26,7 @@ export class PaymentsController {
         type,
         currency,
         categoriesId,
+        paymentId
       } = await c.req.json();
 
       if (
@@ -57,7 +58,8 @@ export class PaymentsController {
         automaticPayment || false,
         type,
         currency,
-        categoriesId
+        categoriesId,
+        paymentId
       );
 
       return c.json(newPayment);

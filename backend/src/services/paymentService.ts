@@ -21,7 +21,8 @@ export class PaymentsService {
     automaticPayment: boolean,
     type: PaymentType,
     currency: CurrencyType,
-    categoriesId: number[] | null
+    categoriesId: number[] | null,
+    paymentId?: number 
   ) {
     try {
       const newPayment = await this.paymentsRepo.createPayment(
@@ -37,7 +38,8 @@ export class PaymentsService {
         automaticPayment,
         type,
         currency,
-        categoriesId
+        categoriesId,
+        paymentId
       );
       return newPayment;
     } catch (error) {

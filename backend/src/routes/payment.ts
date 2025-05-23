@@ -7,7 +7,7 @@ const paymentsController = new PaymentsController();
 payments.post("/createPayment", async (c) => {
   try {
     const body = await c.req.json();
-    const { userId, name, amount, accountId, startDate, frequency, type, currency } = body;
+    const { userId, name, amount, accountId, startDate, frequency, type, currency, paymentId } = body;
 
     if (
       !userId ||

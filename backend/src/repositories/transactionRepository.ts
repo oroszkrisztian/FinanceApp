@@ -471,11 +471,11 @@ export class TransactionRepository {
             budgetCategories: {
               some: {
                 customCategoryId: {
-                  in: customCategoriesId
-                }
-              }
-            }
-          }
+                  in: customCategoriesId,
+                },
+              },
+            },
+          },
         });
 
         for (const budget of budgets) {
@@ -581,6 +581,289 @@ export class TransactionRepository {
         where: { id: toAccountId },
         data: { amount: { increment: amountToDeposit } },
       });
+      return transaction;
+    });
+  }
+
+  async executeRecurringPayment(
+    userId: number,
+    paymentId: number,
+    amount: number,
+    currency: CurrencyType,
+    fromAccountId: number,
+    name: string,
+    description: string | null,
+    customCategoriesId: number[] | null
+  ) {
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id: fromAccountId,
+        userId: userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!account) {
+      throw new Error("Account not found or doesn't belong to the user");
+    }
+
+    let amountToWithdraw = amount;
+    const rates = await this.getExchangeRates();
+
+    if (account.currency !== currency) {
+      if (!rates[account.currency] || !rates[currency]) {
+        throw new Error(
+          `Exchange rate not found for conversion between ${currency} and ${account.currency}`
+        );
+      }
+      amountToWithdraw = amount * (rates[currency] / rates[account.currency]);
+    }
+
+    if (account.amount < amountToWithdraw) {
+      throw new Error(
+        `Insufficient funds in account. Available: ${account.amount} ${account.currency}, Required: ${amountToWithdraw.toFixed(2)} ${account.currency}`
+      );
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Create the transaction
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId: userId,
+          name: name,
+          fromAccountId: fromAccountId,
+          description: description,
+          type: TransactionType.EXPENSE,
+          amount: amount,
+          currency: currency,
+        },
+        include: {
+          fromAccount: true,
+        },
+      });
+
+      // Update account balance
+      await prisma.account.update({
+        where: { id: fromAccountId },
+        data: { amount: { decrement: amountToWithdraw } },
+      });
+
+      // Handle budget updates for recurring payments - find ALL budgets with matching categories
+      if (customCategoriesId && customCategoriesId.length > 0) {
+        // Find all budgets that have ANY of the payment's categories
+        const budgets = await prisma.budget.findMany({
+          where: {
+            userId: userId,
+            deletedAt: null,
+            budgetCategories: {
+              some: {
+                customCategoryId: {
+                  in: customCategoriesId,
+                },
+              },
+            },
+          },
+          include: {
+            budgetCategories: {
+              include: {
+                customCategory: true,
+              },
+            },
+          },
+        });
+
+        // Update each budget that matches the payment categories
+        for (const budget of budgets) {
+          let budgetAmount = amount;
+
+          // Convert amount to budget currency if needed
+          if (currency !== budget.currency && rates[budget.currency]) {
+            budgetAmount = amount * (rates[currency] / rates[budget.currency]);
+          }
+
+          // Update the budget's current spent amount
+          await prisma.budget.update({
+            where: { id: budget.id },
+            data: {
+              currentSpent: { increment: budgetAmount },
+              transactions: { connect: { id: transaction.id } },
+            },
+          });
+
+          console.log(
+            `Updated budget "${budget.name}" with ${budgetAmount} ${budget.currency} for recurring payment`
+          );
+        }
+      }
+
+      // Update the recurring payment's next execution date
+      const payment = await prisma.recurringFundAndBill.findUnique({
+        where: { id: paymentId },
+      });
+
+      if (payment) {
+        if (payment.frequency === "ONCE") {
+          const today = new Date();
+          await prisma.recurringFundAndBill.update({
+            where: { id: paymentId },
+            data: {
+              nextExecution: null,
+              deletedAt: today,
+            },
+          });
+
+          console.log(
+            `One-time payment "${payment.name}" has been executed and completed`
+          );
+        } else {
+          const scheduledDate = payment.nextExecution || new Date();
+          let nextExecution = new Date(scheduledDate);
+
+          switch (payment.frequency) {
+            case "WEEKLY":
+              nextExecution.setDate(nextExecution.getDate() + 7);
+              break;
+            case "BIWEEKLY":
+              nextExecution.setDate(nextExecution.getDate() + 14);
+              break;
+            case "MONTHLY":
+              nextExecution.setMonth(nextExecution.getMonth() + 1);
+              break;
+            case "QUARTERLY":
+              nextExecution.setMonth(nextExecution.getMonth() + 3);
+              break;
+            case "YEARLY":
+              nextExecution.setFullYear(nextExecution.getFullYear() + 1);
+              break;
+            default:
+              nextExecution.setMonth(nextExecution.getMonth() + 1); // Default to monthly
+          }
+
+          await prisma.recurringFundAndBill.update({
+            where: { id: paymentId },
+            data: { nextExecution: nextExecution },
+          });
+
+          console.log(
+            `Updated income "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
+          );
+        }
+      }
+
+      return transaction;
+    });
+  }
+
+  async executeRecurringIncome(
+    userId: number,
+    paymentId: number,
+    amount: number,
+    currency: CurrencyType,
+    toAccountId: number,
+    name: string,
+    description: string | null
+  ) {
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id: toAccountId,
+        userId: userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!account) {
+      throw new Error("Account not found or doesn't belong to the user");
+    }
+
+    let amountToDeposit = amount;
+    const rates = await this.getExchangeRates();
+
+    if (account.currency !== currency) {
+      if (!rates[account.currency] || !rates[currency]) {
+        throw new Error(
+          `Exchange rate not found for conversion between ${currency} and ${account.currency}`
+        );
+      }
+      amountToDeposit = amount * (rates[currency] / rates[account.currency]);
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Create the transaction
+      const transaction = await prisma.transaction.create({
+        data: {
+          userId: userId,
+          name: name,
+          toAccountId: toAccountId,
+          description: description,
+          type: TransactionType.INCOME,
+          amount: amount,
+          currency: currency,
+        },
+        include: {
+          toAccount: true,
+        },
+      });
+
+      // Update account balance
+      await prisma.account.update({
+        where: { id: toAccountId },
+        data: { amount: { increment: amountToDeposit } },
+      });
+
+      // Update the recurring payment's next execution date
+      const payment = await prisma.recurringFundAndBill.findUnique({
+        where: { id: paymentId },
+      });
+
+      if (payment) {
+        if (payment.frequency === "ONCE") {
+          const today = new Date();
+          await prisma.recurringFundAndBill.update({
+            where: { id: paymentId },
+            data: {
+              nextExecution: null,
+              deletedAt: today,
+            },
+          });
+
+          console.log(
+            `One-time payment "${payment.name}" has been executed and completed`
+          );
+        } else {
+          const scheduledDate = payment.nextExecution || new Date();
+          let nextExecution = new Date(scheduledDate);
+
+          switch (payment.frequency) {
+            case "WEEKLY":
+              nextExecution.setDate(nextExecution.getDate() + 7);
+              break;
+            case "BIWEEKLY":
+              nextExecution.setDate(nextExecution.getDate() + 14);
+              break;
+            case "MONTHLY":
+              nextExecution.setMonth(nextExecution.getMonth() + 1);
+              break;
+            case "QUARTERLY":
+              nextExecution.setMonth(nextExecution.getMonth() + 3);
+              break;
+            case "YEARLY":
+              nextExecution.setFullYear(nextExecution.getFullYear() + 1);
+              break;
+            default:
+              nextExecution.setMonth(nextExecution.getMonth() + 1); // Default to monthly
+          }
+
+          await prisma.recurringFundAndBill.update({
+            where: { id: paymentId },
+            data: { nextExecution: nextExecution },
+          });
+
+          console.log(
+            `Updated income "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
+          );
+        }
+      }
+
       return transaction;
     });
   }

@@ -229,4 +229,30 @@ transaction.post("/transferFundsDefault", async (c) => {
   }
 });
 
+transaction.post("/executeRecurringPayment", async (c) => {
+  try {
+    const result = await transactionController.executeRecurringPayment(c);
+    return result;
+  } catch (error) {
+    console.error("Error in /executeRecurringPayment route:", error);
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 500);
+    }
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
+transaction.post("/executeRecurringIncome", async (c) => {
+  try {
+    const result = await transactionController.executeRecurringIncome(c);
+    return result;
+  } catch (error) {
+    console.error("Error in /executeRecurringIncome route:", error);
+    if (error instanceof Error) {
+      return c.json({ error: error.message }, 500);
+    }
+    return c.json({ error: "Internal server error" }, 500);
+  }
+});
+
 export default transaction;

@@ -260,3 +260,89 @@ export const transferFundsDefault = async (
     throw err;
   }
 };
+
+export const executeRecurringPayment = async (
+  userId: number,
+  paymentId: number,
+  amount: number,
+  currency: string,
+  fromAccountId: number,
+  name: string,
+  description: string | null,
+  customCategoriesId: number[] | null
+) => {
+  try {
+    const response = await fetch(
+      "http://localhost:3000/transaction/executeRecurringPayment",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          paymentId,
+          amount,
+          currency,
+          fromAccountId,
+          name,
+          description,
+          customCategoriesId,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to execute recurring payment");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error executing recurring payment:", err);
+    throw err;
+  }
+};
+
+export const executeRecurringIncome = async (
+  userId: number,
+  paymentId: number,
+  amount: number,
+  currency: string,
+  toAccountId: number,
+  name: string,
+  description: string | null
+) => {
+  try {
+    const response = await fetch(
+      "http://localhost:3000/transaction/executeRecurringIncome",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId,
+          paymentId,
+          amount,
+          currency,
+          toAccountId,
+          name,
+          description,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Failed to execute recurring income");
+    }
+
+    const data = await response.json();
+    return data;
+  } catch (err) {
+    console.error("Error executing recurring income:", err);
+    throw err;
+  }
+};

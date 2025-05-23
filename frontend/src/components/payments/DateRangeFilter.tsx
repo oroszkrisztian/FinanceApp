@@ -45,19 +45,19 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         const scrollY = window.scrollY || window.pageYOffset;
         const scrollX = window.scrollX || window.pageXOffset;
         const windowWidth = window.innerWidth;
-        const popupWidth = isSmallScreen ? 320 : 320; // w-80 = 320px
+        const popupWidth = isSmallScreen ? 320 : 320; 
         
         let left;
         if (isSmallScreen) {
-          // Center the popup on small screens
+          
           left = (windowWidth - popupWidth) / 2;
         } else {
-          // Position popup with top-right corner at the button on larger screens
+          
           left = rect.right + scrollX - popupWidth;
         }
         
         setPosition({
-          top: rect.bottom + scrollY + 4, // 4px gap below button
+          top: rect.bottom + scrollY + 4, 
           left: left,
         });
       };

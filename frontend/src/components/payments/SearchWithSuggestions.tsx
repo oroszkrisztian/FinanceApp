@@ -10,19 +10,18 @@ interface SearchWithSuggestionsProps {
   variant?: "default" | "outgoing" | "incoming";
 }
 
-const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({ 
+const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
   placeholder = "Search...",
   onSearch,
   suggestions = [],
   containerClassName = "",
-  variant = "default" // default, outgoing, incoming
+  variant = "default",
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
 
-  // Define variant-based styles
   const getVariantStyles = () => {
     switch (variant) {
       case "outgoing":
@@ -52,13 +51,11 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
   const styles = getVariantStyles();
 
   useEffect(() => {
-    // Filter suggestions based on search term
     if (searchTerm.trim() === "") {
-      // Show all suggestions when search term is empty
       setFilteredSuggestions(suggestions);
     } else {
-      const filtered = suggestions.filter(
-        suggestion => suggestion.toLowerCase().includes(searchTerm.toLowerCase())
+      const filtered = suggestions.filter((suggestion) =>
+        suggestion.toLowerCase().includes(searchTerm.toLowerCase())
       );
       setFilteredSuggestions(filtered);
     }
@@ -66,7 +63,10 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setShowSuggestions(false);
       }
     };
@@ -81,7 +81,7 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
     const value = e.target.value;
     setSearchTerm(value);
     onSearch(value);
-    // Always show suggestions when typing or when input is focused
+
     setShowSuggestions(true);
   };
 
@@ -98,21 +98,17 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
   };
 
   const handleInputFocus = () => {
-    // Show all suggestions when input is focused and there's no search term
     setFilteredSuggestions(suggestions);
     setShowSuggestions(true);
   };
 
   return (
-    <div 
-      ref={searchRef} 
-      className={`relative ${containerClassName}`}
-    >
+    <div ref={searchRef} className={`relative ${containerClassName}`}>
       <div className="relative flex items-center">
         <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
           <Search size={16} className="text-gray-400" />
         </div>
-        
+
         <input
           type="text"
           className={`block w-full pl-10 pr-10 py-2 text-sm text-gray-700 border border-gray-300 rounded-lg ${styles.inputBg} focus:outline-none focus:ring-2`}
@@ -121,7 +117,7 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
           onChange={handleInputChange}
           onFocus={handleInputFocus}
         />
-        
+
         {searchTerm && (
           <button
             className="absolute inset-y-0 right-0 flex items-center pr-3"
@@ -137,7 +133,7 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg max-h-60 overflow-y-auto"
+          className="absolute z-10 w-full mt-1 bg-white rounded-lg shadow-lg max-h-28 overflow-y-auto"
         >
           <ul className="py-1">
             {filteredSuggestions.map((suggestion, index) => (

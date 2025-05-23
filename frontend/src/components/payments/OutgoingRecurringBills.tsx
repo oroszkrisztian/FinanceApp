@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Filter,
   Plus,
+  DollarSign,
 } from "lucide-react";
 import {
   ExchangeRates,
@@ -18,6 +19,7 @@ import {
   validateCurrencyConversion,
 } from "../../services/exchangeRateService";
 import { CurrencyType, PaymentType } from "../../interfaces/enums";
+import { executeRecurringPayment } from "../../services/transactionService";
 import { motion, AnimatePresence } from "framer-motion";
 import SearchWithSuggestions from "./SearchWithSuggestions";
 import DateRangeFilter from "./DateRangeFilter";
@@ -64,7 +66,24 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
   const [selectedPayment, setSelectedPayment] = useState<any>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isPayNowDialogOpen, setIsPayNowDialogOpen] = useState(false);
+  const [paymentToExecute, setPaymentToExecute] = useState<any>(null);
   const dateFilterButtonRef = useRef<HTMLButtonElement>(null);
+  const [editingPayment, setEditingPayment] = useState<any>(null);
+
+  const handleEditPayment = (paymentId: number) => {
+    const paymentToEdit = filteredBills.find((bill) => bill.id === paymentId);
+    if (paymentToEdit) {
+      setEditingPayment(paymentToEdit);
+      setIsCreatePopupOpen(true);
+      setIsDetailsOpen(false);
+    }
+  };
+
+  const handleCloseCreatePopup = () => {
+    setIsCreatePopupOpen(false);
+    setEditingPayment(null);
+  };
 
   useEffect(() => {
     const loadExchangeRates = async () => {
@@ -164,6 +183,31 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isCurrencyMenuOpen, isDateFilterOpen]);
 
+  const convertCurrency = (
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string
+  ): number => {
+    if (fromCurrency === toCurrency || Object.keys(rates).length === 0) {
+      return amount;
+    }
+    try {
+      const validation = validateCurrencyConversion(
+        fromCurrency as CurrencyType,
+        toCurrency as CurrencyType,
+        rates
+      );
+      if (!validation.valid) {
+        console.error(validation.error);
+        return amount;
+      }
+      return convertAmount(amount, fromCurrency, toCurrency, rates);
+    } catch (err) {
+      console.error("Conversion error:", err);
+      return amount;
+    }
+  };
+
   const convertToDisplayCurrency = (
     amount: number,
     currency: string
@@ -241,12 +285,66 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
     setDateRange({ start: null, end: null });
   };
 
-  const handleBillClick = (bill: any) => {
+  const handleBillClick = (bill: any, event: React.MouseEvent) => {
+    
+    if ((event.target as HTMLElement).closest(".pay-now-button")) {
+      return;
+    }
+
     setSelectedPayment({
       ...bill,
       type: PaymentType.EXPENSE,
     });
     setIsDetailsOpen(true);
+  };
+
+  const handlePayNowClick = (bill: any, event: React.MouseEvent) => {
+    event.stopPropagation();
+    setPaymentToExecute(bill);
+    setIsPayNowDialogOpen(true);
+  };
+
+  const handleConfirmPayNow = async () => {
+    if (paymentToExecute && user?.id) {
+      try {
+       
+        const account = accounts.find(
+          (acc) => acc.name === paymentToExecute.account
+        );
+        if (!account) {
+          console.error("Account not found for payment");
+          return;
+        }
+
+        const categoryIds =
+          paymentToExecute.categories && paymentToExecute.categories.length > 0
+            ? categories
+                .filter((cat) => paymentToExecute.categories.includes(cat.name))
+                .map((cat) => cat.id)
+            : null;
+
+        await executeRecurringPayment(
+          user.id,
+          paymentToExecute.id,
+          paymentToExecute.amount,
+          paymentToExecute.currency,
+          account.id,
+          paymentToExecute.name,
+          paymentToExecute.description || null,
+          categoryIds
+        );
+
+        console.log("Payment executed successfully:", paymentToExecute);
+
+      
+        onPaymentCreated();
+      } catch (error) {
+        console.error("Failed to execute payment:", error);
+       
+      }
+    }
+    setIsPayNowDialogOpen(false);
+    setPaymentToExecute(null);
   };
 
   const totalMonthly = filteredBills.reduce((sum, bill) => {
@@ -438,7 +536,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
               exit={isSmallScreen ? { height: 0, opacity: 0 } : {}}
               className={`${isSmallScreen ? "mt-3" : "mt-3"} grid grid-cols-1 ${isSmallScreen ? "" : "md:grid-cols-2"} gap-2 overflow-visible`}
             >
-              <div className="relative z-30">
+              <div className="relative z-20">
                 <SearchWithSuggestions
                   placeholder="Search by name..."
                   onSearch={setNameSearchTerm}
@@ -512,7 +610,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
                   className={`group p-4 hover:bg-red-50 transition-colors cursor-pointer relative ${
                     bill.isDue ? "bg-red-50" : ""
                   }`}
-                  onClick={() => handleBillClick(bill)}
+                  onClick={(e) => handleBillClick(bill, e)}
                 >
                   {isSmallScreen ? (
                     <>
@@ -579,7 +677,16 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
                           </span>
                         </div>
                       </div>
-                      <div className="flex justify-end mt-2">
+                      <div className="flex justify-between items-center mt-3">
+                        <motion.button
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="pay-now-button flex items-center gap-2 px-3 py-1.5 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors text-sm font-medium"
+                          onClick={(e) => handlePayNowClick(bill, e)}
+                        >
+                          <DollarSign size={14} />
+                          Pay Now
+                        </motion.button>
                         <div className="flex items-center gap-1">
                           <span className="text-xs text-gray-500">
                             View Details
@@ -662,11 +769,22 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-1">
-                          <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500">
-                            View Details
-                          </span>
-                          <ChevronRight size={16} className="text-gray-400" />
+                        <div className="flex items-center gap-3">
+                          <motion.button
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="pay-now-button opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-md hover:bg-red-700 text-xs font-medium"
+                            onClick={(e) => handlePayNowClick(bill, e)}
+                          >
+                            <DollarSign size={12} />
+                            Pay Now
+                          </motion.button>
+                          <div className="flex items-center gap-1">
+                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500">
+                              View Details
+                            </span>
+                            <ChevronRight size={16} className="text-gray-400" />
+                          </div>
                         </div>
                       </div>
                     </>
@@ -709,10 +827,141 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
         </div>
       </div>
 
+      {/* Pay Now Confirmation Dialog */}
+      <AnimatePresence>
+        {isPayNowDialogOpen && paymentToExecute && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+            onClick={() => setIsPayNowDialogOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <DollarSign className="text-red-600" size={24} />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Confirm Payment
+                </h3>
+              </div>
+
+              <div className="mb-6">
+                <p className="text-gray-600 mb-4">
+                  Are you sure you want to pay this bill now?
+                </p>
+                <div className="bg-red-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="font-medium text-gray-800">
+                      {paymentToExecute.name}
+                    </span>
+                    <span className="text-red-600 font-semibold">
+                      -{formatAmount(paymentToExecute.amount)}{" "}
+                      {paymentToExecute.currency}
+                    </span>
+                  </div>
+                  <div className="text-sm text-gray-600 mb-3">
+                    From: {paymentToExecute.account}
+                  </div>
+                  <div className="text-sm text-gray-600 mb-3">
+                    Category: {paymentToExecute.category}
+                  </div>
+
+                  {/* Account Balance Change Section */}
+                  <div className="border-t border-red-200 pt-3 mt-3">
+                    <div className="text-sm text-gray-700 mb-2 font-medium">
+                      Account Balance Change:
+                    </div>
+                    {(() => {
+                      const account = accounts.find(
+                        (acc) => acc.name === paymentToExecute.account
+                      );
+                      const accountBalance = account?.amount || 0;
+                      const accountCurrency =
+                        account?.currency || paymentToExecute.currency;
+
+                     
+                      const paymentInAccountCurrency =
+                        paymentToExecute.currency === accountCurrency
+                          ? paymentToExecute.amount
+                          : convertCurrency(
+                              paymentToExecute.amount,
+                              paymentToExecute.currency,
+                              accountCurrency
+                            );
+
+                      const newBalance =
+                        accountBalance - paymentInAccountCurrency;
+
+                      return (
+                        <>
+                          <div className="flex justify-between items-center bg-white p-2 rounded">
+                            <span className="text-sm text-gray-600">
+                              Current Balance:
+                            </span>
+                            <span className="text-sm font-medium">
+                              {formatAmount(accountBalance)} {accountCurrency}
+                            </span>
+                          </div>
+                          {paymentToExecute.currency !== accountCurrency && (
+                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded mt-1 text-xs">
+                              <span className="text-gray-500">
+                                Payment ({formatAmount(paymentToExecute.amount)}{" "}
+                                {paymentToExecute.currency}):
+                              </span>
+                              <span className="text-gray-700">
+                                -{formatAmount(paymentInAccountCurrency)}{" "}
+                                {accountCurrency}
+                              </span>
+                            </div>
+                          )}
+                          <div className="flex justify-between items-center bg-white p-2 rounded mt-1">
+                            <span className="text-sm text-gray-600">
+                              After Payment:
+                            </span>
+                            <span
+                              className={`text-sm font-semibold ${newBalance < 0 ? "text-red-700" : "text-red-600"}`}
+                            >
+                              {formatAmount(newBalance)} {accountCurrency}
+                            </span>
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  onClick={() => setIsPayNowDialogOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium"
+                  onClick={handleConfirmPayNow}
+                >
+                  Pay Now
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {user && (
         <CreatePaymentPopup
           isOpen={isCreatePopupOpen}
-          onClose={() => setIsCreatePopupOpen(false)}
+          onClose={handleCloseCreatePopup}
           onSuccess={onPaymentCreated}
           userId={user.id}
           accounts={accounts.map((acc) => ({
@@ -723,6 +972,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
           }))}
           categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
           defaultType={PaymentType.EXPENSE}
+          editPayment={editingPayment}
         />
       )}
 
@@ -730,10 +980,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
         isOpen={isDetailsOpen}
         onClose={() => setIsDetailsOpen(false)}
         payment={selectedPayment}
-        onEdit={(id) => {
-          console.log("Edit payment:", id);
-          setIsDetailsOpen(false);
-        }}
+        onEdit={handleEditPayment}
         onDelete={async (id) => {
           try {
             if (user?.id) {

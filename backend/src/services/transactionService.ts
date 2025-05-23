@@ -154,4 +154,63 @@ export class TransactionService {
       throw new Error("Failed to transfer funds");
     }
   }
+  async executeRecurringPayment(
+    userId: number,
+    paymentId: number,
+    amount: number,
+    currency: CurrencyType,
+    fromAccountId: number,
+    name: string,
+    description: string | null,
+    customCategoriesId: number[] | null
+  ) {
+    try {
+      const transaction = await this.transactionRepo.executeRecurringPayment(
+        userId,
+        paymentId,
+        amount,
+        currency,
+        fromAccountId,
+        name,
+        description,
+        customCategoriesId
+      );
+      return transaction;
+    } catch (error) {
+      console.error(
+        "Error in TransactionService.executeRecurringPayment:",
+        error
+      );
+      throw new Error("Failed to execute recurring payment");
+    }
+  }
+
+  async executeRecurringIncome(
+    userId: number,
+    paymentId: number,
+    amount: number,
+    currency: CurrencyType,
+    toAccountId: number,
+    name: string,
+    description: string | null
+  ) {
+    try {
+      const transaction = await this.transactionRepo.executeRecurringIncome(
+        userId,
+        paymentId,
+        amount,
+        currency,
+        toAccountId,
+        name,
+        description
+      );
+      return transaction;
+    } catch (error) {
+      console.error(
+        "Error in TransactionService.executeRecurringIncome:",
+        error
+      );
+      throw new Error("Failed to execute recurring income");
+    }
+  }
 }

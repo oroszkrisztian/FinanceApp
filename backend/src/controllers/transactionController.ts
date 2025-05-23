@@ -187,4 +187,71 @@ export class TransactionController {
       );
     }
   }
+  async executeRecurringPayment(c: Context) {
+    try {
+      const {
+        userId,
+        paymentId,
+        amount,
+        currency,
+        fromAccountId,
+        name,
+        description,
+        customCategoriesId,
+      } = await c.req.json();
+
+      if (!userId || !paymentId || !amount || !fromAccountId || !name) {
+        return c.json({ error: "Fill all necessary fields" }, 400);
+      }
+
+      const transaction = await this.transactionService.executeRecurringPayment(
+        userId,
+        paymentId,
+        amount,
+        currency,
+        fromAccountId,
+        name,
+        description,
+        customCategoriesId
+      );
+
+      return c.json(transaction);
+    } catch (error) {
+      console.error("Execute recurring payment error:", error);
+      return c.json({ error: "Failed to execute recurring payment" }, 500);
+    }
+  }
+
+  async executeRecurringIncome(c: Context) {
+    try {
+      const {
+        userId,
+        paymentId,
+        amount,
+        currency,
+        toAccountId,
+        name,
+        description,
+      } = await c.req.json();
+
+      if (!userId || !paymentId || !amount || !toAccountId || !name) {
+        return c.json({ error: "Fill all necessary fields" }, 400);
+      }
+
+      const transaction = await this.transactionService.executeRecurringIncome(
+        userId,
+        paymentId,
+        amount,
+        currency,
+        toAccountId,
+        name,
+        description
+      );
+
+      return c.json(transaction);
+    } catch (error) {
+      console.error("Execute recurring income error:", error);
+      return c.json({ error: "Failed to execute recurring income" }, 500);
+    }
+  }
 }
