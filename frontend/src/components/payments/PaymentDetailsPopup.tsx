@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { PaymentType } from "../../interfaces/enums";
 
-
 interface PaymentDetailsPopupProps {
   isOpen: boolean;
   onClose: () => void;
@@ -26,7 +25,7 @@ interface PaymentDetailsPopupProps {
     nextExecution: string;
     currency: string;
     category: string;
-    categories?: string[]; 
+    categories?: string[];
     account: string;
     isDue: boolean;
     type?: PaymentType;
@@ -35,7 +34,7 @@ interface PaymentDetailsPopupProps {
     automaticPayment?: boolean;
   } | null;
   onEdit?: (paymentId: number) => void;
-  onDelete?: (paymentId: number) => Promise<void>; 
+  onDelete?: (paymentId: number) => Promise<void>;
 }
 
 const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
@@ -85,10 +84,10 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
     }
   };
 
-  
-  const categoryList = payment.categories && payment.categories.length > 0 
-    ? payment.categories 
-    : [payment.category];
+  const categoryList =
+    payment.categories && payment.categories.length > 0
+      ? payment.categories
+      : [payment.category];
 
   const theme = getThemeColors();
 
@@ -106,16 +105,18 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className={`p-4 ${theme.gradient} text-white relative`}>
+            {/* Fixed Header */}
+            <div
+              className={`p-4 ${theme.gradient} text-white relative flex-shrink-0 rounded-t-2xl`}
+            >
               {/* Decorative circles */}
               <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
               <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
               <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
-              
+
               <div className="flex justify-between items-start relative z-10">
                 <div className="flex items-center gap-3">
                   <div
@@ -147,11 +148,13 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
               </div>
             </div>
 
-            {/* Content */}
-            <div className="p-6 space-y-6">
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Basic Info */}
               <div className="grid grid-cols-2 gap-4">
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
+                <div
+                  className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}
+                >
                   <Calendar className="text-blue-600" size={20} />
                   <div>
                     <p className="text-sm text-gray-600">Frequency</p>
@@ -162,7 +165,9 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                   </div>
                 </div>
 
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
+                <div
+                  className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}
+                >
                   <CreditCard className="text-indigo-600" size={20} />
                   <div>
                     <p className="text-sm text-gray-600">Account</p>
@@ -170,7 +175,9 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                   </div>
                 </div>
 
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
+                <div
+                  className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}
+                >
                   <DollarSign className="text-green-600" size={20} />
                   <div>
                     <p className="text-sm text-gray-600">Monthly Impact</p>
@@ -180,35 +187,44 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                   </div>
                 </div>
 
-                <div className={`flex items-center gap-3 p-3 rounded-xl shadow-sm ${
-                  payment.isDue
-                    ? isIncome
-                      ? "bg-green-100 text-green-800 border-2 border-green-300"
-                      : "bg-red-100 text-red-800 border-2 border-red-300"
-                    : "bg-blue-50 text-blue-800 border border-blue-200"
-                }`}>
+                <div
+                  className={`flex items-center gap-3 p-3 rounded-xl shadow-sm ${
+                    payment.isDue
+                      ? isIncome
+                        ? "bg-green-100 text-green-800 border-2 border-green-300"
+                        : "bg-red-100 text-red-800 border-2 border-red-300"
+                      : "bg-blue-50 text-blue-800 border border-blue-200"
+                  }`}
+                >
                   <Calendar className="text-current" size={20} />
                   <div>
                     <p className="text-sm opacity-80">Next Payment</p>
                     <p className="font-medium">
-                      {new Date(payment.nextExecution).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                        year: new Date(payment.nextExecution).getFullYear() !== new Date().getFullYear()
-                          ? "numeric"
-                          : undefined,
-                      })}
+                      {new Date(payment.nextExecution).toLocaleDateString(
+                        "en-GB",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          year:
+                            new Date(payment.nextExecution).getFullYear() !==
+                            new Date().getFullYear()
+                              ? "numeric"
+                              : undefined,
+                        }
+                      )}
                     </p>
                   </div>
                 </div>
               </div>
 
               {/* Categories */}
-              <div className={`p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
+              <div
+                className={`p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}
+              >
                 <div className="flex items-center gap-2 mb-2">
                   <Tag className="text-purple-600" size={16} />
                   <p className="text-sm font-medium text-gray-700">
-                    {categoryList.length === 1 ? 'Category' : 'Categories'}
+                    {categoryList.length === 1 ? "Category" : "Categories"}
                   </p>
                 </div>
                 <div className="flex flex-wrap gap-2">
@@ -217,8 +233,8 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                       key={index}
                       className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
                         isIncome
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-700'
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
                       }`}
                     >
                       <Tag size={10} />
@@ -241,7 +257,9 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
               {/* Settings */}
               <div className="space-y-3">
                 <h3 className="font-semibold text-gray-800">Settings</h3>
-                <div className={`flex items-center justify-between p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
+                <div
+                  className={`flex items-center justify-between p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}
+                >
                   <div className="flex items-center gap-2">
                     <Bell size={16} className="text-blue-600" />
                     <span className="text-sm">Email Notifications</span>
@@ -257,7 +275,9 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                   </span>
                 </div>
 
-                <div className={`flex items-center justify-between p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
+                <div
+                  className={`flex items-center justify-between p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}
+                >
                   <div className="flex items-center gap-2">
                     <Zap size={16} className="text-orange-600" />
                     <span className="text-sm">Automatic Processing</span>
@@ -275,8 +295,8 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="p-4 border-t bg-gray-50/50 flex gap-3">
+            {/* Fixed Footer */}
+            <div className="p-4 border-t bg-gray-50/50 flex gap-3 flex-shrink-0 rounded-b-2xl">
               <button
                 onClick={() => onEdit?.(payment.id)}
                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 ${theme.editButtonBg} text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all shadow-md`}

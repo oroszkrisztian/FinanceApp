@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
-import AnimatedModal from "../animations/BlurPopup";
+import { motion, AnimatePresence } from "framer-motion";
+import {
+  X,
+  ArrowRight,
+  ArrowLeft,
+  DollarSign,
+  Search,
+  Tag,
+  ChevronDown,
+  Info,
+  AlertCircle,
+} from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { TransactionType } from "../../interfaces/enums";
 import { Budget } from "../../interfaces/Budget";
@@ -9,6 +19,7 @@ import {
   getExchangeRate,
   validateCurrencyConversion,
   ExchangeRates,
+  fetchExchangeRates,
 } from "../../services/exchangeRateService";
 import { createExpense } from "../../services/transactionService";
 import { useAuth } from "../../context/AuthContext";
@@ -20,11 +31,133 @@ interface CreateExpensePopupProps {
   budgets: Budget[];
   accountsLoading: boolean;
   onSuccess: () => void;
-  rates: ExchangeRates;
-  ratesError: string | null;
-  fetchingRates: boolean;
   categories?: { id: number; name: string }[];
 }
+
+const SearchWithSuggestions: React.FC<{
+  placeholder: string;
+  onSearch: (term: string) => void;
+  suggestions: string[];
+  onSelect?: (suggestion: string) => void;
+  selectedItems?: string[];
+  multiSelect?: boolean;
+  value?: string;
+}> = ({
+  placeholder,
+  onSearch,
+  suggestions,
+  onSelect,
+  selectedItems = [],
+  multiSelect = false,
+  value = "",
+}) => {
+  const [searchTerm, setSearchTerm] = useState(value);
+  const [isOpen, setIsOpen] = useState(false);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSearchTerm(value);
+  }, [value]);
+
+  useEffect(() => {
+    const filtered = suggestions.filter((suggestion) =>
+      suggestion.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    setFilteredSuggestions(filtered);
+  }, [searchTerm, suggestions]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchTerm(value);
+    onSearch(value);
+    setIsOpen(true);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    if (onSelect) {
+      onSelect(suggestion);
+    }
+    if (!multiSelect) {
+      setSearchTerm(suggestion);
+      setIsOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <div className="relative">
+        <Search
+          size={14}
+          className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-red-400"
+        />
+        <input
+          type="text"
+          placeholder={placeholder}
+          value={searchTerm}
+          onChange={handleInputChange}
+          onFocus={() => setIsOpen(true)}
+          className="w-full pl-8 pr-3 py-3 text-sm border border-red-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors shadow-sm bg-red-50/50"
+        />
+      </div>
+
+      {isOpen && filteredSuggestions.length > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+        >
+          {filteredSuggestions.map((suggestion, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => handleSuggestionClick(suggestion)}
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-red-50 transition-colors ${
+                selectedItems.includes(suggestion)
+                  ? "bg-red-50 text-red-700"
+                  : "text-gray-700"
+              }`}
+            >
+              {suggestion}
+            </button>
+          ))}
+        </motion.div>
+      )}
+
+      {multiSelect && selectedItems.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {selectedItems.map((item, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onSelect && onSelect(item)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-75 bg-red-100 text-red-700 hover:bg-red-200"
+            >
+              <Tag size={10} />
+              {item}
+              <X size={10} className="ml-1" />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   onClose,
@@ -33,13 +166,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   budgets,
   accountsLoading,
   onSuccess,
-  rates,
-  ratesError,
-  fetchingRates,
   categories = [],
 }) => {
   const { user } = useAuth();
+  const [currentStep, setCurrentStep] = useState(1);
   const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
@@ -59,16 +191,27 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     type: TransactionType.EXPENSE,
     selectedCategories: [],
   });
+
   const [isLoading, setIsLoading] = useState(false);
-  const [budgetInput, setBudgetInput] = useState("");
-  const [accountInput, setAccountInput] = useState("");
-  const [showBudgetDropdown, setShowBudgetDropdown] = useState(false);
-  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
+
+  // Search states
+  const [accountSearchTerm, setAccountSearchTerm] = useState("");
+  const [budgetSearchTerm, setBudgetSearchTerm] = useState("");
+  const [categorySearchTerm, setCategorySearchTerm] = useState("");
+
+  // Selected items for display
   const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
-  const budgetRef = useRef<HTMLDivElement>(null);
-  const accountRef = useRef<HTMLDivElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Currency and conversion
+  const [rates, setRates] = useState<ExchangeRates>({});
+  const [ratesError, setRatesError] = useState<string | null>(null);
+  const [fetchingRates, setFetchingRates] = useState(false);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+  const currencyRef = useRef<HTMLDivElement>(null);
+
   const [amountString, setAmountString] = useState("");
   const [conversionDetails, setConversionDetails] = useState<{
     originalAmount: number;
@@ -84,110 +227,57 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   const [activeTab, setActiveTab] = useState<"budget" | "categories">("budget");
 
-  const [categoryInput, setCategoryInput] = useState("");
-  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
-  const [progressPercentage, setProgressPercentage] = useState(0);
-  const [error, setError] = useState<string | null>(null);
-  const categoryRef = useRef<HTMLDivElement>(null);
+  const steps = ["Basic Info", "Budget & Categories", "Account & Review"];
 
-  const resetForm = () => {
-    setFormData({
-      name: "",
-      description: "",
-      selectedAccount: "",
-      selectedBudget: "",
-      amount: 0,
-      currency: "RON",
-      type: TransactionType.EXPENSE,
-      selectedCategories: [],
-    });
-    setAmountString("");
-    setBudgetInput("");
-    setAccountInput("");
-    setSelectedBudget(null);
-    setSelectedAccount(null);
-    setShowBudgetDropdown(false);
-    setShowAccountDropdown(false);
-    setConversionDetails({
-      originalAmount: 0,
-      convertedAmount: 0,
-      rate: 1,
-      error: null,
-    });
-    setError(null);
-  };
+  // Load exchange rates
+  useEffect(() => {
+    const loadExchangeRates = async () => {
+      setFetchingRates(true);
+      setRatesError(null);
+      try {
+        const ratesData = await fetchExchangeRates();
+        setRates(ratesData);
+      } catch (err) {
+        console.error("Error fetching exchange rates:", err);
+        setRatesError("Failed to load exchange rates");
+      } finally {
+        setFetchingRates(false);
+      }
+    };
 
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      resetForm();
-      setIsClosing(false);
-      onClose();
-    }, 150);
-  };
+    if (isOpen) {
+      loadExchangeRates();
+    }
+  }, [isOpen]);
 
+  // Mobile screen detection
   useEffect(() => {
     const handleResize = () => {
       setIsMobileScreen(window.innerWidth <= 768);
     };
-
     handleResize();
-
     window.addEventListener("resize", handleResize);
-
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
+  // Currency dropdown click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        budgetRef.current &&
-        !budgetRef.current.contains(event.target as Node) &&
-        showBudgetDropdown
+        currencyRef.current &&
+        !currencyRef.current.contains(event.target as Node)
       ) {
-        setShowBudgetDropdown(false);
-      }
-      if (
-        accountRef.current &&
-        !accountRef.current.contains(event.target as Node) &&
-        showAccountDropdown
-      ) {
-        setShowAccountDropdown(false);
-      }
-      if (
-        categoryRef.current &&
-        !categoryRef.current.contains(event.target as Node) &&
-        showCategoryDropdown
-      ) {
-        setShowCategoryDropdown(false);
+        setIsCurrencyOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showBudgetDropdown, showAccountDropdown, showCategoryDropdown]);
+  }, []);
 
+  // Update conversion details
   useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedAccount, rates]);
-
-  useEffect(() => {
-    // Calculate progress based on required fields
-    let progress = 0;
-    const totalRequiredFields = 2; // name and amount required
-
-    if (formData.name.trim() !== "") {
-      progress += 1;
-    }
-
-    if (formData.amount > 0) {
-      progress += 1;
-    }
-
-    // Calculate percentage (capped at 100%)
-    const percentage = Math.min((progress / totalRequiredFields) * 100, 100);
-    setProgressPercentage(percentage);
-  }, [formData]);
 
   const updateConversionDetails = () => {
     if (!selectedAccount || !rates || Object.keys(rates).length === 0) return;
@@ -226,74 +316,228 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     });
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
-    >
-  ) => {
-    const { name, value } = e.target;
+  const resetForm = () => {
+    setCurrentStep(1);
+    setFormData({
+      name: "",
+      description: "",
+      selectedAccount: "",
+      selectedBudget: "",
+      amount: 0,
+      currency: "RON",
+      type: TransactionType.EXPENSE,
+      selectedCategories: [],
+    });
+    setAmountString("");
+    setSelectedBudget(null);
+    setSelectedAccount(null);
+    setAccountSearchTerm("");
+    setBudgetSearchTerm("");
+    setCategorySearchTerm("");
+    setConversionDetails({
+      originalAmount: 0,
+      convertedAmount: 0,
+      rate: 1,
+      error: null,
+    });
+    setError(null);
+  };
+
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      resetForm();
+      setIsClosing(false);
+      onClose();
+    }, 150);
+  };
+
+  const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({
       ...prev,
-      [name]: name === "amount" ? parseFloat(value) || 0 : value,
+      [field]: field === "amount" ? parseFloat(value) || 0 : value,
     }));
+    setError(null);
   };
 
-  const handleBudgetInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setBudgetInput(value);
-    setSelectedBudget(null);
-    setShowBudgetDropdown(true);
-    setFormData((prev) => ({ ...prev, selectedBudget: "" }));
+  // Account selection
+  const handleAccountSelect = (accountName: string) => {
+    const account = accounts.find((acc) => acc.name === accountName);
+    if (account) {
+      setSelectedAccount(account);
+      setFormData((prev) => ({ ...prev, selectedAccount: String(account.id) }));
+      setAccountSearchTerm("");
+    }
   };
 
-  const handleAccountInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setAccountInput(value);
+  // Budget selection
+  const handleBudgetSelect = (budgetName: string) => {
+    const budget = budgets.find((b) => b.name === budgetName);
+    if (budget) {
+      setSelectedBudget(budget);
+      setFormData((prev) => ({ ...prev, selectedBudget: String(budget.id) }));
+      setBudgetSearchTerm("");
+    }
+  };
+
+  // Category selection
+  const handleCategorySelect = (categoryName: string) => {
+    const category = categories.find((cat) => cat.name === categoryName);
+    if (category) {
+      const isSelected = formData.selectedCategories.includes(category.id);
+      setFormData((prev) => ({
+        ...prev,
+        selectedCategories: isSelected
+          ? prev.selectedCategories.filter((id) => id !== category.id)
+          : [...prev.selectedCategories, category.id],
+      }));
+    }
+  };
+
+  // Clear selections
+  const clearAccountSelection = () => {
     setSelectedAccount(null);
-    setShowAccountDropdown(true);
     setFormData((prev) => ({ ...prev, selectedAccount: "" }));
+    setAccountSearchTerm("");
   };
 
-  const selectBudget = (budget: Budget) => {
-    setSelectedBudget(budget);
-    setFormData((prev) => ({ ...prev, selectedBudget: String(budget.id) }));
-    setBudgetInput("");
-    setShowBudgetDropdown(false);
-  };
-
-  const selectAccount = (account: Account) => {
-    setSelectedAccount(account);
-    setFormData((prev) => ({ ...prev, selectedAccount: String(account.id) }));
-    setAccountInput("");
-    setShowAccountDropdown(false);
-  };
-
-  const clearBudgetSelection = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const clearBudgetSelection = () => {
     setSelectedBudget(null);
-    setBudgetInput("");
     setFormData((prev) => ({ ...prev, selectedBudget: "" }));
+    setBudgetSearchTerm("");
   };
 
-  const clearAccountSelection = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setSelectedAccount(null);
-    setAccountInput("");
-    setFormData((prev) => ({ ...prev, selectedAccount: "" }));
+  // Get suggestions
+  const accountSuggestions = accounts
+    .filter((acc) =>
+      acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
+    )
+    .map((acc) => acc.name);
+
+  const budgetSuggestions = budgets
+    .filter((budget) =>
+      budget.name.toLowerCase().includes(budgetSearchTerm.toLowerCase())
+    )
+    .map((budget) => budget.name);
+
+  const categorySuggestions = categories
+    .filter((cat) =>
+      cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+    )
+    .map((cat) => cat.name);
+
+  const selectedCategoryNames = categories
+    .filter((cat) => formData.selectedCategories.includes(cat.id))
+    .map((cat) => cat.name);
+
+  // Available currencies from rates with proper prioritization
+  const getAvailableCurrencies = () => {
+    if (Object.keys(rates).length === 0) {
+      return ["USD", "EUR", "GBP", "JPY", "RON"];
+    }
+
+    // Most commonly used currencies (prioritized)
+    const topCurrencies = [
+      "USD",
+      "EUR",
+      "GBP",
+      "JPY",
+      "CAD",
+      "AUD",
+      "CHF",
+      "CNY",
+      "RON",
+    ];
+    const currentCurrency = formData.currency;
+
+    // Get all available currencies from rates
+    const allAvailableCurrencies = Object.keys(rates);
+
+    // Start with top currencies that exist in rates
+    const prioritizedCurrencies = topCurrencies.filter((curr) => rates[curr]);
+
+    // Add current currency if not already in the list
+    if (
+      !prioritizedCurrencies.includes(currentCurrency) &&
+      rates[currentCurrency]
+    ) {
+      prioritizedCurrencies.unshift(currentCurrency);
+    }
+
+    // Add remaining currencies alphabetically
+    const remainingCurrencies = allAvailableCurrencies
+      .filter((curr) => !prioritizedCurrencies.includes(curr))
+      .sort();
+
+    return [...prioritizedCurrencies, ...remainingCurrencies];
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<
-      HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-    >
-  ) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }) as typeof prev);
+  const availableCurrencies = getAvailableCurrencies();
+
+  // Step validation
+  const canProceed = () => {
+    switch (currentStep) {
+      case 1:
+        return formData.name && formData.amount > 0;
+      case 2:
+        return true; 
+      case 3:
+        return formData.selectedAccount;
+      default:
+        return false;
+    }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const nextStep = () => {
+    if (canProceed() && currentStep < 3) {
+      setCurrentStep(currentStep + 1);
+    }
+  };
 
+  const prevStep = () => {
+    if (currentStep > 1) {
+      setCurrentStep(currentStep - 1);
+    }
+  };
+
+  // Balance calculation
+  const getTransactionAmount = (): number => {
+    if (!selectedAccount || !formData.amount) return 0;
+
+    if (formData.currency === selectedAccount.currency) {
+      return formData.amount;
+    } else {
+      if (fetchingRates || conversionDetails.error) return 0;
+      return conversionDetails.convertedAmount;
+    }
+  };
+
+  const calculateNewBalance = (): {
+    isValid: boolean;
+    currentBalance: number;
+    transactionAmount: number;
+    newBalance: number;
+    error?: string;
+  } | null => {
+    if (!selectedAccount || selectedAccount.amount === undefined) return null;
+
+    const transactionAmount = getTransactionAmount();
+    const currentBalance = selectedAccount.amount;
+    const newBalance = currentBalance - transactionAmount;
+    const isValid = newBalance >= 0;
+
+    return {
+      isValid,
+      currentBalance,
+      transactionAmount,
+      newBalance,
+      error: isValid ? undefined : "Insufficient funds",
+    };
+  };
+
+  const balanceInfo = selectedAccount ? calculateNewBalance() : null;
+
+  const handleSubmit = async () => {
     setIsLoading(true);
     setError(null);
 
@@ -341,128 +585,488 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     }
   };
 
-  const filteredBudgets = budgets.filter((budget) =>
-    budget.name.toLowerCase().includes(budgetInput.toLowerCase())
-  );
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-4">
+            {/* Name Field */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <span className="text-red-500 mr-1">🏷️</span>
+                Expense Name<span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange("name", e.target.value)}
+                className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm"
+                placeholder="Enter expense name"
+                required
+              />
+            </div>
 
-  const filteredAccounts = accounts.filter((account) =>
-    account.name.toLowerCase().includes(accountInput.toLowerCase())
-  );
+            {/* Amount and Currency */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <span className="text-red-500 mr-1">💰</span>
+                  Amount<span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <DollarSign
+                    size={16}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-400"
+                  />
+                  <input
+                    type="text"
+                    className="w-full pl-10 pr-3 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm font-medium"
+                    placeholder="0.00"
+                    value={amountString}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || /^[0-9]*([.,][0-9]*)?$/.test(value)) {
+                        setAmountString(value);
+                        if (value === "") {
+                          handleInputChange("amount", 0);
+                        } else {
+                          const numericValue = parseFloat(
+                            value.replace(",", ".")
+                          );
+                          if (!isNaN(numericValue)) {
+                            handleInputChange("amount", numericValue);
+                          }
+                        }
+                      }
+                    }}
+                    required
+                  />
+                </div>
+              </div>
 
-  const handleCategoryInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const value = e.target.value;
-    setCategoryInput(value);
-    setShowCategoryDropdown(true);
-  };
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Currency
+                </label>
+                <div className="relative" ref={currencyRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+                    disabled={fetchingRates}
+                    className="w-full p-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between bg-red-50/50 shadow-sm transition-all disabled:opacity-50"
+                  >
+                    <span>
+                      {fetchingRates ? "Loading..." : formData.currency}
+                    </span>
+                    <ChevronDown size={16} className="text-red-400" />
+                  </button>
 
-  const selectCategory = (category: { id: number; name: string }) => {
-    setFormData({
-      ...formData,
-      selectedCategories: [...formData.selectedCategories, category.id],
-    });
-    setCategoryInput("");
-  };
+                  {isCurrencyOpen && !fetchingRates && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+                    >
+                      {availableCurrencies.map((currency) => (
+                        <button
+                          key={currency}
+                          type="button"
+                          onClick={() => {
+                            handleInputChange("currency", currency);
+                            setIsCurrencyOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 hover:bg-red-50 transition-colors ${
+                            formData.currency === currency
+                              ? "bg-red-50 text-red-700"
+                              : ""
+                          }`}
+                        >
+                          {currency}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+            </div>
 
-  const filteredCategories = categories.filter(
-    (category) =>
-      category.name.toLowerCase().includes(categoryInput.toLowerCase()) &&
-      !formData.selectedCategories.includes(category.id)
-  );
+            {/* Description */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <span className="text-red-500 mr-1">📝</span>
+                Description (Optional)
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                rows={3}
+                className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm"
+                placeholder="Add expense details"
+              />
+            </div>
+          </div>
+        );
 
-  const getTransactionAmount = (): number => {
-    if (!selectedAccount || !formData.amount) return 0;
+      case 2:
+        return (
+          <div className="space-y-4">
+            {/* Tab Navigation */}
+            <div className="flex border-b border-gray-200">
+              <button
+                type="button"
+                onClick={() => setActiveTab("budget")}
+                className={`py-2 px-4 text-sm font-medium transition-colors ${
+                  activeTab === "budget"
+                    ? "text-red-600 border-b-2 border-red-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Budget
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("categories")}
+                className={`py-2 px-4 text-sm font-medium transition-colors ${
+                  activeTab === "categories"
+                    ? "text-red-600 border-b-2 border-red-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                Categories
+              </button>
+            </div>
 
-    if (formData.currency === selectedAccount.currency) {
-      return formData.amount;
-    } else {
-      if (fetchingRates || conversionDetails.error) return 0;
-      return conversionDetails.convertedAmount;
+            {activeTab === "budget" ? (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <span className="text-red-500 mr-1">📊</span>
+                  Budget (Optional)
+                </label>
+                {budgets.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                    No budgets available.
+                  </div>
+                ) : (
+                  <>
+                    <SearchWithSuggestions
+                      placeholder="Search and select budget..."
+                      onSearch={setBudgetSearchTerm}
+                      suggestions={budgetSuggestions}
+                      onSelect={handleBudgetSelect}
+                      value={selectedBudget?.name || budgetSearchTerm}
+                    />
+                    {selectedBudget && (
+                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-medium text-red-800">
+                              {selectedBudget.name}
+                            </div>
+                            <div className="text-sm text-red-600">
+                              Spent:{" "}
+                              {selectedBudget.currentSpent?.toFixed(2) ||
+                                "0.00"}{" "}
+                              {selectedBudget.currency}
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={clearBudgetSelection}
+                            className="text-red-500 hover:text-red-700 transition-colors"
+                          >
+                            <X size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                  <span className="text-red-500 mr-1">🏷️</span>
+                  Categories (Optional)
+                </label>
+                {categories.length === 0 ? (
+                  <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                    No categories available.
+                  </div>
+                ) : (
+                  <SearchWithSuggestions
+                    placeholder="Search and select categories..."
+                    onSearch={setCategorySearchTerm}
+                    suggestions={categorySuggestions}
+                    onSelect={handleCategorySelect}
+                    selectedItems={selectedCategoryNames}
+                    multiSelect={true}
+                  />
+                )}
+              </div>
+            )}
+          </div>
+        );
+
+      case 3:
+        return (
+          <div className="space-y-6">
+            {/* Account Selection */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <span className="text-red-500 mr-1">💳</span>
+                Select Account<span className="text-red-500">*</span>
+              </label>
+              {accountsLoading ? (
+                <div className="animate-pulse h-11 bg-gray-200 rounded-xl"></div>
+              ) : accounts.length === 0 ? (
+                <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                  No accounts available. Please create one first.
+                </div>
+              ) : (
+                <>
+                  <SearchWithSuggestions
+                    placeholder="Search and select account..."
+                    onSearch={setAccountSearchTerm}
+                    suggestions={accountSuggestions}
+                    onSelect={handleAccountSelect}
+                    value={selectedAccount?.name || accountSearchTerm}
+                  />
+                  {selectedAccount && (
+                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-medium text-red-800">
+                            {selectedAccount.name}
+                          </div>
+                          <div className="text-sm text-red-600">
+                            Balance: {selectedAccount.amount.toFixed(2)}{" "}
+                            {selectedAccount.currency}
+                          </div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={clearAccountSelection}
+                          className="text-red-500 hover:text-red-700 transition-colors"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Preview Section */}
+            {selectedAccount && (
+              <div className="space-y-4">
+                {/* Expense Summary */}
+                <div className="p-4 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                  <h3 className="font-semibold text-lg mb-3 text-red-800">
+                    {formData.name}
+                  </h3>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="text-gray-600">Amount:</span>
+                      <span className="ml-2 font-medium">
+                        {formData.amount} {formData.currency}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-gray-600">Account:</span>
+                      <span className="ml-2 font-medium">
+                        {selectedAccount?.name}
+                      </span>
+                    </div>
+                    {selectedBudget && (
+                      <div>
+                        <span className="text-gray-600">Budget:</span>
+                        <span className="ml-2 font-medium">
+                          {selectedBudget.name}
+                        </span>
+                      </div>
+                    )}
+                    {formData.selectedCategories.length > 0 && (
+                      <div className="col-span-2">
+                        <span className="text-gray-600">Categories: </span>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {categories
+                            .filter((cat) =>
+                              formData.selectedCategories.includes(cat.id)
+                            )
+                            .map((category) => (
+                              <span
+                                key={category.id}
+                                className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full"
+                              >
+                                {category.name}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.description && (
+                    <div className="mt-3 pt-3 border-t border-red-200">
+                      <span className="text-gray-600 text-sm">Description: </span>
+                      <span className="text-sm text-gray-800">
+                        {formData.description}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Transaction Summary */}
+                {formData.amount > 0 && (
+                  <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm">
+                    <h3 className="font-bold text-red-700 mb-3 flex items-center">
+                      <span className="mr-1">💰</span>
+                      Transaction Summary
+                    </h3>
+
+                    {balanceInfo && !balanceInfo.isValid ? (
+                      <div className="p-3 bg-red-100 rounded-lg border border-red-200">
+                        <div className="flex items-center text-red-600 font-medium mb-2">
+                          <AlertCircle size={16} className="mr-2" />
+                          Insufficient funds
+                        </div>
+                        <div className="bg-white p-2 rounded-lg border border-red-100">
+                          <p className="text-sm text-gray-700">
+                            Amount exceeded by:
+                            <span className="ml-2 font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
+                              {Math.abs(balanceInfo.newBalance).toFixed(2)}{" "}
+                              {selectedAccount.currency}
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                    ) : balanceInfo ? (
+                      <div className="bg-white rounded-lg border border-red-100 shadow-sm overflow-hidden">
+                        <div className="grid grid-cols-1 divide-y divide-red-50">
+                          <div className="p-3 flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Current Balance:
+                            </span>
+                            <span className="font-medium">
+                              {balanceInfo.currentBalance.toFixed(2)}{" "}
+                              {selectedAccount.currency}
+                            </span>
+                          </div>
+                          <div className="p-3 flex justify-between items-center">
+                            <span className="text-sm text-gray-600">
+                              Transaction:
+                            </span>
+                            <span className="text-red-500 font-medium">
+                              -{balanceInfo.transactionAmount.toFixed(2)}{" "}
+                              {selectedAccount.currency}
+                            </span>
+                          </div>
+                          <div className="p-3 flex justify-between items-center bg-red-50/50">
+                            <span className="text-sm font-medium text-gray-700">
+                              New Balance:
+                            </span>
+                            <span className="font-bold">
+                              {balanceInfo.newBalance.toFixed(2)}{" "}
+                              {selectedAccount.currency}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* Currency Conversion Info */}
+                    {formData.currency !== selectedAccount.currency &&
+                      !conversionDetails.error &&
+                      !fetchingRates && (
+                        <div className="mt-3 text-sm">
+                          <div className="flex items-center text-red-700 mb-2">
+                            <Info size={14} className="mr-1" />
+                            <span className="font-medium">Currency Conversion</span>
+                          </div>
+
+                          <div className="flex items-center justify-between">
+                            <div className="px-3 py-2 bg-white rounded-lg border border-red-200 text-red-900">
+                              <p className="text-sm font-medium">
+                                {formData.amount.toFixed(2)} {formData.currency}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center justify-center px-2">
+                              <ArrowRight size={16} className="text-red-500" />
+                            </div>
+
+                            <div className="px-3 py-2 bg-red-500 text-white rounded-lg shadow-md">
+                              <p className="text-sm font-medium">
+                                {conversionDetails.convertedAmount.toFixed(2)}{" "}
+                                {selectedAccount.currency}
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="text-xs mt-2 text-red-600 border-t border-red-100 pt-2">
+                            <p className="flex items-center">
+                              <span className="mr-1">💱</span>
+                              Exchange rate: 1 {formData.currency} ={" "}
+                              {conversionDetails.rate.toFixed(4)}{" "}
+                              {selectedAccount.currency}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        );
+
+      default:
+        return null;
     }
   };
 
-  const calculateNewBalance = (): {
-    isValid: boolean;
-    currentBalance: number;
-    transactionAmount: number;
-    newBalance: number;
-    error?: string;
-  } | null => {
-    if (!selectedAccount || selectedAccount.amount === undefined) return null;
-
-    const transactionAmount = getTransactionAmount();
-
-    const currentBalance = selectedAccount.amount;
-
-    const newBalance = currentBalance - transactionAmount;
-
-    const isValid = newBalance >= 0;
-
-    return {
-      isValid,
-      currentBalance,
-      transactionAmount,
-      newBalance,
-      error: isValid ? undefined : "Insufficient funds",
-    };
-  };
-
-  const balanceInfo = selectedAccount ? calculateNewBalance() : null;
+  if (!isOpen) return null;
 
   return (
-    <AnimatedModal
-      isOpen={isOpen && !isClosing}
-      onClose={handleClose}
-      closeOnBackdropClick={true}
-      backdropBlur="md"
-      animationDuration={300}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        onClick={handleClose}
+      />
+      
+      {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
-        className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10"
         style={{
-          maxWidth: isMobileScreen ? "100%" : "36rem",
-          minWidth: isMobileScreen ? "auto" : "36rem",
-          height: isMobileScreen ? "90vh" : "85vh",
+          minWidth: isMobileScreen ? "100%" : "36rem",
+          height: isMobileScreen ? "70vh" : "60vh",
           maxHeight: "90vh",
         }}
-        ref={modalRef}
       >
-        {/* Fixed Header */}
+        {/* Header */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 py-4 relative z-10">
-          {/* Decorative circles */}
           <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
           <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
           <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
 
-          {/* Title in header */}
-          <div className="px-6 flex items-center justify-between relative">
+          <div className="px-6 flex items-center justify-between relative z-10 mb-3">
             <div className="flex items-center">
               <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
-                <motion.svg
-                  initial={{ rotate: 0 }}
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 0.3 }}
-                  className="w-6 h-6 text-red-600"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 13l-5 5m0 0l-5-5m5 5V6"
-                  />
-                </motion.svg>
+                <span className="text-2xl">💸</span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">
-                  Add an Expense 💸
-                </h2>
+                <h2 className="text-xl font-bold text-white">Add an Expense</h2>
+                <p className="text-sm text-white/90">
+                  {steps[currentStep - 1]}
+                </p>
               </div>
             </div>
 
@@ -470,891 +1074,80 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               onClick={handleClose}
               className="text-white/80 hover:text-white transition-colors"
             >
-              <svg
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+              <X size={20} />
             </button>
           </div>
-        </div>
 
-        {/* Scrollable Content Area */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6">
-            {/* Error message */}
-            {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.2 }}
-                className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-lg"
-              >
-                <div className="flex">
-                  <svg
-                    className="h-5 w-5 mr-2 text-red-500"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span>{error}</span>
-                </div>
-              </motion.div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleSubmit} className="space-y-5">
-              {/* Amount Input with Currency */}
-              <div>
-                <label
-                  htmlFor="amount"
-                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
-                >
-                  <span className="text-red-500 mr-1">💰</span>
-                  Amount<span className="text-red-500">*</span>
-                </label>
-                <div className="flex border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden">
-                  <input
-                    type="text"
-                    id="amount"
-                    name="amount"
-                    className="flex-1 min-w-0 px-4 py-3 focus:outline-none bg-transparent font-bold text-xl text-gray-800"
-                    placeholder="0.00"
-                    autoComplete="off"
-                    required
-                    value={amountString}
-                    onChange={(e) => {
-                      const value = e.target.value;
-
-                      if (value === "" || /^[0-9]*([.,][0-9]*)?$/.test(value)) {
-                        setAmountString(value);
-
-                        if (value === "") {
-                          setFormData({
-                            ...formData,
-                            amount: 0,
-                          });
-                        } else {
-                          const numericValue = parseFloat(
-                            value.replace(",", ".")
-                          );
-
-                          if (!isNaN(numericValue)) {
-                            setFormData({
-                              ...formData,
-                              amount: numericValue,
-                            });
-                          }
-                        }
-                      }
-                    }}
-                  />
-
-                  <div className="flex items-center">
-                    <select
-                      value={formData.currency}
-                      onChange={(e) =>
-                        setFormData({ ...formData, currency: e.target.value })
-                      }
-                      className="h-full w-20 px-2 py-3 bg-red-600 text-white font-medium focus:outline-none appearance-none text-center"
-                      disabled={isLoading || fetchingRates}
-                    >
-                      {fetchingRates ? (
-                        <option>...</option>
-                      ) : ratesError ? (
-                        <option>Err</option>
-                      ) : (
-                        // Limit to 5 most common currencies + current selected if not in top 5
-                        (() => {
-                          const topCurrencies = [
-                            "USD",
-                            "EUR",
-                            "GBP",
-                            "JPY",
-                            "RON",
-                          ]; // Most common currencies
-                          const currentCurrency = formData.currency;
-
-                          // Add current currency to the list if not already in top currencies
-                          if (!topCurrencies.includes(currentCurrency)) {
-                            topCurrencies.pop(); // Remove last element
-                            topCurrencies.unshift(currentCurrency); // Add current currency at the beginning
-                          }
-
-                          return topCurrencies
-                            .filter((curr) => rates[curr]) // Ensure the currency exists in rates
-                            .map((curr) => (
-                              <option key={curr} value={curr}>
-                                {curr}
-                              </option>
-                            ));
-                        })()
-                      )}
-                    </select>
-                    
-                  </div>
-                </div>
-
-                {/* Show additional currency info for mobile */}
-                {isMobileScreen && (
-                  <div className="mt-1 text-xs text-gray-500 flex items-center">
-                    <svg
-                      className="w-3 h-3 mr-1 text-red-500"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Tap to select currency
-                  </div>
-                )}
-              </div>
-
-              {/* Name Field */}
-              <div>
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
-                >
-                  <span className="text-red-500 mr-1">🏷️</span>
-                  Expense Name<span className="text-red-500">*</span>
-                </label>
-                <motion.input
-                  whileFocus={{ scale: 1.01 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleInputChange}
-                  className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50"
-                  placeholder="Enter expense name"
-                  required
+          {/* Progress */}
+          <div className="px-6 relative z-10">
+            <div className="flex gap-1">
+              {steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1 flex-1 rounded transition-all duration-300 ${
+                    index < currentStep ? "bg-white" : "bg-white/30"
+                  }`}
                 />
-              </div>
-
-              {/* Account Dropdown */}
-              <div>
-                <label
-                  htmlFor="accountInput"
-                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
-                >
-                  <span className="text-red-500 mr-1">💳</span>
-                  Account<span className="text-red-500">*</span>
-                </label>
-                {accountsLoading ? (
-                  <div className="animate-pulse h-11 bg-gray-200 rounded-xl"></div>
-                ) : accounts.length === 0 ? (
-                  <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
-                    No accounts available. Please create one first.
-                  </div>
-                ) : (
-                  <div className="relative" ref={accountRef}>
-                    <div
-                      className="flex items-center border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden h-[42px]"
-                      onClick={() =>
-                        setShowAccountDropdown(!showAccountDropdown)
-                      }
-                    >
-                      <div className="p-2 m-1.5 rounded-md">
-                        <svg
-                          className="h-5 w-5 text-red-500"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"
-                          />
-                        </svg>
-                      </div>
-                      <div className="flex-grow">
-                        {selectedAccount ? (
-                          <input
-                            type="text"
-                            className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium"
-                            value={[
-                              selectedAccount.name +
-                                " (" +
-                                selectedAccount.amount.toFixed(2) +
-                                " " +
-                                selectedAccount.currency +
-                                ")",
-                            ]}
-                            readOnly
-                            onClick={() => setShowAccountDropdown(true)}
-                          />
-                        ) : (
-                          <input
-                            type="text"
-                            value={accountInput}
-                            onChange={handleAccountInputChange}
-                            className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
-                            placeholder="Type to search accounts"
-                            onClick={() => setShowAccountDropdown(true)}
-                          />
-                        )}
-                      </div>
-                      {(accountInput || selectedAccount) && (
-                        <button
-                          type="button"
-                          className="px-2 text-gray-400 hover:text-gray-600"
-                          onClick={clearAccountSelection}
-                        >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
-                      )}
-                      <div className="px-2 text-gray-400">
-                        <svg
-                          className={`w-4 h-4 transition-transform duration-200 ${
-                            showAccountDropdown ? "transform rotate-180" : ""
-                          }`}
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 9l-7 7-7-7"
-                          />
-                        </svg>
-                      </div>
-                    </div>
-
-                    {showAccountDropdown && (
-                      <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-md max-h-40 overflow-y-auto"
-                      >
-                        {filteredAccounts.length === 0 ? (
-                          <div className="p-3 text-sm text-gray-500">
-                            No matching accounts
-                          </div>
-                        ) : (
-                          filteredAccounts.map((account) => (
-                            <motion.div
-                              key={account.id}
-                              whileHover={{
-                                backgroundColor: "rgba(254, 202, 202, 0.2)",
-                              }}
-                              className={`px-3 py-2 cursor-pointer text-sm ${
-                                selectedAccount?.id === account.id
-                                  ? "bg-red-100"
-                                  : ""
-                              }`}
-                              onClick={() => selectAccount(account)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium truncate">
-                                  {account.name}
-                                </span>
-                                <span className="text-xs text-gray-500 ml-1">
-                                  {account.amount !== undefined
-                                    ? `${account.amount.toFixed(2)} ${account.currency}`
-                                    : ""}
-                                </span>
-                              </div>
-                            </motion.div>
-                          ))
-                        )}
-                      </motion.div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Budget and Categories Toggle */}
-              <div>
-                <div className="flex border-b border-gray-200 mb-2">
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("budget")}
-                    className={`py-2 px-4 text-sm font-medium ${
-                      activeTab === "budget"
-                        ? "text-red-600 border-b-2 border-red-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    Budget
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveTab("categories")}
-                    className={`py-2 px-4 text-sm font-medium ${
-                      activeTab === "categories"
-                        ? "text-red-600 border-b-2 border-red-600"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                  >
-                    Categories
-                  </button>
-                </div>
-
-                {/* Show Budget or Categories based on active tab */}
-                {activeTab === "budget" ? (
-                  /* Budget Dropdown */
-                  <div>
-                    <label
-                      htmlFor="budgetInput"
-                      className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
-                    >
-                      <span className="text-red-500 mr-1">📊</span>
-                      Budget (Optional)
-                    </label>
-                    {budgets.length === 0 ? (
-                      <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
-                        No budgets available.
-                      </div>
-                    ) : (
-                      <div className="relative" ref={budgetRef}>
-                        <div
-                          className="flex items-center border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden h-[42px]"
-                          onClick={() =>
-                            setShowBudgetDropdown(!showBudgetDropdown)
-                          }
-                        >
-                          <div className="p-2 m-1.5 rounded-md">
-                            <svg
-                              className="h-5 w-5 text-red-500"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
-                              />
-                            </svg>
-                          </div>
-                          <div className="flex-grow">
-                            {selectedBudget ? (
-                              <input
-                                type="text"
-                                className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800 font-medium"
-                                value={selectedBudget.name}
-                                readOnly
-                                onClick={() => setShowBudgetDropdown(true)}
-                              />
-                            ) : (
-                              <input
-                                type="text"
-                                value={budgetInput}
-                                onChange={handleBudgetInputChange}
-                                className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
-                                placeholder="Type to search budgets"
-                                onClick={() => setShowBudgetDropdown(true)}
-                              />
-                            )}
-                          </div>
-                          {(budgetInput || selectedBudget) && (
-                            <button
-                              type="button"
-                              className="px-2 text-gray-400 hover:text-gray-600"
-                              onClick={clearBudgetSelection}
-                            >
-                              <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M6 18L18 6M6 6l12 12"
-                                />
-                              </svg>
-                            </button>
-                          )}
-                          <div className="px-2 text-gray-400">
-                            <svg
-                              className={`w-4 h-4 transition-transform duration-200 ${
-                                showBudgetDropdown ? "transform rotate-180" : ""
-                              }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-
-                        {showBudgetDropdown && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-md max-h-40 overflow-y-auto"
-                          >
-                            {filteredBudgets.length === 0 ? (
-                              <div className="p-3 text-sm text-gray-500">
-                                No matching budgets
-                              </div>
-                            ) : (
-                              filteredBudgets.map((budget) => (
-                                <motion.div
-                                  key={budget.id}
-                                  whileHover={{
-                                    backgroundColor: "rgba(254, 202, 202, 0.2)",
-                                  }}
-                                  className={`px-3 py-2 cursor-pointer text-sm ${
-                                    selectedBudget?.id === budget.id
-                                      ? "bg-red-100"
-                                      : ""
-                                  }`}
-                                  onClick={() => selectBudget(budget)}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <span className="font-medium truncate">
-                                      {budget.name}
-                                    </span>
-                                    <span className="text-xs text-gray-500 ml-1">
-                                      {budget.currentSpent !== undefined
-                                        ? `${budget.currentSpent.toFixed(2)} ${budget.currency}`
-                                        : ""}
-                                    </span>
-                                  </div>
-                                </motion.div>
-                              ))
-                            )}
-                          </motion.div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  /* Categories Selection */
-                  <div>
-                    <label
-                      htmlFor="categoryInput"
-                      className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
-                    >
-                      <span className="text-red-500 mr-1">🏷️</span>
-                      Categories (Optional)
-                    </label>
-                    {categories.length === 0 ? (
-                      <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
-                        No categories available.
-                      </div>
-                    ) : (
-                      <div className="relative" ref={categoryRef}>
-                        <div className="flex items-center border border-red-200 rounded-xl focus-within:ring-2 focus-within:ring-red-500 focus-within:border-transparent transition-all bg-red-50/50 overflow-hidden h-[42px]">
-                          <div className="p-2 m-1.5 rounded-md">
-                            <svg
-                              className="h-5 w-5 text-red-500"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                              />
-                            </svg>
-                          </div>
-                          <input
-                            type="text"
-                            value={categoryInput}
-                            onChange={handleCategoryInputChange}
-                            className="w-full py-2.5 px-0 bg-transparent outline-none text-gray-800"
-                            placeholder="Search categories"
-                            onClick={() => setShowCategoryDropdown(true)}
-                          />
-                          <div className="px-2 text-gray-400">
-                            <svg
-                              className={`w-4 h-4 transition-transform duration-200 ${
-                                showCategoryDropdown
-                                  ? "transform rotate-180"
-                                  : ""
-                              }`}
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 9l-7 7-7-7"
-                              />
-                            </svg>
-                          </div>
-                        </div>
-
-                        {/* Display selected categories as tags */}
-                        {formData.selectedCategories.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-2">
-                            {formData.selectedCategories.map((catId) => {
-                              const category = categories.find(
-                                (c) => c.id === catId
-                              );
-                              return (
-                                category && (
-                                  <motion.div
-                                    key={category.id}
-                                    initial={{ scale: 0.8, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    className="inline-flex items-center bg-red-50 text-red-700 px-2 py-1 rounded-full text-xs"
-                                  >
-                                    <span>{category.name}</span>
-                                    <button
-                                      type="button"
-                                      className="ml-1 text-red-500 hover:text-red-700"
-                                      onClick={() => {
-                                        setFormData({
-                                          ...formData,
-                                          selectedCategories:
-                                            formData.selectedCategories.filter(
-                                              (id) => id !== category.id
-                                            ),
-                                        });
-                                      }}
-                                    >
-                                      <svg
-                                        className="w-3 h-3"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          strokeWidth={2}
-                                          d="M6 18L18 6M6 6l12 12"
-                                        />
-                                      </svg>
-                                    </button>
-                                  </motion.div>
-                                )
-                              );
-                            })}
-                          </div>
-                        )}
-
-                        {/* Dropdown for category search results */}
-                        {showCategoryDropdown && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-md max-h-40 overflow-y-auto"
-                          >
-                            {filteredCategories.length === 0 ? (
-                              <div className="p-3 text-sm text-gray-500">
-                                No matching categories
-                              </div>
-                            ) : (
-                              filteredCategories.map((category) => (
-                                <motion.div
-                                  key={category.id}
-                                  whileHover={{
-                                    backgroundColor: "rgba(254, 202, 202, 0.2)",
-                                  }}
-                                  className="px-3 py-2 cursor-pointer text-sm"
-                                  onClick={() => selectCategory(category)}
-                                >
-                                  <div className="flex items-center">
-                                    <span className="font-medium truncate">
-                                      {category.name}
-                                    </span>
-                                  </div>
-                                </motion.div>
-                              ))
-                            )}
-                          </motion.div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Description Field */}
-              <div>
-                <label
-                  htmlFor="description"
-                  className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
-                >
-                  <span className="text-red-500 mr-1">📝</span>
-                  Description (Optional)
-                </label>
-                <motion.textarea
-                  whileFocus={{ scale: 1.01 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleInputChange}
-                  rows={3}
-                  className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50"
-                  placeholder="Add expense details"
-                />
-              </div>
-
-              {/* Transaction Summary */}
-              {selectedAccount && formData.amount > 0 && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="p-5 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm mt-4"
-                >
-                  <h3 className="font-bold text-red-700 mb-3 flex items-center">
-                    <span className="mr-1">💰</span>
-                    Transaction Summary
-                  </h3>
-
-                  {balanceInfo && !balanceInfo.isValid ? (
-                    <div className="p-3 bg-red-100 rounded-lg border border-red-200">
-                      <div className="flex items-center text-red-600 font-medium mb-2">
-                        <svg
-                          className="w-5 h-5 mr-2 text-red-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                        Insufficient funds
-                      </div>
-                      <div className="bg-white p-2 rounded-lg border border-red-100">
-                        <p className="text-sm text-gray-700">
-                          Amount exceeded by:
-                          <span className="ml-2 font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
-                            {Math.abs(balanceInfo.newBalance).toFixed(2)}{" "}
-                            {selectedAccount.currency}
-                          </span>
-                        </p>
-                      </div>
-                    </div>
-                  ) : balanceInfo ? (
-                    <div className="bg-white rounded-lg border border-red-100 shadow-sm overflow-hidden">
-                      <div className="grid grid-cols-1 divide-y divide-red-50">
-                        {/* Current Balance */}
-                        <div className="p-3 flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Current Balance:
-                          </span>
-                          <span className="font-medium">
-                            {balanceInfo.currentBalance.toFixed(2)}{" "}
-                            {selectedAccount.currency}
-                          </span>
-                        </div>
-
-                        {/* Transaction Amount */}
-                        <div className="p-3 flex justify-between items-center">
-                          <span className="text-sm text-gray-600">
-                            Transaction:
-                          </span>
-                          <span className="text-red-500 font-medium">
-                            -{balanceInfo.transactionAmount.toFixed(2)}{" "}
-                            {selectedAccount.currency}
-                          </span>
-                        </div>
-
-                        {/* New Balance */}
-                        <div className="p-3 flex justify-between items-center bg-red-50/50">
-                          <span className="text-sm font-medium text-gray-700">
-                            New Balance:
-                          </span>
-                          <span className="font-bold">
-                            {balanceInfo.newBalance.toFixed(2)}{" "}
-                            {selectedAccount.currency}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {/* Currency Conversion Info */}
-                  {selectedAccount &&
-                    formData.currency !== selectedAccount.currency &&
-                    !conversionDetails.error &&
-                    !fetchingRates && (
-                      <div className="mt-3 text-sm">
-                        <div className="flex items-center text-red-700 mb-2">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 mr-1"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"
-                            />
-                          </svg>
-                          <span className="font-medium">
-                            Currency Conversion
-                          </span>
-                        </div>
-
-                        <div className="flex items-center justify-between">
-                          <div className="px-3 py-2 bg-white rounded-lg border border-red-200 text-red-900">
-                            <p className="text-sm font-medium">
-                              {formData.amount.toFixed(2)} {formData.currency}
-                            </p>
-                          </div>
-
-                          <div className="flex items-center justify-center px-2">
-                            <motion.div
-                              animate={{ x: [-5, 5, -5] }}
-                              transition={{ repeat: Infinity, duration: 1.5 }}
-                            >
-                              <svg
-                                className="h-5 w-5 text-red-500"
-                                fill="none"
-                                viewBox="0 0 24 24"
-                                stroke="currentColor"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M14 5l7 7m0 0l-7 7m7-7H3"
-                                />
-                              </svg>
-                            </motion.div>
-                          </div>
-
-                          <div className="px-3 py-2 bg-red-500 text-white rounded-lg shadow-md">
-                            <p className="text-sm font-medium">
-                              {conversionDetails.convertedAmount.toFixed(2)}{" "}
-                              {selectedAccount.currency}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="text-xs mt-2 text-red-600 border-t border-red-100 pt-2">
-                          <p className="flex items-center">
-                            <span className="mr-1">💱</span>
-                            Exchange rate: 1 {formData.currency} ={" "}
-                            {conversionDetails.rate.toFixed(4)}{" "}
-                            {selectedAccount.currency}
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                </motion.div>
-              )}
-
-              {/* Buttons */}
-              <div
-                className={`flex ${isMobileScreen ? "flex-col-reverse gap-2" : "gap-3"} pt-4 pb-2`}
-              >
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.1 }}
-                  type="button"
-                  onClick={handleClose}
-                  className={`${isMobileScreen ? "w-full" : "flex-1"} py-3 px-4 border-2 border-red-200 rounded-xl text-red-600 font-medium bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-300 transition-all shadow-sm`}
-                  disabled={isLoading}
-                >
-                  Cancel
-                </motion.button>
-                <motion.button
-                  whileHover={{
-                    scale: 1.02,
-                    boxShadow: "0 10px 15px -3px rgba(239, 68, 68, 0.2)",
-                  }}
-                  whileTap={{ scale: 0.98 }}
-                  transition={{ duration: 0.1 }}
-                  type="submit"
-                  className={`${isMobileScreen ? "w-full" : "flex-1"} py-3 px-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center shadow-lg`}
-                  disabled={
-                    isLoading ||
-                    progressPercentage < 100 ||
-                    !selectedAccount ||
-                    (balanceInfo ? !balanceInfo.isValid : false)
-                  }
-                >
-                  {isLoading ? (
-                    <>
-                      <svg
-                        className="animate-spin -ml-1 mr-2 h-5 w-5 text-white"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Creating...
-                    </>
-                  ) : (
-                    "Create Expense"
-                  )}
-                </motion.button>
-              </div>
-            </form>
+              ))}
+            </div>
           </div>
         </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2 shadow-sm"
+            >
+              <AlertCircle size={16} />
+              {error}
+            </motion.div>
+          )}
+
+          {renderStepContent()}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 border-t bg-gray-50/50 flex justify-between">
+          <button
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+
+          {currentStep < 3 ? (
+            <button
+              onClick={nextStep}
+              disabled={!canProceed()}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+            >
+              Continue
+              <ArrowRight size={16} />
+            </button>
+          ) : (
+            <button
+              onClick={handleSubmit}
+              disabled={
+                isLoading || (balanceInfo ? !balanceInfo.isValid : false)
+              }
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+            >
+              {isLoading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              ) : (
+                "💸"
+              )}
+              Create Expense
+            </button>
+          )}
+        </div>
       </motion.div>
-    </AnimatedModal>
+    </div>
   );
 };
 

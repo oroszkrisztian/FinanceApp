@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Budget } from "../../interfaces/Budget";
 import { CustomCategory } from "../../interfaces/CustomCategory";
 import { useAuth } from "../../context/AuthContext";
@@ -7,6 +7,7 @@ import CreateNewBudget from "./CreateNewBudget";
 import EditBudget from "./EditBudget";
 import { deleteUserBudget } from "../../services/budgetService";
 import { motion, AnimatePresence } from "framer-motion";
+import { Filter, ChevronDown, Tag, TrendingUp, Search, X } from "lucide-react";
 
 interface BudgetsProps {
   budgets: Budget[] | null;
@@ -31,9 +32,20 @@ const Budgets: React.FC<BudgetsProps> = ({
     useState<Budget | null>(null);
   const [isReloading, setIsReloading] = useState<boolean>(false);
   const [updatedBudgetId, setUpdatedBudgetId] = useState<number | null>(null);
-  const [animate, setAnimate] = useState<number | null>(null);
+  const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+  // New filter states
+  const [categorySearchTerm, setCategorySearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [sortByPercentage, setSortByPercentage] = useState("high-to-low");
+  const [isSortDropdownOpen, setIsSortDropdownOpen] = useState(false);
+  const [isFilterExpanded, setIsFilterExpanded] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const sortDropdownRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   const cardVariants = {
@@ -64,13 +76,13 @@ const Budgets: React.FC<BudgetsProps> = ({
 
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
-    show: { 
-      opacity: 1, 
+    show: {
+      opacity: 1,
       y: 0,
       transition: {
         duration: 0.5,
         ease: "easeOut",
-      }
+      },
     },
   };
 
@@ -79,13 +91,21 @@ const Budgets: React.FC<BudgetsProps> = ({
   );
 
   useEffect(() => {
+    const checkScreenSize = () => {
+      setIsSmallScreen(window.innerWidth < 768);
+    };
+    checkScreenSize();
+    window.addEventListener("resize", checkScreenSize);
+    return () => window.removeEventListener("resize", checkScreenSize);
+  }, []);
+
+  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (openMenuId) {
         const buttonRef = menuButtonRefs.current.get(openMenuId);
         const menuElement = document.querySelector(
           `[data-menu-id="${openMenuId}"]`
         );
-
         if (
           buttonRef &&
           !buttonRef.contains(event.target as Node) &&
@@ -95,12 +115,31 @@ const Budgets: React.FC<BudgetsProps> = ({
           setOpenMenuId(null);
         }
       }
+
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setShowSearchDropdown(false);
+      }
+
+      if (
+        categoryDropdownRef.current &&
+        !categoryDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryDropdownOpen(false);
+      }
+
+      if (
+        sortDropdownRef.current &&
+        !sortDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsSortDropdownOpen(false);
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [openMenuId]);
 
   const calculatePercentage = (spent: number, limit: number) => {
@@ -110,7 +149,6 @@ const Budgets: React.FC<BudgetsProps> = ({
 
   const getGradientColor = (percentage: number) => {
     let r, g, b;
-
     if (percentage <= 50) {
       r = 50 + (percentage / 50) * (255 - 50);
       g = 200 + (percentage / 50) * (230 - 200);
@@ -120,18 +158,15 @@ const Budgets: React.FC<BudgetsProps> = ({
       g = 230 - ((percentage - 50) / 50) * (230 - 60);
       b = 0 + ((percentage - 50) / 50) * 60;
     }
-
     return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
   };
 
   const getLightColor = (color: string) => {
     const rgbMatch = color.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
     if (!rgbMatch) return "rgba(240, 253, 244, 0.8)";
-
     const r = parseInt(rgbMatch[1]);
     const g = parseInt(rgbMatch[2]);
     const b = parseInt(rgbMatch[3]);
-
     return `rgba(${r}, ${g}, ${b}, 0.15)`;
   };
 
@@ -142,7 +177,6 @@ const Budgets: React.FC<BudgetsProps> = ({
   };
 
   const handleEditBudget = (budget: Budget) => {
-    console.log("Edit button clicked for budget:", budget);
     setSelectedBudget(budget);
     setIsEditModalOpen(true);
     setOpenMenuId(null);
@@ -153,7 +187,6 @@ const Budgets: React.FC<BudgetsProps> = ({
       setError("User not found");
       return;
     }
-
     try {
       const response = await deleteUserBudget(user.id, budget.id);
       if (response.error) {
@@ -186,51 +219,87 @@ const Budgets: React.FC<BudgetsProps> = ({
     setSelectedSearchResult(null);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        searchRef.current &&
-        !searchRef.current.contains(event.target as Node)
-      ) {
-        setShowSearchDropdown(false);
-      }
-    };
+  // Category suggestions based on search
+  const filteredCategorySuggestions = useMemo(() => {
+    const allCategories = new Set<string>();
+    budgets?.forEach((budget) => {
+      budget.customCategories.forEach((cat) => {
+        allCategories.add(cat.name);
+      });
+    });
+    const categoryArray = Array.from(allCategories);
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, []);
+    if (!categorySearchTerm.trim()) {
+      return categoryArray;
+    }
+
+    return categoryArray.filter((cat) =>
+      cat.toLowerCase().includes(categorySearchTerm.toLowerCase())
+    );
+  }, [budgets, categorySearchTerm]);
 
   const searchResults =
     budgets?.filter((budget) =>
       budget.name.toLowerCase().includes(searchInput.toLowerCase())
     ) || [];
 
-  const filterBudgets = (budgets: Budget[] | null | undefined) => {
-    return (
-      budgets?.filter((budget) =>
-        budget.name.toLowerCase().includes(searchInput.toLowerCase())
-      ) || []
-    );
-  };
+  // Enhanced filtering and sorting logic
+  const filteredAndSortedBudgets = useMemo(() => {
+    if (!budgets) return [];
 
-  const filteredBudgets = filterBudgets(
-    budgets?.filter((budget) =>
-      selectedSearchResult
+    let filtered = budgets.filter((budget) => {
+      // Name search filter
+      const nameMatch = selectedSearchResult
         ? budget.id === selectedSearchResult.id
-        : budget.name.toLowerCase().includes(searchInput.toLowerCase())
-    )
-  );
+        : searchInput === "" ||
+          budget.name.toLowerCase().includes(searchInput.toLowerCase());
+
+      // Category filter
+      const categoryMatch =
+        selectedCategory === "" ||
+        budget.customCategories.some((cat) =>
+          cat.name.toLowerCase().includes(selectedCategory.toLowerCase())
+        );
+
+      return nameMatch && categoryMatch;
+    });
+
+    // Sort by percentage if selected
+    if (sortByPercentage === "high-to-low") {
+      filtered = filtered.sort((a, b) => {
+        const percentageA = calculatePercentage(a.currentSpent, a.limitAmount);
+        const percentageB = calculatePercentage(b.currentSpent, b.limitAmount);
+        return percentageB - percentageA;
+      });
+    } else if (sortByPercentage === "low-to-high") {
+      filtered = filtered.sort((a, b) => {
+        const percentageA = calculatePercentage(a.currentSpent, a.limitAmount);
+        const percentageB = calculatePercentage(b.currentSpent, b.limitAmount);
+        return percentageA - percentageB;
+      });
+    }
+
+    return filtered;
+  }, [
+    budgets,
+    searchInput,
+    selectedSearchResult,
+    selectedCategory,
+    sortByPercentage,
+  ]);
+
+  const hasActiveFilters =
+    searchInput !== "" ||
+    selectedSearchResult !== null ||
+    selectedCategory !== "" ||
+    (sortByPercentage !== "" && sortByPercentage !== "high-to-low");
 
   const handleSuccessCallback = useCallback(
     (budgetId?: number) => {
       if (budgetId) {
         setUpdatedBudgetId(budgetId);
       }
-
       onSuccess?.();
-
       setTimeout(() => {
         setUpdatedBudgetId(null);
       }, 1500);
@@ -247,13 +316,12 @@ const Budgets: React.FC<BudgetsProps> = ({
         variants={containerVariants}
         className="py-2 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 overflow-y-auto pr-1 h-full max-h-[calc(100vh-200px)] pb-4"
       >
-        {filteredBudgets.map((budget, index) => {
+        {filteredAndSortedBudgets.map((budget, index) => {
           const percentage = calculatePercentage(
             budget.currentSpent,
             budget.limitAmount
           );
           const remainingAmount = budget.limitAmount - budget.currentSpent;
-
           const mainColor = getGradientColor(percentage);
           const lightColor = getLightColor(mainColor);
           const textColor = getTextColor(percentage);
@@ -262,13 +330,8 @@ const Budgets: React.FC<BudgetsProps> = ({
             <motion.div
               key={budget.id}
               variants={itemVariants}
-              animate={
-                updatedBudgetId === budget.id ? "updated" : undefined
-              }
-              whileHover={{
-                y: -5,
-                transition: { duration: 0.2 },
-              }}
+              animate={updatedBudgetId === budget.id ? "updated" : undefined}
+              whileHover={{ y: -5, transition: { duration: 0.2 } }}
               className="relative bg-white p-5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.06)] border border-gray-100 overflow-hidden backdrop-blur-sm"
               style={{
                 background: `radial-gradient(circle at top right, ${getLightColor(mainColor)}, white 70%)`,
@@ -277,7 +340,7 @@ const Budgets: React.FC<BudgetsProps> = ({
               <div
                 className="absolute top-0 right-0 w-24 h-24 opacity-20 rounded-bl-[100%]"
                 style={{ backgroundColor: mainColor }}
-              ></div>
+              />
 
               <div className="absolute bottom-0 left-0 right-0 h-20 z-0 overflow-hidden opacity-60">
                 <div
@@ -287,7 +350,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                     clipPath:
                       "path('M0,50 Q50,0 100,50 T200,50 T300,50 T400,50 L400,100 L0,100 Z')",
                   }}
-                ></div>
+                />
               </div>
 
               <div className="relative">
@@ -300,7 +363,6 @@ const Budgets: React.FC<BudgetsProps> = ({
 
                   <div className="relative">
                     <button
-                      id={`menu-button-${budget.id}`}
                       ref={(el) =>
                         menuButtonRefs.current.set(String(budget.id), el)
                       }
@@ -435,7 +497,7 @@ const Budgets: React.FC<BudgetsProps> = ({
                           backgroundColor: mainColor,
                           width: `${percentage}%`,
                         }}
-                      ></div>
+                      />
                     </div>
                   </div>
 
@@ -512,7 +574,7 @@ const Budgets: React.FC<BudgetsProps> = ({
   );
 
   return (
-    <div className="p-2h-full flex flex-col">
+    <div className="p-2 h-full flex flex-col">
       {!budgets || budgets.length === 0 ? (
         <EmptyBudget categories={categories} onSuccess={onSuccess} />
       ) : (
@@ -536,9 +598,10 @@ const Budgets: React.FC<BudgetsProps> = ({
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3, delay: 0.2 }}
                 >
+                  {/* Search */}
                   <div ref={searchRef} className="relative sm:max-w-60 w-full">
                     <div
-                      className="flex items-center bg-indigo-50/70 border border-indigo-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent group hover:bg-indigo-50"
+                      className="flex items-center bg-indigo-50/70 border border-indigo-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent group hover:bg-indigo-50 h-[42px]"
                       onClick={() => setShowSearchDropdown(!showSearchDropdown)}
                     >
                       <div className="px-3 text-indigo-400">
@@ -676,6 +739,169 @@ const Budgets: React.FC<BudgetsProps> = ({
                       </div>
                     )}
                   </div>
+
+                  {/* Category Filter with Search + Dropdown */}
+                  {(!isSmallScreen || isFilterExpanded) && (
+                    <div
+                      className="relative sm:max-w-48 w-full"
+                      ref={categoryDropdownRef}
+                    >
+                      <div className="flex items-center bg-indigo-50/70 border border-indigo-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent group hover:bg-indigo-50 h-[42px]">
+                        <div className="px-3 text-indigo-400">
+                          <Tag size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          className="w-full py-2.5 bg-transparent outline-none text-gray-900 font-medium placeholder-gray-500 text-sm"
+                          placeholder={selectedCategory || "Category..."}
+                          value={categorySearchTerm}
+                          onChange={(e) => {
+                            setCategorySearchTerm(e.target.value);
+                            setIsCategoryDropdownOpen(true);
+                          }}
+                          onFocus={() => setIsCategoryDropdownOpen(true)}
+                        />
+                        {selectedCategory && (
+                          <button
+                            type="button"
+                            className="px-2 text-indigo-400 hover:text-indigo-600"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedCategory("");
+                              setCategorySearchTerm("");
+                            }}
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                        <div className="px-2 text-indigo-400">
+                          <ChevronDown
+                            size={14}
+                            className={`transition-transform ${isCategoryDropdownOpen ? "rotate-180" : ""}`}
+                          />
+                        </div>
+                      </div>
+
+                      {isCategoryDropdownOpen && (
+                        <div className="absolute z-20 mt-1 w-full bg-white border border-indigo-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          <button
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 text-gray-700"
+                            onClick={() => {
+                              setSelectedCategory("");
+                              setCategorySearchTerm("");
+                              setIsCategoryDropdownOpen(false);
+                            }}
+                          >
+                            All Categories
+                          </button>
+                          {filteredCategorySuggestions.map((category) => (
+                            <button
+                              key={category}
+                              className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 ${
+                                selectedCategory === category
+                                  ? "bg-indigo-50 text-indigo-700"
+                                  : "text-gray-700"
+                              }`}
+                              onClick={() => {
+                                setSelectedCategory(category);
+                                setCategorySearchTerm("");
+                                setIsCategoryDropdownOpen(false);
+                              }}
+                            >
+                              {category}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Sort by Percentage */}
+                  {(!isSmallScreen || isFilterExpanded) && (
+                    <div
+                      className="relative sm:max-w-44 w-full"
+                      ref={sortDropdownRef}
+                    >
+                      <button
+                        className="w-full flex items-center justify-between bg-indigo-50/70 border border-indigo-200 rounded-lg px-3 py-2.5 text-left hover:bg-indigo-50 transition-colors h-[42px]"
+                        onClick={() =>
+                          setIsSortDropdownOpen(!isSortDropdownOpen)
+                        }
+                      >
+                        <div className="flex items-center gap-2">
+                          <TrendingUp size={16} className="text-indigo-400" />
+                          <span className="text-gray-700 text-sm">
+                            {sortByPercentage === "high-to-low"
+                              ? "High to Low"
+                              : sortByPercentage === "low-to-high"
+                                ? "Low to High"
+                                : "Sort %"}
+                          </span>
+                        </div>
+                        <ChevronDown
+                          size={14}
+                          className={`text-indigo-400 transition-transform ${isSortDropdownOpen ? "rotate-180" : ""}`}
+                        />
+                      </button>
+
+                      {isSortDropdownOpen && (
+                        <div className="absolute z-20 mt-1 w-full bg-white border border-indigo-200 rounded-lg shadow-lg">
+                          <button
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 text-gray-700"
+                            onClick={() => {
+                              setSortByPercentage("");
+                              setIsSortDropdownOpen(false);
+                            }}
+                          >
+                            No Sorting
+                          </button>
+                          <button
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 ${
+                              sortByPercentage === "high-to-low"
+                                ? "bg-indigo-50 text-indigo-700"
+                                : "text-gray-700"
+                            }`}
+                            onClick={() => {
+                              setSortByPercentage("high-to-low");
+                              setIsSortDropdownOpen(false);
+                            }}
+                          >
+                            High to Low %
+                          </button>
+                          <button
+                            className={`w-full text-left px-4 py-2 text-sm hover:bg-indigo-50 ${
+                              sortByPercentage === "low-to-high"
+                                ? "bg-indigo-50 text-indigo-700"
+                                : "text-gray-700"
+                            }`}
+                            onClick={() => {
+                              setSortByPercentage("low-to-high");
+                              setIsSortDropdownOpen(false);
+                            }}
+                          >
+                            Low to High %
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Filter Toggle for Mobile */}
+                  {isSmallScreen && (
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors relative"
+                      onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                    >
+                      <Filter size={20} />
+                      {hasActiveFilters && (
+                        <span className="absolute -top-1 -right-1 bg-indigo-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                          !
+                        </span>
+                      )}
+                    </motion.button>
+                  )}
                 </motion.div>
 
                 <motion.button
@@ -683,15 +909,6 @@ const Budgets: React.FC<BudgetsProps> = ({
                   whileHover={{ scale: 1.03 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all shadow-md flex items-center justify-center whitespace-nowrap"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{
-                    duration: 0.3,
-                    delay: 0.3,
-                    type: "spring",
-                    stiffness: 400,
-                    damping: 17,
-                  }}
                 >
                   <svg
                     className="w-5 h-5 mr-2"

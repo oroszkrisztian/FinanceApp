@@ -222,7 +222,10 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
 
                   <button
                     className="flex items-center w-full text-left px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-all duration-200 hover:translate-x-1"
-                    onClick={() => onEdit(account.id)}
+                    onClick={() => {
+                      setOpenMenuId(null);
+                      onEdit(account.id);
+                    }}
                   >
                     <div className="flex items-center justify-center h-8 w-8 rounded-full bg-indigo-50 text-indigo-600 mr-3">
                       <svg
@@ -244,7 +247,10 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
 
                   <button
                     className="flex items-center w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:translate-x-1 mt-1 mb-1"
-                    onClick={() => onDelete(account.id, account.name)}
+                    onClick={() => {
+                      setOpenMenuId(null);
+                      onDelete(account.id, account.name);
+                    }}
                   >
                     <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-50 text-red-600 mr-3">
                       <svg

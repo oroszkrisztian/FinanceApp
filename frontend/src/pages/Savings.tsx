@@ -243,7 +243,10 @@ const Savings: React.FC = () => {
   const handleEdit = async (accountId: number): Promise<void> => {
     if (!user?.id) return;
     setActiveMenu(null);
-
+    setIsCreateModalOpen(false);
+    setIsAddFundsModalOpen(false);
+    setIsTransferModalOpen(false);
+    setIsDeleteModalOpen(false);
     try {
       const allAccounts = await fetchSavings(user.id);
       const accountToEdit = allAccounts.find((acc) => acc.id === accountId);
