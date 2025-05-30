@@ -37,6 +37,7 @@ model CustomCategory {
   user            User?                   @relation(fields: [userId], references: [id])
   budgetCategories BudgetCategory[]
   recurringBillCategories RecurringBillCategory[]
+  transactionCategories TransactionCategory[]
 
   @@index([userId])
   @@unique([name, type])  
@@ -96,7 +97,6 @@ model Account {
 
   @@index([userId])
 }
-
 
 model RecurringBillCategory {
   id                      Int                   @id @default(autoincrement())
@@ -160,9 +160,26 @@ model Transaction {
   fromAccount         Account?                @relation(name: "FromAccount", fields: [fromAccountId], references: [id])
   toAccount           Account?                @relation(name: "ToAccount", fields: [toAccountId], references: [id])
   budget              Budget?                 @relation(fields: [budgetId], references: [id])
+  transactionCategories TransactionCategory[]
 
   @@index([userId])
   @@index([budgetId])
+}
+
+model TransactionCategory {
+  id              Int             @id @default(autoincrement())
+  transactionId   Int
+  customCategoryId Int
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  deletedAt       DateTime?
+
+  transaction     Transaction     @relation(fields: [transactionId], references: [id])
+  customCategory  CustomCategory  @relation(fields: [customCategoryId], references: [id])
+
+  @@index([transactionId])
+  @@index([customCategoryId])
+  @@unique([transactionId, customCategoryId])
 }
 
 model SavingAccount {
