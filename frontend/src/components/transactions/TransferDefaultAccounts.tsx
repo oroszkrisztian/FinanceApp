@@ -317,7 +317,7 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
 
       await transferFundsDefault(
         user.id,
-        finalAmount,
+        formData.amount,
         selectedFromAccount.id,
         selectedToAccount.id,
         TransactionType.TRANSFER,

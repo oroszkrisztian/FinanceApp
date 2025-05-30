@@ -94,8 +94,30 @@ model Account {
   transactionsFrom        Transaction[]           @relation("FromAccount") 
   transactionsTo          Transaction[]           @relation("ToAccount")
   recurringFundsAndBillsRelation RecurringFundAndBill[]
+  balanceHistory          AccountBalanceHistory[]
 
   @@index([userId])
+}
+
+// NEW TABLE: Account Balance History
+model AccountBalanceHistory {
+  id              Int                     @id @default(autoincrement())
+  accountId       Int
+  transactionId   Int?                    // Optional - null for manual adjustments
+  previousBalance Float
+  newBalance      Float
+  amountChanged   Float                   // Can be positive or negative
+  changeType      BalanceChangeType
+  description     String?                 // Optional description of the change
+  currency        CurrencyType            // Account currency at time of change
+  createdAt       DateTime                @default(now())
+
+  account         Account                 @relation(fields: [accountId], references: [id])
+  transaction     Transaction?            @relation(fields: [transactionId], references: [id])
+
+  @@index([accountId])
+  @@index([transactionId])
+  @@index([createdAt])
 }
 
 model RecurringBillCategory {
@@ -161,6 +183,7 @@ model Transaction {
   toAccount           Account?                @relation(name: "ToAccount", fields: [toAccountId], references: [id])
   budget              Budget?                 @relation(fields: [budgetId], references: [id])
   transactionCategories TransactionCategory[]
+  balanceHistory      AccountBalanceHistory[]
 
   @@index([userId])
   @@index([budgetId])
@@ -265,4 +288,16 @@ enum AccountType {
 enum CategoryType {
   SYSTEM
   USER
+}
+
+// NEW ENUM: Balance Change Types
+enum BalanceChangeType {
+  TRANSACTION_INCOME
+  TRANSACTION_EXPENSE
+  TRANSACTION_TRANSFER_IN
+  TRANSACTION_TRANSFER_OUT
+  MANUAL_ADJUSTMENT
+  INTEREST_EARNED
+  FEE_CHARGED
+  CORRECTION
 }

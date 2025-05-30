@@ -10,7 +10,6 @@ export interface Transaction {
   description?: string;
   type: TransactionType;
   currency: CurrencyType;
-  customCategoryId?: number;
   fromAccountId?: number;
   toAccountId?: number;
   userId: number,

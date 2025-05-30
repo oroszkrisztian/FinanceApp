@@ -1,4 +1,4 @@
-import { CurrencyType, PrismaClient, TransactionType } from "@prisma/client";
+import { CurrencyType, PrismaClient, TransactionType, BalanceChangeType } from "@prisma/client";
 import axios from "axios";
 import { parseStringPromise } from "xml2js";
 
@@ -9,10 +9,120 @@ export class TransactionRepository {
     this.prisma = new PrismaClient();
   }
 
+  // Helper function to record balance changes
+  private async recordBalanceChange(
+    prisma: any, // Use the transaction prisma instance
+    accountId: number,
+    transactionId: number | null,
+    previousBalance: number,
+    newBalance: number,
+    changeType: BalanceChangeType,
+    currency: CurrencyType,
+    description?: string
+  ) {
+    const amountChanged = newBalance - previousBalance;
+    
+    await prisma.accountBalanceHistory.create({
+      data: {
+        accountId,
+        transactionId,
+        previousBalance,
+        newBalance,
+        amountChanged,
+        changeType,
+        currency,
+        description,
+      },
+    });
+
+    console.log(`Balance change recorded for account ${accountId}: ${previousBalance} -> ${newBalance} (${amountChanged >= 0 ? '+' : ''}${amountChanged})`);
+  }
+
+  // Helper function to update account balance and record history
+  private async updateAccountBalance(
+    prisma: any,
+    accountId: number,
+    amount: number,
+    isIncrement: boolean,
+    transactionId: number | null,
+    changeType: BalanceChangeType,
+    description?: string
+  ) {
+    // Get current account state
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+      select: { amount: true, currency: true }
+    });
+
+    if (!account) {
+      throw new Error(`Account with id ${accountId} not found`);
+    }
+
+    const previousBalance = account.amount;
+    const newBalance = isIncrement ? previousBalance + amount : previousBalance - amount;
+
+    // Update account balance
+    await prisma.account.update({
+      where: { id: accountId },
+      data: {
+        amount: isIncrement ? { increment: amount } : { decrement: amount }
+      },
+    });
+
+    // Record balance change
+    await this.recordBalanceChange(
+      prisma,
+      accountId,
+      transactionId,
+      previousBalance,
+      newBalance,
+      changeType,
+      account.currency,
+      description
+    );
+
+    return { previousBalance, newBalance };
+  }
+
   async getUserAllTransactions(userId: number) {
     const allTransactions = await this.prisma.transaction.findMany({
       where: {
         userId: userId,
+      },
+      include: {
+        transactionCategories: {
+          select: {
+            customCategoryId: true,
+            customCategory: {
+              select: {
+                id: true,
+                name: true,
+                type: true,
+              },
+            },
+          },
+        },
+        fromAccount: {
+          select: {
+            id: true,
+            name: true,
+            currency: true,
+          },
+        },
+        toAccount: {
+          select: {
+            id: true,
+            name: true,
+            currency: true,
+          },
+        },
+        budget: {
+          select: {
+            id: true,
+            name: true,
+            currency: true,
+          },
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -20,6 +130,42 @@ export class TransactionRepository {
     });
 
     return allTransactions;
+  }
+
+  // New method to get account balance history
+  async getAccountBalanceHistory(accountId: number, userId: number, limit?: number) {
+    // Verify account belongs to user
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id: accountId,
+        userId: userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!account) {
+      throw new Error("Account not found or doesn't belong to the user");
+    }
+
+    return await this.prisma.accountBalanceHistory.findMany({
+      where: {
+        accountId: accountId,
+      },
+      include: {
+        transaction: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            amount: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: limit,
+    });
   }
 
   async getExchangeRates() {
@@ -48,7 +194,6 @@ export class TransactionRepository {
           : [result.DataSet.Body.Cube.Rate];
 
         for (const rate of rateElements) {
-          // Extract currency and value
           if (rate && rate.$ && rate.$.currency) {
             const currency = rate.$.currency;
             const multiplier = rate.$.multiplier
@@ -98,7 +243,6 @@ export class TransactionRepository {
       throw new Error("No default account found for the user");
     }
 
-    //log the sent data
     console.log(
       "Adding funds to default account:",
       toAccountId,
@@ -107,8 +251,6 @@ export class TransactionRepository {
       "currency:",
       currency
     );
-
-    // and stop function now
 
     return await this.prisma.$transaction(async (prisma) => {
       const transaction = await prisma.transaction.create({
@@ -128,16 +270,16 @@ export class TransactionRepository {
         },
       });
 
-      await prisma.account.update({
-        where: {
-          id: defaultAccount.id,
-        },
-        data: {
-          amount: {
-            increment: amount,
-          },
-        },
-      });
+      // Update account balance with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        defaultAccount.id,
+        amount,
+        true, // increment
+        transaction.id,
+        BalanceChangeType.TRANSACTION_INCOME,
+        `Income: ${name || 'Funds added'}`
+      );
 
       return transaction;
     });
@@ -225,27 +367,27 @@ export class TransactionRepository {
         },
       });
 
-      await prisma.account.update({
-        where: {
-          id: fromAccountId,
-        },
-        data: {
-          amount: {
-            decrement: amountToWithdraw,
-          },
-        },
-      });
+      // Update from account (withdraw) with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        fromAccountId,
+        amountToWithdraw,
+        false, // decrement
+        transaction.id,
+        BalanceChangeType.TRANSACTION_TRANSFER_OUT,
+        `Transfer to savings account`
+      );
 
-      await prisma.account.update({
-        where: {
-          id: toSavingId,
-        },
-        data: {
-          amount: {
-            increment: amount,
-          },
-        },
-      });
+      // Update to account (deposit) with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        toSavingId,
+        amount,
+        true, // increment
+        transaction.id,
+        BalanceChangeType.TRANSACTION_TRANSFER_IN,
+        `Transfer from main account`
+      );
 
       if (toAccount.savingAccount && !toAccount.savingAccount.isCompleted) {
         const updatedAmount = toAccount.amount + amount;
@@ -347,29 +489,29 @@ export class TransactionRepository {
         },
       });
 
-      await prisma.account.update({
-        where: {
-          id: fromSavingId,
-        },
-        data: {
-          amount: {
-            decrement: amountToWithdraw,
-          },
-        },
-      });
+      // Update from account (withdraw) with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        fromSavingId,
+        amountToWithdraw,
+        false, // decrement
+        transaction.id,
+        BalanceChangeType.TRANSACTION_TRANSFER_OUT,
+        `Transfer from savings to main account`
+      );
 
+      // Update to account (deposit) with history tracking
       console.log("Adding funds to default account:", toAccountId);
       console.log("amount:", amount);
-      await prisma.account.update({
-        where: {
-          id: toAccountId,
-        },
-        data: {
-          amount: {
-            increment: amount,
-          },
-        },
-      });
+      await this.updateAccountBalance(
+        prisma,
+        toAccountId,
+        amount,
+        true, // increment
+        transaction.id,
+        BalanceChangeType.TRANSACTION_TRANSFER_IN,
+        `Transfer from savings account`
+      );
 
       return transaction;
     });
@@ -431,12 +573,45 @@ export class TransactionRepository {
         },
       });
 
-      await prisma.account.update({
-        where: { id: fromAccountId },
-        data: { amount: { decrement: amountToWithdraw } },
-      });
+      // Update account balance with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        fromAccountId,
+        amountToWithdraw,
+        false, // decrement
+        transaction.id,
+        BalanceChangeType.TRANSACTION_EXPENSE,
+        `Expense: ${name}`
+      );
 
-      // Handle single budget update
+      // Insert transaction categories if provided
+      if (customCategoriesId && customCategoriesId.length > 0) {
+        const validCategories = await prisma.customCategory.findMany({
+          where: {
+            id: { in: customCategoriesId },
+            OR: [
+              { userId: userId },
+              { type: "SYSTEM" },
+            ],
+            deletedAt: null,
+          },
+        });
+
+        if (validCategories.length !== customCategoriesId.length) {
+          throw new Error(
+            "One or more categories are invalid or don't belong to the user"
+          );
+        }
+
+        await prisma.transactionCategory.createMany({
+          data: customCategoriesId.map((categoryId) => ({
+            transactionId: transaction.id,
+            customCategoryId: categoryId,
+          })),
+        });
+      }
+
+      // Handle budget updates (existing logic)
       if (budgetId) {
         const budget = await prisma.budget.findFirst({
           where: {
@@ -462,7 +637,6 @@ export class TransactionRepository {
         }
       }
 
-      // Handle multiple category-based budget updates
       if (customCategoriesId && customCategoriesId.length > 0) {
         const budgets = await prisma.budget.findMany({
           where: {
@@ -572,15 +746,28 @@ export class TransactionRepository {
         },
       });
 
-      await prisma.account.update({
-        where: { id: fromAccountId },
-        data: { amount: { decrement: amount } },
-      });
+      // Update from account with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        fromAccountId,
+        amount,
+        false, // decrement
+        transaction.id,
+        BalanceChangeType.TRANSACTION_TRANSFER_OUT,
+        `Transfer to account ${toAccount.name}`
+      );
 
-      await prisma.account.update({
-        where: { id: toAccountId },
-        data: { amount: { increment: amountToDeposit } },
-      });
+      // Update to account with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        toAccountId,
+        amountToDeposit,
+        true, // increment
+        transaction.id,
+        BalanceChangeType.TRANSACTION_TRANSFER_IN,
+        `Transfer from account ${fromAccount.name}`
+      );
+
       return transaction;
     });
   }
@@ -626,7 +813,6 @@ export class TransactionRepository {
     }
 
     return await this.prisma.$transaction(async (prisma) => {
-      // Create the transaction
       const transaction = await prisma.transaction.create({
         data: {
           userId: userId,
@@ -642,15 +828,19 @@ export class TransactionRepository {
         },
       });
 
-      // Update account balance
-      await prisma.account.update({
-        where: { id: fromAccountId },
-        data: { amount: { decrement: amountToWithdraw } },
-      });
+      // Update account balance with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        fromAccountId,
+        amountToWithdraw,
+        false, // decrement
+        transaction.id,
+        BalanceChangeType.TRANSACTION_EXPENSE,
+        `Recurring payment: ${name}`
+      );
 
-      // Handle budget updates for recurring payments - find ALL budgets with matching categories
+      // Handle budget updates for recurring payments (existing logic)
       if (customCategoriesId && customCategoriesId.length > 0) {
-        // Find all budgets that have ANY of the payment's categories
         const budgets = await prisma.budget.findMany({
           where: {
             userId: userId,
@@ -672,16 +862,13 @@ export class TransactionRepository {
           },
         });
 
-        // Update each budget that matches the payment categories
         for (const budget of budgets) {
           let budgetAmount = amount;
 
-          // Convert amount to budget currency if needed
           if (currency !== budget.currency && rates[budget.currency]) {
             budgetAmount = amount * (rates[currency] / rates[budget.currency]);
           }
 
-          // Update the budget's current spent amount
           await prisma.budget.update({
             where: { id: budget.id },
             data: {
@@ -696,7 +883,7 @@ export class TransactionRepository {
         }
       }
 
-      // Update the recurring payment's next execution date
+      // Update recurring payment execution date (existing logic)
       const payment = await prisma.recurringFundAndBill.findUnique({
         where: { id: paymentId },
       });
@@ -736,7 +923,7 @@ export class TransactionRepository {
               nextExecution.setFullYear(nextExecution.getFullYear() + 1);
               break;
             default:
-              nextExecution.setMonth(nextExecution.getMonth() + 1); // Default to monthly
+              nextExecution.setMonth(nextExecution.getMonth() + 1);
           }
 
           await prisma.recurringFundAndBill.update({
@@ -745,7 +932,7 @@ export class TransactionRepository {
           });
 
           console.log(
-            `Updated income "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
+            `Updated payment "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
           );
         }
       }
@@ -788,7 +975,6 @@ export class TransactionRepository {
     }
 
     return await this.prisma.$transaction(async (prisma) => {
-      // Create the transaction
       const transaction = await prisma.transaction.create({
         data: {
           userId: userId,
@@ -804,13 +990,18 @@ export class TransactionRepository {
         },
       });
 
-      // Update account balance
-      await prisma.account.update({
-        where: { id: toAccountId },
-        data: { amount: { increment: amountToDeposit } },
-      });
+      // Update account balance with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        toAccountId,
+        amountToDeposit,
+        true, // increment
+        transaction.id,
+        BalanceChangeType.TRANSACTION_INCOME,
+        `Recurring income: ${name}`
+      );
 
-      // Update the recurring payment's next execution date
+      // Update recurring payment execution date (existing logic)
       const payment = await prisma.recurringFundAndBill.findUnique({
         where: { id: paymentId },
       });
@@ -827,7 +1018,7 @@ export class TransactionRepository {
           });
 
           console.log(
-            `One-time payment "${payment.name}" has been executed and completed`
+            `One-time income "${payment.name}" has been executed and completed`
           );
         } else {
           const scheduledDate = payment.nextExecution || new Date();
@@ -850,7 +1041,7 @@ export class TransactionRepository {
               nextExecution.setFullYear(nextExecution.getFullYear() + 1);
               break;
             default:
-              nextExecution.setMonth(nextExecution.getMonth() + 1); // Default to monthly
+              nextExecution.setMonth(nextExecution.getMonth() + 1);
           }
 
           await prisma.recurringFundAndBill.update({
@@ -865,6 +1056,42 @@ export class TransactionRepository {
       }
 
       return transaction;
+    });
+  }
+
+  // New method to manually adjust account balance (for corrections, interest, fees, etc.)
+  async manualBalanceAdjustment(
+    userId: number,
+    accountId: number,
+    amount: number,
+    changeType: BalanceChangeType,
+    description: string
+  ) {
+    const account = await this.prisma.account.findFirst({
+      where: {
+        id: accountId,
+        userId: userId,
+        deletedAt: null,
+      },
+    });
+
+    if (!account) {
+      throw new Error("Account not found or doesn't belong to the user");
+    }
+
+    return await this.prisma.$transaction(async (prisma) => {
+      // Update account balance with history tracking
+      await this.updateAccountBalance(
+        prisma,
+        accountId,
+        Math.abs(amount),
+        amount > 0, // increment if positive, decrement if negative
+        null, // no transaction associated
+        changeType,
+        description
+      );
+
+      return { success: true, message: `Balance adjusted by ${amount}` };
     });
   }
 }

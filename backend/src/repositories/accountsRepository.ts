@@ -1,4 +1,11 @@
-import { AccountType, CurrencyType, PrismaClient } from "@prisma/client";
+import {
+  AccountType,
+  CurrencyType,
+  PrismaClient,
+  BalanceChangeType,
+} from "@prisma/client";
+import axios from "axios";
+import { parseStringPromise } from "xml2js";
 
 export class AccountsRepository {
   private prisma: PrismaClient;
@@ -141,6 +148,32 @@ export class AccountsRepository {
     });
   }
 
+  // Helper function to record balance changes
+  private async recordBalanceChange(
+    prisma: any,
+    accountId: number,
+    previousBalance: number,
+    newBalance: number,
+    changeType: BalanceChangeType,
+    currency: CurrencyType,
+    description?: string
+  ) {
+    const amountChanged = newBalance - previousBalance;
+
+    await prisma.accountBalanceHistory.create({
+      data: {
+        accountId,
+        transactionId: null,
+        previousBalance,
+        newBalance,
+        amountChanged,
+        changeType,
+        currency,
+        description,
+      },
+    });
+  }
+
   async editDefaultAccount(
     userId: number,
     accountId: number,
@@ -150,25 +183,98 @@ export class AccountsRepository {
     accountType: AccountType,
     amount?: number
   ) {
-    const updateData: any = {
-      name: name,
-      description: description,
-      currency: currency,
-      updatedAt: new Date(),
-    };
+    return await this.prisma.$transaction(async (prisma) => {
+      const account = await prisma.account.findFirst({
+        where: {
+          id: accountId,
+          userId: userId,
+          type: accountType,
+        },
+      });
 
-    if (amount !== undefined) {
-      updateData.amount = amount;
-    }
+      if (!account) {
+        throw new Error("Account not found");
+      }
 
-    return await this.prisma.account.update({
-      where: {
-        id: accountId,
-        userId: userId,
-        type: accountType,
-      },
-      data: updateData,
+      const updateData: any = {
+        name: name,
+        description: description,
+        currency: currency,
+        updatedAt: new Date(),
+      };
+
+      if (amount !== undefined) {
+        updateData.amount = amount;
+
+        // Record balance change if amount is updated
+        await this.recordBalanceChange(
+          prisma,
+          accountId,
+          account.amount,
+          amount,
+          BalanceChangeType.MANUAL_ADJUSTMENT,
+          currency,
+          "Manual balance adjustment"
+        );
+      }
+
+      // Record balance history for currency change if currency is different
+      if (account.currency !== currency && amount === undefined) {
+        await this.recordBalanceChange(
+          prisma,
+          accountId,
+          account.amount,
+          account.amount, // Same amount but different currency
+          BalanceChangeType.MANUAL_ADJUSTMENT,
+          currency,
+          `Currency changed from ${account.currency} to ${currency}`
+        );
+      }
+
+      return await prisma.account.update({
+        where: {
+          id: accountId,
+          userId: userId,
+          type: accountType,
+        },
+        data: updateData,
+      });
     });
+  }
+
+  private async getExchangeRates() {
+    try {
+      const response = await axios.get("http://localhost:3000/exchange-rates");
+      const xmlText = response.data;
+      const result = await parseStringPromise(xmlText, {
+        explicitArray: false,
+        mergeAttrs: false,
+      });
+      const rates: { [key: string]: number } = { RON: 1 };
+
+      if (result?.DataSet?.Body?.Cube?.Rate) {
+        const rateElements = Array.isArray(result.DataSet.Body.Cube.Rate)
+          ? result.DataSet.Body.Cube.Rate
+          : [result.DataSet.Body.Cube.Rate];
+
+        for (const rate of rateElements) {
+          if (rate?.$?.currency) {
+            const currency = rate.$.currency;
+            const multiplier = rate.$.multiplier
+              ? parseInt(rate.$.multiplier)
+              : 1;
+            const value = parseFloat(rate._);
+            if (currency && !isNaN(value)) {
+              rates[currency] = multiplier > 1 ? value / multiplier : value;
+            }
+          }
+        }
+      }
+      return rates;
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+      throw new Error("Failed to fetch exchange rates");
+    }
   }
 
   async editSavingAccount(
@@ -179,30 +285,83 @@ export class AccountsRepository {
     currency: CurrencyType,
     accountType: AccountType,
     targetAmount: number,
-    targetDate: Date
+    targetDate: Date,
+    amount?: number
   ) {
-    await this.prisma.account.update({
-      where: {
-        id: accountId,
-        userId: userId,
-        type: accountType,
-      },
-      data: {
+    return await this.prisma.$transaction(async (prisma) => {
+      const account = await prisma.account.findFirst({
+        where: {
+          id: accountId,
+          userId: userId,
+          type: accountType,
+        },
+      });
+
+      if (!account) {
+        throw new Error("Account not found");
+      }
+
+      const updateData: any = {
         name,
         description,
-        currency,
         updatedAt: new Date(),
-      },
-    });
+      };
 
-    return await this.prisma.savingAccount.update({
-      where: {
-        accountId: accountId,
-      },
-      data: {
-        targetAmount: targetAmount,
-        targetDate: targetDate,
-      },
+      // Handle currency change and amount update
+      if (account.currency !== currency || amount !== undefined) {
+        updateData.currency = currency;
+
+        let newAmount: number;
+
+        if (amount !== undefined) {
+          newAmount = amount;
+        } else if (account.currency !== currency) {
+          // Convert amount when currency changes
+          const rates = await this.getExchangeRates();
+          if (!rates[account.currency] || !rates[currency]) {
+            throw new Error(
+              `Exchange rate not found for conversion between ${currency} and ${account.currency}`
+            );
+          }
+          newAmount =
+            account.amount * (rates[account.currency] / rates[currency]);
+        } else {
+          newAmount = account.amount;
+        }
+
+        updateData.amount = newAmount;
+
+        await this.recordBalanceChange(
+          prisma,
+          accountId,
+          account.amount,
+          newAmount,
+          BalanceChangeType.MANUAL_ADJUSTMENT,
+          currency,
+          account.currency !== currency
+            ? `Currency changed from ${account.currency} to ${currency}`
+            : "Manual balance adjustment"
+        );
+      }
+
+      await prisma.account.update({
+        where: {
+          id: accountId,
+          userId: userId,
+          type: accountType,
+        },
+        data: updateData,
+      });
+
+      return await prisma.savingAccount.update({
+        where: {
+          accountId: accountId,
+        },
+        data: {
+          targetAmount: targetAmount,
+          targetDate: targetDate,
+        },
+      });
     });
   }
 }
