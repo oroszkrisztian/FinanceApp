@@ -1,5 +1,5 @@
 // accountService.ts
-import { AccountType} from "../interfaces/enums";
+import { AccountType } from "../interfaces/enums";
 import { Account } from "../interfaces/Account";
 
 interface CreateDefaultAccountParams {
@@ -90,11 +90,32 @@ export const createSavingAccount = async (
 
 export const fetchAllAccounts = async (
   userId: number,
+  startDate?: Date,
+  endDate?: Date,
   signal?: AbortSignal
 ): Promise<Account[]> => {
   try {
+    // Build query parameters
+    const queryParams = new URLSearchParams({
+      userId: userId.toString(),
+    });
+
+    // Add date parameters if both are provided
+    if (startDate && endDate) {
+      // Create timezone-adjusted dates to ensure correct local dates in UTC
+      const adjustedStartDate = new Date(
+        startDate.getTime() - startDate.getTimezoneOffset() * 60000
+      );
+      const adjustedEndDate = new Date(
+        endDate.getTime() - endDate.getTimezoneOffset() * 60000
+      );
+
+      queryParams.append("startDate", adjustedStartDate.toISOString());
+      queryParams.append("endDate", adjustedEndDate.toISOString());
+    }
+
     const response = await fetch(
-      `http://localhost:3000/accounts/getAllAccounts?userId=${userId}`,
+      `http://localhost:3000/accounts/getAllAccounts?${queryParams.toString()}`,
       { signal }
     );
 
@@ -109,7 +130,7 @@ export const fetchAllAccounts = async (
     if (!Array.isArray(data)) {
       throw new Error("Invalid response format: Expected an array");
     }
-    console.log("Fetched accounts:", data);
+
     return data;
   } catch (error) {
     console.error("Error fetching accounts:", error);
@@ -225,7 +246,11 @@ export const deleteDefaultAccount = async (
   }
 };
 
-export const deleteSavingAccount = async (userId: number, accountId: number, p0: number | undefined) => {
+export const deleteSavingAccount = async (
+  userId: number,
+  accountId: number,
+  p0: number | undefined
+) => {
   try {
     const response = await fetch(
       `http://localhost:3000/accounts/deleteSavingAccount?userId=${userId}&accountId=${accountId}`,
@@ -302,7 +327,7 @@ export const editSavingAccount = async (
     savingAccount: {
       update: {
         targetAmount: number;
-        targetDate: string; 
+        targetDate: string;
       };
     };
   }
@@ -315,7 +340,7 @@ export const editSavingAccount = async (
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(requestData), 
+        body: JSON.stringify(requestData),
       }
     );
 

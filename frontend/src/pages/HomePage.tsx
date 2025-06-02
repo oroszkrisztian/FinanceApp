@@ -1,15 +1,13 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import { Account } from "../interfaces/Account";
 import {
   ExchangeRates,
   fetchExchangeRates,
 } from "../services/exchangeRateService";
-import { fetchAllAccounts } from "../services/accountService";
 import { getUserAllTransactions } from "../services/transactionService";
 import { getAllBudgets } from "../services/budgetService";
 import { getAllPaymentsUser } from "../services/paymentService";
-import { AccountType } from "../interfaces/enums";
 import IncomeExpenseChart from "../components/home/IncomeExpenseChart";
 import UpcomingPaymentsSection from "../components/home/UpcomingPaymentsSection";
 import SavingsGoalsSection from "../components/home/SavingsGoalsSection";
@@ -32,6 +30,11 @@ const HomePage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Handle accounts update from chart component
+  const handleAccountsUpdate = useCallback((accountsData: Account[]) => {
+    setAccounts(accountsData);
+  }, []);
+
   useEffect(() => {
     const fetchAllData = async () => {
       if (!user?.id) {
@@ -45,28 +48,13 @@ const HomePage: React.FC = () => {
 
         console.log("Fetching data for user:", user.id);
 
-        const abortController = new AbortController();
-
-        const [
-          accountsData,
-          transactionsData,
-          budgetsData,
-          paymentsData,
-          ratesData,
-        ] = await Promise.allSettled([
-          fetchAllAccounts(user.id, abortController.signal),
-          getUserAllTransactions(user.id),
-          getAllBudgets(user.id),
-          getAllPaymentsUser(user.id),
-          fetchExchangeRates(),
-        ]);
-
-        if (accountsData.status === "fulfilled") {
-          console.log("Accounts loaded:", accountsData.value);
-          setAccounts(accountsData.value || []);
-        } else {
-          console.error("Failed to load accounts:", accountsData.reason);
-        }
+        const [transactionsData, budgetsData, paymentsData, ratesData] =
+          await Promise.allSettled([
+            getUserAllTransactions(user.id),
+            getAllBudgets(user.id),
+            getAllPaymentsUser(user.id),
+            fetchExchangeRates(),
+          ]);
 
         if (transactionsData.status === "fulfilled") {
           console.log("Transactions loaded:", transactionsData.value);
@@ -113,7 +101,7 @@ const HomePage: React.FC = () => {
           console.error("Failed to load exchange rates:", ratesData.reason);
         }
 
-        const criticalFailures = [accountsData, transactionsData].filter(
+        const criticalFailures = [transactionsData].filter(
           (result) => result.status === "rejected"
         );
 
@@ -130,30 +118,6 @@ const HomePage: React.FC = () => {
 
     fetchAllData();
   }, [user?.id]);
-
-  const { monthlyIncome, monthlyExpenses } = useMemo(() => {
-    const currentMonth = new Date();
-    const startOfMonth = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      1
-    );
-
-    const monthlyTransactions = transactions.filter((t) => {
-      const transactionDate = new Date(t.createdAt);
-      return transactionDate >= startOfMonth;
-    });
-
-    const income = monthlyTransactions
-      .filter((t) => t.type === "INCOME")
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    const expenses = monthlyTransactions
-      .filter((t) => t.type === "EXPENSE")
-      .reduce((sum, t) => sum + (t.amount || 0), 0);
-
-    return { monthlyIncome: income, monthlyExpenses: expenses };
-  }, [transactions]);
 
   if (loading) {
     return (
@@ -211,33 +175,29 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="max-w-[1920px] w-full mx-auto">
         {/* Welcome Header */}
-        <div className="mb-8">
+        <div className="mb-6 px-2">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome back, {user.firstName || user.email}
           </h1>
-          <p className="text-gray-600">
-            Here's your financial overview for{" "}
-            {new Date().toLocaleString("default", {
-              month: "long",
-              year: "numeric",
-            })}
-          </p>
+          <p className="text-gray-600">Here's your financial overview</p>
         </div>
 
         {/* Income vs Expense Chart */}
-        <IncomeExpenseChart
-          transactions={transactions}
-          futureOutgoingPayments={futureOutgoingPayments}
-          futureIncomingPayments={futureIncomingPayments}
-          accounts={accounts}
-          displayCurrency={displayCurrency}
-        />
+        <div className="px-0 sm:px-2">
+          <IncomeExpenseChart
+            transactions={transactions}
+            futureOutgoingPayments={futureOutgoingPayments}
+            futureIncomingPayments={futureIncomingPayments}
+            displayCurrency={displayCurrency}
+            onAccountsUpdate={handleAccountsUpdate}
+          />
+        </div>
 
         {/* Two Column Layout for Sections */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 px-2">
           {/* Left Column */}
           <div className="space-y-8">
             {/* Upcoming Payments Section */}
@@ -264,42 +224,6 @@ const HomePage: React.FC = () => {
           transactions={transactions}
           displayCurrency={displayCurrency}
         />
-
-        {/* Debug Info - Keep at bottom, hidden in production */}
-        {process.env.NODE_ENV === "development" && (
-          <div className="bg-gray-100 rounded-lg p-4 text-sm">
-            <h4 className="font-semibold mb-2">Debug Info:</h4>
-            <ul className="space-y-1 text-gray-600">
-              <li>Accounts: {accounts.length}</li>
-              <li>
-                Savings Accounts:{" "}
-                {
-                  accounts.filter((acc) => acc.type === AccountType.SAVINGS)
-                    .length
-                }
-              </li>
-              <li>Transactions: {transactions.length}</li>
-              <li>Budgets: {budgets.length}</li>
-              <li>Payments: {payments.length}</li>
-              <li>Future Outgoing Payments: {futureOutgoingPayments.length}</li>
-              <li>Future Incoming Payments: {futureIncomingPayments.length}</li>
-              <li>Exchange Rates: {Object.keys(rates).length}</li>
-              <li>Monthly Income: {monthlyIncome}</li>
-              <li>Monthly Expenses: {monthlyExpenses}</li>
-            </ul>
-            {accounts.length > 0 && (
-              <div className="mt-2">
-                <p className="font-medium">Account Types:</p>
-                {accounts.map((acc) => (
-                  <div key={acc.id} className="ml-2">
-                    {acc.name}: {acc.type}{" "}
-                    {acc.type === "SAVINGS" ? "(Savings Account)" : ""}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

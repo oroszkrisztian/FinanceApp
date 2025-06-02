@@ -14,11 +14,31 @@ export class AccountsRepository {
     this.prisma = new PrismaClient();
   }
 
-  async getUserAllAccount(userId: number) {
+  async getUserAllAccount(userId: number, startDate?: Date, endDate?: Date) {
+    const includeOptions: any = {
+      savingAccount: true, 
+    };
+
+   
+    if (startDate && endDate) {
+      includeOptions.balanceHistory = {
+        where: {
+          createdAt: {
+            gte: startDate,
+            lte: endDate,
+          },
+        },
+        orderBy: {
+          createdAt: "asc", 
+        },
+      };
+    }
+
     return await this.prisma.account.findMany({
       where: {
         userId: userId,
       },
+      include: includeOptions,
     });
   }
 

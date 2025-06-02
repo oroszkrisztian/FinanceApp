@@ -290,7 +290,7 @@ enum CategoryType {
   USER
 }
 
-// NEW ENUM: Balance Change Types
+
 enum BalanceChangeType {
   TRANSACTION_INCOME
   TRANSACTION_EXPENSE

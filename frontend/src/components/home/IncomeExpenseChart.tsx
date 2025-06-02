@@ -18,6 +18,8 @@ import {
   TrendingUp,
   TrendingDown,
   DollarSign,
+  Calendar,
+  ArrowRightLeft,
 } from "lucide-react";
 import {
   ExchangeRates,
@@ -26,28 +28,94 @@ import {
   validateCurrencyConversion,
 } from "../../services/exchangeRateService";
 import { CurrencyType, AccountType } from "../../interfaces/enums";
+import { fetchAllAccounts } from "../../services/accountService";
+import { useAuth } from "../../context/AuthContext";
 import TransactionDetailsModal from "./TransactionDetailsModal";
+
+interface BalanceHistoryEntry {
+  id: number;
+  createdAt: string;
+  newBalance: number;
+  amountChanged: number;
+  changeType: string;
+  currency?: string;
+  previousBalance?: number;
+}
+
+interface ExtendedBalanceHistoryEntry extends BalanceHistoryEntry {
+  dayOfRange: number;
+  entryDate: Date;
+  index: number;
+}
+
+interface DateRange {
+  startDate: Date;
+  endDate: Date;
+}
+
+interface ChartDataPoint {
+  day: string;
+  date: string;
+  fullDate: Date;
+  isToday: boolean;
+  isFuture: boolean;
+  actualIncome: number;
+  actualExpenses: number;
+  actualTransfers: number;
+  upcomingIncome: number;
+  upcomingExpenses: number;
+  upcomingTransfers: number;
+  incomeTransactions: any[];
+  expenseTransactions: any[];
+  transferTransactions: any[];
+  upcomingIncomePayments: any[];
+  upcomingExpensePayments: any[];
+  upcomingTransferPayments: any[];
+  dayIndex: number;
+  income?: number | null;
+  expenses?: number | null;
+  transfers?: number | null;
+  incomeFuture?: number | null;
+  expensesFuture?: number | null;
+  transfersFuture?: number | null;
+  [key: string]: any;
+}
 
 interface IncomeExpenseChartProps {
   transactions: any[];
   futureOutgoingPayments: any[];
   futureIncomingPayments: any[];
-  accounts: any[];
   displayCurrency: string;
   isSmallScreen?: boolean;
+  onAccountsUpdate?: (accounts: any[]) => void;
 }
 
-const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
+type DateRangeOption =
+  | "current_month"
+  | "last_3_months"
+  | "last_6_months"
+  | "last_year";
+
+const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   transactions,
   futureOutgoingPayments,
   futureIncomingPayments,
-  accounts,
   displayCurrency: initialDisplayCurrency,
   isSmallScreen = false,
+  onAccountsUpdate,
 }) => {
-  // Filter accounts to only show DEFAULT type accounts
-  const defaultAccounts = useMemo(() => 
-    accounts.filter(account => account.type === AccountType.DEFAULT),
+  const { user } = useAuth();
+
+  const [selectedRange, setSelectedRange] =
+    useState<DateRangeOption>("current_month");
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
+  const dateDropdownRef = useRef<HTMLDivElement>(null);
+
+  const [accounts, setAccounts] = useState<any[]>([]);
+  const [accountsLoading, setAccountsLoading] = useState(true);
+
+  const defaultAccounts = useMemo(
+    () => accounts.filter((account) => account.type === AccountType.DEFAULT),
     [accounts]
   );
 
@@ -62,28 +130,132 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
   const [isMobileView, setIsMobileView] = useState(false);
   const currencyRef = useRef<HTMLDivElement>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState<"income" | "expense" | "net">(
-    "net"
+  const [modalType, setModalType] = useState<
+    "income" | "expense" | "transfer" | "net"
+  >("net");
+
+  const dateRangeOptions = [
+    { key: "current_month", label: "Current Month" },
+    { key: "last_3_months", label: "Last 3 Months" },
+    { key: "last_6_months", label: "Last 6 Months" },
+    { key: "last_year", label: "Last Year" },
+  ];
+
+  const getDateRange = (option: DateRangeOption): DateRange => {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+
+    switch (option) {
+      case "current_month":
+        return {
+          startDate: new Date(currentYear, currentMonth, 1, 0, 0, 0, 0),
+          endDate: new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999),
+        };
+      case "last_3_months":
+        return {
+          startDate: new Date(currentYear, currentMonth - 2, 1, 0, 0, 0, 0),
+          endDate: new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999),
+        };
+      case "last_6_months":
+        return {
+          startDate: new Date(currentYear, currentMonth - 5, 1, 0, 0, 0, 0),
+          endDate: new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999),
+        };
+      case "last_year":
+        return {
+          startDate: new Date(currentYear - 1, currentMonth, 1, 0, 0, 0, 0),
+          endDate: new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999),
+        };
+      default:
+        return {
+          startDate: new Date(currentYear, currentMonth, 1, 0, 0, 0, 0),
+          endDate: new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999),
+        };
+    }
+  };
+
+  const currentDateRange = useMemo(
+    () => getDateRange(selectedRange),
+    [selectedRange]
   );
 
-  // Generate fixed colors for account lines (avoiding used colors)
+  const handleDateRangeChange = (option: DateRangeOption) => {
+    setSelectedRange(option);
+    setIsDateDropdownOpen(false);
+  };
+
+  {
+    /* Account fetching */
+  }
+  useEffect(() => {
+    const fetchAccountsData = async () => {
+      if (!user?.id) {
+        console.log("No user ID available for account fetching");
+        return;
+      }
+
+      try {
+        setAccountsLoading(true);
+        console.log("Fetching accounts for chart component");
+
+        const { startDate, endDate } = currentDateRange;
+        const accountsData = await fetchAllAccounts(
+          user.id,
+          startDate,
+          endDate
+        );
+
+        console.log("Accounts loaded in chart:", accountsData);
+        setAccounts(accountsData || []);
+
+        if (onAccountsUpdate) {
+          onAccountsUpdate(accountsData || []);
+        }
+      } catch (error) {
+        console.error("Failed to fetch accounts in chart:", error);
+        setAccounts([]);
+      } finally {
+        setAccountsLoading(false);
+      }
+    };
+
+    fetchAccountsData();
+  }, [user?.id, onAccountsUpdate, currentDateRange]);
+
+  const getDateRangeText = () => {
+    const { startDate, endDate } = currentDateRange;
+    if (selectedRange === "current_month") {
+      return startDate.toLocaleString("default", {
+        month: isMobileView ? "short" : "long",
+        year: "numeric",
+      });
+    }
+    return `${startDate.toLocaleString("default", {
+      month: "short",
+      year: "numeric",
+    })} - ${endDate.toLocaleString("default", {
+      month: "short",
+      year: "numeric",
+    })}`;
+  };
+
   const generateAccountColors = (numAccounts: number): string[] => {
-    const usedColors = ['#10b981', '#ef4444', '#7c3aed']; // Green, Red, Purple
+    const usedColors = ["#10b981", "#ef4444", "#7c3aed", "#f59e0b"];
     const availableColors = [
-      '#3b82f6', // Blue
-      '#f59e0b', // Amber
-      '#8b5cf6', // Violet
-      '#06b6d4', // Cyan
-      '#84cc16', // Lime
-      '#f97316', // Orange
-      '#ec4899', // Pink
-      '#6366f1', // Indigo
-      '#14b8a6', // Teal
-      '#a855f7', // Purple variant
-      '#22c55e', // Green variant
-      '#fb7185', // Rose
-      '#fbbf24', // Yellow
-      '#60a5fa', // Blue variant
+      "#3b82f6",
+      "#8b5cf6",
+      "#06b6d4",
+      "#84cc16",
+      "#f97316",
+      "#ec4899",
+      "#6366f1",
+      "#14b8a6",
+      "#a855f7",
+      "#22c55e",
+      "#fb7185",
+      "#fbbf24",
+      "#60a5fa",
     ];
 
     return availableColors.slice(0, numAccounts);
@@ -93,7 +265,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
     return generateAccountColors(defaultAccounts.length);
   }, [defaultAccounts.length]);
 
-  const handleOpenModal = (type: "income" | "expense" | "net") => {
+  const handleOpenModal = (type: "income" | "expense" | "transfer" | "net") => {
     setModalType(type);
     setIsModalOpen(true);
   };
@@ -102,7 +274,9 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
     setIsModalOpen(false);
   };
 
-  // Check for mobile view on mount and resize
+  {
+    /* Mobile view detection */
+  }
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -113,6 +287,9 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
+  {
+    /* Exchange rates loading */
+  }
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -129,6 +306,9 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
     loadExchangeRates();
   }, []);
 
+  {
+    /* Click outside handlers */
+  }
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -136,6 +316,12 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
         !currencyRef.current.contains(event.target as Node)
       ) {
         setIsCurrencyMenuOpen(false);
+      }
+      if (
+        dateDropdownRef.current &&
+        !dateDropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDateDropdownOpen(false);
       }
     };
 
@@ -183,249 +369,399 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
     setIsCurrencyMenuOpen(false);
   };
 
-  // Helper function to check if a payment should be included in the current month
-  const shouldIncludePaymentInMonth = (
+  const shouldIncludePaymentInRange = (
     paymentDate: Date,
-    currentMonth: Date,
-    startOfMonth: Date,
-    endOfMonth: Date
+    rangeStart: Date,
+    rangeEnd: Date
   ): boolean => {
-    // Check if date is valid
     if (isNaN(paymentDate.getTime())) return false;
 
-    // Create date objects without time components for accurate comparison
     const paymentDateOnly = new Date(
       paymentDate.getFullYear(),
       paymentDate.getMonth(),
       paymentDate.getDate()
     );
-    const startOfMonthOnly = new Date(
-      startOfMonth.getFullYear(),
-      startOfMonth.getMonth(),
-      startOfMonth.getDate()
+    const rangeStartOnly = new Date(
+      rangeStart.getFullYear(),
+      rangeStart.getMonth(),
+      rangeStart.getDate()
     );
-    const endOfMonthOnly = new Date(
-      endOfMonth.getFullYear(),
-      endOfMonth.getMonth(),
-      endOfMonth.getDate()
+    const rangeEndOnly = new Date(
+      rangeEnd.getFullYear(),
+      rangeEnd.getMonth(),
+      rangeEnd.getDate()
     );
 
-    // Normal case: payment falls within the month
-    if (
-      paymentDateOnly >= startOfMonthOnly &&
-      paymentDateOnly <= endOfMonthOnly
-    ) {
-      return true;
-    }
-
-    // FIXED: Special case for 31st day payments
-    const paymentDay = paymentDate.getDate();
-    const currentMonthNum = currentMonth.getMonth();
-    const currentYear = currentMonth.getFullYear();
-
-    // Case 1: Payment date is exactly 31st and current month has fewer days
-    if (
-      paymentDay === 31 &&
-      paymentDate.getMonth() === currentMonthNum &&
-      paymentDate.getFullYear() === currentYear &&
-      endOfMonth.getDate() < 31
-    ) {
-      return true;
-    }
-
-    // Case 2: Payment was scheduled for 31st but moved to next available 31st
-    // Check if this payment should have occurred in the current month
-    if (paymentDay === 31 && endOfMonth.getDate() < 31) {
-      // Check if the payment date is in a future month but should belong to current month
-      if (
-        paymentDate.getFullYear() === currentYear &&
-        paymentDate.getMonth() > currentMonthNum
-      ) {
-        return true;
-      }
-    }
-
-    return false;
+    return paymentDateOnly >= rangeStartOnly && paymentDateOnly <= rangeEndOnly;
   };
 
-  // Helper function to get the effective day for a payment in the current month
-  const getEffectiveDayForPayment = (
-    paymentDate: Date,
-    currentMonth: Date,
-    endOfMonth: Date
-  ): number | null => {
-    const paymentDay = paymentDate.getDate();
-    const currentMonthNum = currentMonth.getMonth();
-    const currentYear = currentMonth.getFullYear();
-
-    // Create date-only objects for accurate comparison
-    const paymentDateOnly = new Date(
-      paymentDate.getFullYear(),
-      paymentDate.getMonth(),
-      paymentDate.getDate()
-    );
-    const currentMonthOnly = new Date(currentYear, currentMonthNum, 1);
-
-    // If it's a regular day within the month, return the day
-    if (
-      paymentDate.getMonth() === currentMonthNum &&
-      paymentDate.getFullYear() === currentYear &&
-      paymentDay <= endOfMonth.getDate()
-    ) {
-      return paymentDay;
-    }
-
-    // If it's a 31st day payment in a month with fewer than 31 days,
-    // map it to the last day of the current month
-    if (paymentDay === 31 && endOfMonth.getDate() < 31) {
-      // Check if this payment should belong to the current month
-      if (
-        (paymentDate.getMonth() === currentMonthNum &&
-          paymentDate.getFullYear() === currentYear) ||
-        (paymentDate.getMonth() > currentMonthNum &&
-          paymentDate.getFullYear() === currentYear) ||
-        (paymentDate.getMonth() < currentMonthNum &&
-          paymentDate.getFullYear() > currentYear)
-      ) {
-        return endOfMonth.getDate(); // Return last day of current month
-      }
-    }
-
-    return null;
-  };
-
+  {
+    /* Chart data generation */
+  }
   const chartData = useMemo(() => {
-    const currentMonth = new Date();
+    if (accountsLoading) {
+      return { dataPoints: [], todayDay: 1 };
+    }
+
+    const { startDate, endDate } = currentDateRange;
     const today = new Date();
-    const startOfMonth = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth(),
-      1
+
+    const totalDays =
+      Math.ceil(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)
+      ) + 1;
+
+    const todayLocal = new Date(
+      today.getFullYear(),
+      today.getMonth(),
+      today.getDate()
     );
-    const endOfMonth = new Date(
-      currentMonth.getFullYear(),
-      currentMonth.getMonth() + 1,
-      0
+    const startDateLocal = new Date(
+      startDate.getFullYear(),
+      startDate.getMonth(),
+      startDate.getDate()
+    );
+    const todayInRange = shouldIncludePaymentInRange(today, startDate, endDate)
+      ? Math.floor(
+          (todayLocal.getTime() - startDateLocal.getTime()) /
+            (1000 * 60 * 60 * 24)
+        ) + 1
+      : totalDays + 1;
+
+    {
+      /* Account balance calculation */
+    }
+    const accountBalancesByDay: Record<
+      number,
+      Record<
+        number,
+        {
+          balance: number;
+          date: Date;
+          changeType: string | null;
+          amountChanged: number;
+          uniqueId: string;
+          transactionCount?: number;
+          hasFuturePayment?: boolean;
+        }
+      >
+    > = defaultAccounts.reduce(
+      (acc, account) => {
+        acc[account.id] = {};
+
+        let startBalance = 0;
+
+        if (account.balanceHistory && Array.isArray(account.balanceHistory)) {
+          const sortedHistory = [...account.balanceHistory].sort(
+            (a: BalanceHistoryEntry, b: BalanceHistoryEntry) =>
+              new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          );
+
+          const transactionsByDay: Record<
+            number,
+            ExtendedBalanceHistoryEntry[]
+          > = {};
+
+          sortedHistory.forEach(
+            (historyEntry: BalanceHistoryEntry, index: number) => {
+              const entryDate = new Date(historyEntry.createdAt);
+
+              if (shouldIncludePaymentInRange(entryDate, startDate, endDate)) {
+                const dayOfRange =
+                  Math.floor(
+                    (entryDate.getTime() - startDate.getTime()) /
+                      (1000 * 60 * 60 * 24)
+                  ) + 1;
+
+                if (!transactionsByDay[dayOfRange]) {
+                  transactionsByDay[dayOfRange] = [];
+                }
+
+                transactionsByDay[dayOfRange].push({
+                  ...historyEntry,
+                  dayOfRange,
+                  entryDate,
+                  index,
+                });
+              }
+            }
+          );
+
+          Object.keys(transactionsByDay).forEach((day) => {
+            const dayTransactions = transactionsByDay[parseInt(day)];
+            const lastTransaction: ExtendedBalanceHistoryEntry =
+              dayTransactions.reduce(
+                (
+                  latest: ExtendedBalanceHistoryEntry,
+                  current: ExtendedBalanceHistoryEntry
+                ) =>
+                  new Date(current.createdAt).getTime() >
+                  new Date(latest.createdAt).getTime()
+                    ? current
+                    : latest
+              );
+
+            const convertedBalance = convertToDisplayCurrency(
+              lastTransaction.newBalance,
+              lastTransaction.currency || account.currency || displayCurrency
+            );
+
+            acc[account.id][parseInt(day)] = {
+              balance: convertedBalance,
+              date: lastTransaction.entryDate,
+              changeType: lastTransaction.changeType,
+              amountChanged: convertToDisplayCurrency(
+                lastTransaction.amountChanged,
+                lastTransaction.currency || account.currency || displayCurrency
+              ),
+              uniqueId: `${account.id}-${day}-${lastTransaction.index}`,
+              transactionCount: dayTransactions.length,
+            };
+          });
+        }
+
+        if (account.balanceHistory && account.balanceHistory.length > 0) {
+          const firstHistoryEntry = account.balanceHistory.find(
+            (entry: BalanceHistoryEntry) => {
+              const entryDate = new Date(entry.createdAt);
+              return shouldIncludePaymentInRange(entryDate, startDate, endDate);
+            }
+          );
+
+          if (firstHistoryEntry) {
+            startBalance = convertToDisplayCurrency(
+              firstHistoryEntry.previousBalance || 0,
+              firstHistoryEntry.currency || account.currency || displayCurrency
+            );
+          } else {
+            startBalance = 0;
+          }
+        } else {
+          startBalance = 0;
+        }
+
+        let lastKnownBalance = startBalance;
+        for (let day = 1; day <= totalDays; day++) {
+          if (acc[account.id][day]) {
+            lastKnownBalance = acc[account.id][day].balance;
+          } else {
+            const dayDate = new Date(
+              startDate.getFullYear(),
+              startDate.getMonth(),
+              day
+            );
+            acc[account.id][day] = {
+              balance: lastKnownBalance,
+              date: dayDate,
+              changeType: null,
+              amountChanged: 0,
+              uniqueId: `${account.id}-${day}-filled`,
+              transactionCount: 0,
+            };
+          }
+        }
+
+        return acc;
+      },
+      {} as Record<
+        number,
+        Record<
+          number,
+          {
+            balance: number;
+            date: Date;
+            changeType: string | null;
+            amountChanged: number;
+            uniqueId: string;
+            transactionCount?: number;
+            hasFuturePayment?: boolean;
+          }
+        >
+      >
     );
 
-    // FIXED: Improved filtering for monthly transactions
-    const monthlyTransactions = transactions.filter((t) => {
+    {
+      /* Future payments processing */
+    }
+    if (includeUpcoming) {
+      const allFuturePayments = [
+        ...futureIncomingPayments.map((p: any) => ({ ...p, type: "INCOME" })),
+        ...futureOutgoingPayments.map((p: any) => ({
+          ...p,
+          type: p.type === "TRANSFER" ? "TRANSFER" : "EXPENSE",
+        })),
+      ].filter((p: any) => {
+        if (!p.nextExecution) return false;
+        const paymentDate = new Date(p.nextExecution);
+        return (
+          shouldIncludePaymentInRange(paymentDate, startDate, endDate) &&
+          paymentDate > today
+        );
+      });
+
+      allFuturePayments.sort(
+        (a: any, b: any) =>
+          new Date(a.nextExecution).getTime() -
+          new Date(b.nextExecution).getTime()
+      );
+
+      allFuturePayments.forEach((payment: any) => {
+        const paymentDate = new Date(payment.nextExecution);
+        const paymentDateLocal = new Date(
+          paymentDate.getFullYear(),
+          paymentDate.getMonth(),
+          paymentDate.getDate()
+        );
+        const startDateLocal = new Date(
+          startDate.getFullYear(),
+          startDate.getMonth(),
+          startDate.getDate()
+        );
+        const dayOfRange =
+          Math.floor(
+            (paymentDateLocal.getTime() - startDateLocal.getTime()) /
+              (1000 * 60 * 60 * 24)
+          ) + 1;
+
+        if (dayOfRange >= todayInRange) {
+          const targetAccountId =
+            payment.accountId ||
+            payment.fromAccountId ||
+            defaultAccounts[0]?.id;
+
+          if (targetAccountId && accountBalancesByDay[targetAccountId]) {
+            const convertedAmount = convertToDisplayCurrency(
+              payment.amount || 0,
+              payment.currency || displayCurrency
+            );
+
+            for (let day = dayOfRange; day <= totalDays; day++) {
+              if (accountBalancesByDay[targetAccountId][day]) {
+                if (payment.type === "INCOME") {
+                  accountBalancesByDay[targetAccountId][day].balance +=
+                    convertedAmount;
+                } else if (
+                  payment.type === "EXPENSE" ||
+                  payment.type === "TRANSFER"
+                ) {
+                  accountBalancesByDay[targetAccountId][day].balance -=
+                    convertedAmount;
+                }
+
+                accountBalancesByDay[targetAccountId][day].hasFuturePayment =
+                  true;
+              }
+            }
+          }
+        }
+      });
+    }
+
+    const rangeTransactions = transactions.filter((t: any) => {
       const transactionDate = new Date(t.createdAt || t.date);
-      return shouldIncludePaymentInMonth(
-        transactionDate,
-        currentMonth,
-        startOfMonth,
-        endOfMonth
-      );
+      return shouldIncludePaymentInRange(transactionDate, startDate, endDate);
     });
 
-    // FIXED: Improved filtering for upcoming payments
-    const upcomingIncome = futureIncomingPayments.filter((p) => {
+    const upcomingIncome = futureIncomingPayments.filter((p: any) => {
       if (!p.nextExecution) return false;
       const nextDate = new Date(p.nextExecution);
-      return shouldIncludePaymentInMonth(
-        nextDate,
-        currentMonth,
-        startOfMonth,
-        endOfMonth
-      );
+      return shouldIncludePaymentInRange(nextDate, startDate, endDate);
     });
 
-    const upcomingExpenses = futureOutgoingPayments.filter((p) => {
+    const upcomingExpenses = futureOutgoingPayments.filter((p: any) => {
       if (!p.nextExecution) return false;
       const nextDate = new Date(p.nextExecution);
-      return shouldIncludePaymentInMonth(
-        nextDate,
-        currentMonth,
-        startOfMonth,
-        endOfMonth
+      return (
+        shouldIncludePaymentInRange(nextDate, startDate, endDate) &&
+        p.type !== "TRANSFER"
       );
     });
 
-    // Initialize account balances - only for DEFAULT accounts
-    const accountBalances = defaultAccounts.reduce((acc, account) => {
-      acc[account.id] = convertToDisplayCurrency(account.balance || 0, account.currency || displayCurrency);
-      return acc;
-    }, {} as Record<string, number>);
+    const upcomingTransfers = futureOutgoingPayments.filter((p: any) => {
+      if (!p.nextExecution) return false;
+      const nextDate = new Date(p.nextExecution);
+      return (
+        shouldIncludePaymentInRange(nextDate, startDate, endDate) &&
+        p.type === "TRANSFER"
+      );
+    });
 
     const dataPoints = [];
-    
-    // MODIFIED: Determine range based on includeUpcoming toggle
-    const todayDay = today.getDate();
-    const lastDayToShow = includeUpcoming 
-      ? endOfMonth.getDate() 
-      : Math.min(todayDay, endOfMonth.getDate());
 
-    // Generate data points based on the determined range
+    const lastDayToShow = includeUpcoming
+      ? totalDays
+      : Math.min(todayInRange, totalDays);
+
+    {
+      /* Data points generation */
+    }
     for (let day = 1; day <= lastDayToShow; day++) {
       const currentDate = new Date(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth(),
+        startDate.getFullYear(),
+        startDate.getMonth(),
         day
       );
-      const dayLabel = day.toString();
+
+      const dayLabel = currentDate.getDate().toString();
       const isToday = currentDate.toDateString() === today.toDateString();
       const isFuture = currentDate > today;
 
-      // FIXED: Improved day transaction matching
-      const dayTransactions = monthlyTransactions.filter((t) => {
+      const dayTransactions = rangeTransactions.filter((t: any) => {
         const transactionDate = new Date(t.createdAt || t.date);
-        const effectiveDay = getEffectiveDayForPayment(
-          transactionDate,
-          currentMonth,
-          endOfMonth
-        );
-        return effectiveDay === day;
+        return transactionDate.toDateString() === currentDate.toDateString();
       });
 
       const incomeTransactions = dayTransactions.filter(
-        (t) => t.type === "INCOME"
+        (t: any) => t.type === "INCOME"
       );
       const expenseTransactions = dayTransactions.filter(
-        (t) => t.type === "EXPENSE"
+        (t: any) => t.type === "EXPENSE"
+      );
+      const transferTransactions = dayTransactions.filter(
+        (t: any) => t.type === "TRANSFER"
       );
 
-      const actualIncome = incomeTransactions.reduce((sum, t) => {
+      const actualIncome = incomeTransactions.reduce((sum: number, t: any) => {
         const amount = t.amount ?? 0;
         const currency = t.currency || displayCurrency;
         return sum + convertToDisplayCurrency(amount, currency);
       }, 0);
 
-      const actualExpenses = expenseTransactions.reduce((sum, t) => {
-        const amount = t.amount ?? 0;
-        const currency = t.currency || displayCurrency;
-        return sum + convertToDisplayCurrency(amount, currency);
-      }, 0);
+      const actualExpenses = expenseTransactions.reduce(
+        (sum: number, t: any) => {
+          const amount = t.amount ?? 0;
+          const currency = t.currency || displayCurrency;
+          return sum + convertToDisplayCurrency(amount, currency);
+        },
+        0
+      );
 
-      // FIXED: Improved day payment matching for upcoming payments
-      const dayUpcomingIncomePayments = upcomingIncome.filter((p) => {
+      const actualTransfers = transferTransactions.reduce(
+        (sum: number, t: any) => {
+          const amount = t.amount ?? 0;
+          const currency = t.currency || displayCurrency;
+          return sum + convertToDisplayCurrency(amount, currency);
+        },
+        0
+      );
+
+      const dayUpcomingIncomePayments = upcomingIncome.filter((p: any) => {
         const paymentDate = new Date(p.nextExecution);
-        const effectiveDay = getEffectiveDayForPayment(
-          paymentDate,
-          currentMonth,
-          endOfMonth
-        );
-        return effectiveDay === day;
+        return paymentDate.toDateString() === currentDate.toDateString();
       });
 
-      const dayUpcomingExpensePayments = upcomingExpenses.filter((p) => {
+      const dayUpcomingExpensePayments = upcomingExpenses.filter((p: any) => {
         const paymentDate = new Date(p.nextExecution);
-        const effectiveDay = getEffectiveDayForPayment(
-          paymentDate,
-          currentMonth,
-          endOfMonth
-        );
-        return effectiveDay === day;
+        return paymentDate.toDateString() === currentDate.toDateString();
       });
 
-      const dayUpcomingIncome = dayUpcomingIncomePayments.reduce((sum, p) => {
-        const amount = p.amount ?? 0;
-        const currency = p.currency || displayCurrency;
-        return sum + convertToDisplayCurrency(amount, currency);
-      }, 0);
+      const dayUpcomingTransferPayments = upcomingTransfers.filter((p: any) => {
+        const paymentDate = new Date(p.nextExecution);
+        return paymentDate.toDateString() === currentDate.toDateString();
+      });
 
-      const dayUpcomingExpenses = dayUpcomingExpensePayments.reduce(
-        (sum, p) => {
+      const dayUpcomingIncome = dayUpcomingIncomePayments.reduce(
+        (sum: number, p: any) => {
           const amount = p.amount ?? 0;
           const currency = p.currency || displayCurrency;
           return sum + convertToDisplayCurrency(amount, currency);
@@ -433,576 +769,318 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
         0
       );
 
-      // Update account balances based on transactions and payments - only for DEFAULT accounts
-      if (!isFuture) {
-        // For past/current dates, apply actual transactions
-        dayTransactions.forEach((transaction) => {
-          const accountId = transaction.accountId;
-          if (accountBalances[accountId] !== undefined) {
-            const amount = convertToDisplayCurrency(
-              transaction.amount || 0,
-              transaction.currency || displayCurrency
-            );
-            if (transaction.type === "INCOME") {
-              accountBalances[accountId] += amount;
-            } else if (transaction.type === "EXPENSE") {
-              accountBalances[accountId] -= amount;
-            }
-          }
-        });
-      } else {
-        // For future dates, apply upcoming payments
-        [...dayUpcomingIncomePayments, ...dayUpcomingExpensePayments].forEach((payment) => {
-          const accountId = payment.accountId;
-          if (accountBalances[accountId] !== undefined) {
-            const amount = convertToDisplayCurrency(
-              payment.amount || 0,
-              payment.currency || displayCurrency
-            );
-            if (payment.type === "INCOME") {
-              accountBalances[accountId] += amount;
-            } else if (payment.type === "EXPENSE") {
-              accountBalances[accountId] -= amount;
-            }
-          }
-        });
-      }
+      const dayUpcomingExpenses = dayUpcomingExpensePayments.reduce(
+        (sum: number, p: any) => {
+          const amount = p.amount ?? 0;
+          const currency = p.currency || displayCurrency;
+          return sum + convertToDisplayCurrency(amount, currency);
+        },
+        0
+      );
 
-      const dataPoint: any = {
+      const dayUpcomingTransfers = dayUpcomingTransferPayments.reduce(
+        (sum: number, p: any) => {
+          const amount = p.amount ?? 0;
+          const currency = p.currency || displayCurrency;
+          return sum + convertToDisplayCurrency(amount, currency);
+        },
+        0
+      );
+
+      const adjustedCurrentDate = new Date(
+        currentDate.getTime() - currentDate.getTimezoneOffset() * 60000
+      );
+
+      const dataPoint: ChartDataPoint = {
         day: dayLabel,
-        date: currentDate.toISOString().split("T")[0],
+        date: adjustedCurrentDate.toISOString().split("T")[0],
+        fullDate: currentDate,
         isToday,
         isFuture,
-        // Store raw values for summary calculation
         actualIncome: actualIncome,
         actualExpenses: actualExpenses,
+        actualTransfers: actualTransfers,
         upcomingIncome: dayUpcomingIncome,
         upcomingExpenses: dayUpcomingExpenses,
+        upcomingTransfers: dayUpcomingTransfers,
         incomeTransactions,
         expenseTransactions,
+        transferTransactions,
         upcomingIncomePayments: dayUpcomingIncomePayments,
         upcomingExpensePayments: dayUpcomingExpensePayments,
+        upcomingTransferPayments: dayUpcomingTransferPayments,
+        dayIndex: day,
       };
 
-      // MODIFIED: Display logic for the unified chart
+      {
+        /* Set line data for past/present vs future */
+      }
       if (!isFuture) {
-        // For past/current dates, show actual data
         dataPoint.income = actualIncome || 0;
         dataPoint.expenses = actualExpenses || 0;
+        dataPoint.transfers = actualTransfers || 0;
+        if (includeUpcoming) {
+          dataPoint.incomeFuture = null;
+          dataPoint.expensesFuture = null;
+          dataPoint.transfersFuture = null;
+        }
       } else {
-        // For future dates, show upcoming data (only when includeUpcoming is true)
-        dataPoint.income = dayUpcomingIncome || 0;
-        dataPoint.expenses = dayUpcomingExpenses || 0;
+        dataPoint.income = null;
+        dataPoint.expenses = null;
+        dataPoint.transfers = null;
+        dataPoint.incomeFuture = dayUpcomingIncome || 0;
+        dataPoint.expensesFuture = dayUpcomingExpenses || 0;
+        dataPoint.transfersFuture = dayUpcomingTransfers || 0;
       }
 
-      // Add account balances to data point - only for DEFAULT accounts
-      defaultAccounts.forEach((account, index) => {
-        dataPoint[`account_${account.id}`] = accountBalances[account.id] || 0;
+      {
+        /* Handle today transition point */
+      }
+      if (includeUpcoming && day === todayInRange) {
+        dataPoint.incomeFuture = actualIncome || 0;
+        dataPoint.expensesFuture = actualExpenses || 0;
+        dataPoint.transfersFuture = actualTransfers || 0;
+      }
+
+      {
+        /* Account balance data */
+      }
+      defaultAccounts.forEach((account: any) => {
+        const balanceData = accountBalancesByDay[account.id]?.[day];
+        const balance =
+          balanceData?.balance ||
+          (day > 1
+            ? accountBalancesByDay[account.id]?.[day - 1]?.balance || 0
+            : 0);
+
+        dataPoint[`account_${account.id}`] = balance;
+
+        if (includeUpcoming) {
+          if (day <= todayInRange) {
+            dataPoint[`account_${account.id}_future`] = null;
+          } else {
+            dataPoint[`account_${account.id}`] = null;
+            dataPoint[`account_${account.id}_future`] = balance;
+          }
+
+          if (day === todayInRange) {
+            dataPoint[`account_${account.id}_future`] = balance;
+          }
+        }
+
+        if (balanceData) {
+          dataPoint[`account_${account.id}_change`] = balanceData.amountChanged;
+          dataPoint[`account_${account.id}_changeType`] =
+            balanceData.changeType;
+          dataPoint[`account_${account.id}_projected`] =
+            balanceData.hasFuturePayment || false;
+        } else {
+          dataPoint[`account_${account.id}_projected`] = false;
+        }
       });
 
       dataPoints.push(dataPoint);
     }
 
-    // Debug logging to help identify issues
-    console.log("=== PAYMENT DEBUG INFO ===");
-    console.log("Current date:", new Date());
-    console.log("Current month:", currentMonth);
-    console.log("Start of month:", startOfMonth);
-    console.log("End of month:", endOfMonth);
-    console.log("Today day:", todayDay);
-    console.log("Last day to show:", lastDayToShow);
-    console.log("Include upcoming:", includeUpcoming);
-    console.log("Monthly transactions count:", monthlyTransactions.length);
-    console.log("Upcoming income count:", upcomingIncome.length);
-    console.log("Upcoming expenses count:", upcomingExpenses.length);
-    console.log("Data points generated:", dataPoints.length);
-    console.log("Total accounts:", accounts.length);
-    console.log("DEFAULT accounts:", defaultAccounts.length);
-
-    return { dataPoints, todayDay };
+    return { dataPoints, todayDay: todayInRange };
   }, [
+    defaultAccounts,
     transactions,
     futureIncomingPayments,
     futureOutgoingPayments,
-    defaultAccounts,
     includeUpcoming,
     displayCurrency,
+    currentDateRange,
     rates,
+    accountsLoading,
   ]);
 
   const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const data = payload[0].payload;
+    if (!active || !payload || !payload.length) return null;
 
-      const dayNum = parseInt(data.day);
-      const currentMonth = new Date();
-      const correctDate = new Date(
-        currentMonth.getFullYear(),
-        currentMonth.getMonth(),
-        dayNum
-      );
+    const data = payload[0].payload;
+    const currentDate = data.fullDate;
 
-      const formattedDate = correctDate.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        weekday: "short",
-      });
+    const formattedDate = currentDate.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
 
-      return (
-        <div
-          className={`bg-white border border-gray-200 rounded-xl shadow-xl max-w-xs ${
-            isMobileView ? "p-3" : "p-4"
-          }`}
-        >
-          <p
-            className={`font-medium text-gray-900 mb-2 ${isMobileView ? "text-sm" : ""}`}
-          >
-            {formattedDate}
-          </p>
+    return (
+      <div className="bg-white/95 backdrop-blur border border-gray-100 rounded-lg shadow-lg p-4 max-w-[300px]">
+        <p className="text-sm font-medium text-gray-600 mb-3 text-center">
+          {formattedDate}
+        </p>
 
-          {/* Account Balances - only DEFAULT accounts */}
+        <div className="space-y-2">
+          {(data.income > 0 || data.incomeFuture > 0) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="w-4 h-4 text-green-600" />
+              </div>
+              <span className="text-xs font-medium text-green-700">
+                +{(data.income || data.incomeFuture || 0).toFixed(1)}{" "}
+                {displayCurrency}
+              </span>
+            </div>
+          )}
+
+          {(data.expenses > 0 || data.expensesFuture > 0) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <TrendingDown className="w-4 h-4 text-red-600" />
+              </div>
+              <span className="text-xs font-medium text-red-700">
+                -{(data.expenses || data.expensesFuture || 0).toFixed(1)}{" "}
+                {displayCurrency}
+              </span>
+            </div>
+          )}
+
+          <div className="mt-1.5 pt-1.5 border-t border-gray-100">
+            <div className="flex items-center justify-between">
+              <DollarSign className="w-3 h-3 text-gray-600" />
+              <span
+                className={`text-xs font-medium ${
+                  (data.income || data.incomeFuture || 0) -
+                    (data.expenses || data.expensesFuture || 0) >=
+                  0
+                    ? "text-green-700"
+                    : "text-red-700"
+                }`}
+              >
+                {(
+                  (data.income || data.incomeFuture || 0) -
+                  (data.expenses || data.expensesFuture || 0)
+                ).toFixed(1)}{" "}
+                {displayCurrency}
+              </span>
+            </div>
+          </div>
+
           {defaultAccounts.length > 0 && (
-            <div className="mb-2">
-              <p
-                className={`font-medium text-blue-600 mb-1 ${isMobileView ? "text-xs" : "text-sm"}`}
-              >
-                💰 Account Balances
-              </p>
-              <div
-                className={`space-y-1 ${isMobileView ? "max-h-16" : "max-h-20"} overflow-y-auto`}
-              >
-                {defaultAccounts.slice(0, isMobileView ? 2 : 3).map((account, index) => {
-                  const balance = data[`account_${account.id}`] || 0;
+            <>
+              <div className="my-1.5 h-px bg-gray-100" />
+              <div className="space-y-1">
+                {defaultAccounts.map((account: any, index: number) => {
+                  const balance =
+                    data[`account_${account.id}`] ||
+                    data[`account_${account.id}_future`] ||
+                    0;
+                  const isProjected = includeUpcoming && data.isFuture;
                   return (
                     <div
-                      key={account.id}
-                      className="text-xs text-blue-700 bg-blue-50 px-2 py-1 rounded"
+                      key={`tooltip-account-${account.id}`}
+                      className="flex items-center justify-between"
                     >
-                      <div className="font-medium truncate">
-                        {account.name || `Account ${index + 1}`}
+                      <div className="flex items-center space-x-1.5">
+                        <div
+                          className="w-2 h-2 rounded-full"
+                          style={{ backgroundColor: accountColors[index] }}
+                        />
                       </div>
-                      <div>
-                        {balance.toFixed(2)} {displayCurrency}
-                      </div>
+                      <span className="text-xs font-medium text-gray-700">
+                        {balance.toFixed(1)} {displayCurrency}
+                      </span>
                     </div>
                   );
                 })}
-                {defaultAccounts.length > (isMobileView ? 2 : 3) && (
-                  <div className="text-xs text-blue-600 text-center">
-                    +{defaultAccounts.length - (isMobileView ? 2 : 3)} more accounts
-                  </div>
-                )}
               </div>
-            </div>
+            </>
           )}
 
-          {/* Actual Income */}
-          {data.incomeTransactions && data.incomeTransactions.length > 0 && (
-            <div className="mb-2">
-              <p
-                className={`font-medium text-green-600 mb-1 ${isMobileView ? "text-xs" : "text-sm"}`}
-              >
-                💰 Income ({data.incomeTransactions.length})
-              </p>
-              <div
-                className={`space-y-1 ${isMobileView ? "max-h-16" : "max-h-20"} overflow-y-auto`}
-              >
-                {data.incomeTransactions
-                  .slice(0, isMobileView ? 2 : 3)
-                  .map((transaction: any, index: number) => {
-                    const originalAmount = transaction.amount || 0;
-                    const originalCurrency =
-                      transaction.currency || displayCurrency;
-                    const convertedAmount = convertToDisplayCurrency(
-                      originalAmount,
-                      originalCurrency
-                    );
-                    const needsConversion =
-                      originalCurrency !== displayCurrency;
-
-                    return (
-                      <div
-                        key={index}
-                        className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded"
-                      >
-                        <div className="font-medium truncate">
-                          {transaction.description ||
-                            transaction.name ||
-                            "Income"}
-                        </div>
-                        <div>
-                          +{originalAmount.toFixed(2)} {originalCurrency}
-                          {needsConversion && (
-                            <span className="text-green-600 ml-1">
-                              ({convertedAmount.toFixed(2)} {displayCurrency})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                {data.incomeTransactions.length > (isMobileView ? 2 : 3) && (
-                  <div className="text-xs text-green-600 text-center">
-                    +{data.incomeTransactions.length - (isMobileView ? 2 : 3)}{" "}
-                    more
-                  </div>
-                )}
+          {(data.transfers > 0 || data.transfersFuture > 0) && (
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ArrowRightLeft className="w-4 h-4 text-blue-600" />
               </div>
+              <span className="text-xs font-medium text-blue-700">
+                {(data.transfers || data.transfersFuture || 0).toFixed(1)}{" "}
+                {displayCurrency}
+              </span>
             </div>
           )}
-
-          {/* Actual Expenses */}
-          {data.expenseTransactions && data.expenseTransactions.length > 0 && (
-            <div className="mb-2">
-              <p
-                className={`font-medium text-red-600 mb-1 ${isMobileView ? "text-xs" : "text-sm"}`}
-              >
-                💸 Expenses ({data.expenseTransactions.length})
-              </p>
-              <div
-                className={`space-y-1 ${isMobileView ? "max-h-16" : "max-h-20"} overflow-y-auto`}
-              >
-                {data.expenseTransactions
-                  .slice(0, isMobileView ? 2 : 3)
-                  .map((transaction: any, index: number) => {
-                    const originalAmount = transaction.amount || 0;
-                    const originalCurrency =
-                      transaction.currency || displayCurrency;
-                    const convertedAmount = convertToDisplayCurrency(
-                      originalAmount,
-                      originalCurrency
-                    );
-                    const needsConversion =
-                      originalCurrency !== displayCurrency;
-
-                    return (
-                      <div
-                        key={index}
-                        className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded"
-                      >
-                        <div className="font-medium truncate">
-                          {transaction.description ||
-                            transaction.name ||
-                            "Expense"}
-                        </div>
-                        <div>
-                          -{originalAmount.toFixed(2)} {originalCurrency}
-                          {needsConversion && (
-                            <span className="text-red-600 ml-1">
-                              ({convertedAmount.toFixed(2)} {displayCurrency})
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                {data.expenseTransactions.length > (isMobileView ? 2 : 3) && (
-                  <div className="text-xs text-red-600 text-center">
-                    +{data.expenseTransactions.length - (isMobileView ? 2 : 3)}{" "}
-                    more
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Upcoming Income Payments */}
-          {data.upcomingIncomePayments &&
-            data.upcomingIncomePayments.length > 0 && (
-              <div className="mb-2">
-                <p
-                  className={`font-medium text-green-600 mb-1 ${isMobileView ? "text-xs" : "text-sm"}`}
-                >
-                  📅 Upcoming Income ({data.upcomingIncomePayments.length})
-                </p>
-                <div
-                  className={`space-y-1 ${isMobileView ? "max-h-16" : "max-h-20"} overflow-y-auto`}
-                >
-                  {data.upcomingIncomePayments
-                    .slice(0, isMobileView ? 2 : 3)
-                    .map((payment: any, index: number) => {
-                      const originalAmount = payment.amount || 0;
-                      const originalCurrency =
-                        payment.currency || displayCurrency;
-                      const convertedAmount = convertToDisplayCurrency(
-                        originalAmount,
-                        originalCurrency
-                      );
-                      const needsConversion =
-                        originalCurrency !== displayCurrency;
-
-                      return (
-                        <div
-                          key={index}
-                          className="text-xs text-green-700 bg-green-50 px-2 py-1 rounded border-l-2 border-green-400"
-                        >
-                          <div className="font-medium truncate">
-                            {payment.description ||
-                              payment.name ||
-                              "Upcoming Income"}
-                          </div>
-                          <div>
-                            +{originalAmount.toFixed(2)} {originalCurrency}
-                            {needsConversion && (
-                              <span className="text-green-600 ml-1">
-                                ({convertedAmount.toFixed(2)} {displayCurrency})
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  {data.upcomingIncomePayments.length >
-                    (isMobileView ? 2 : 3) && (
-                    <div className="text-xs text-green-600 text-center">
-                      +
-                      {data.upcomingIncomePayments.length -
-                        (isMobileView ? 2 : 3)}{" "}
-                      more
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-          {/* Upcoming Expense Payments */}
-          {data.upcomingExpensePayments &&
-            data.upcomingExpensePayments.length > 0 && (
-              <div className="mb-2">
-                <p
-                  className={`font-medium text-red-600 mb-1 ${isMobileView ? "text-xs" : "text-sm"}`}
-                >
-                  📅 Upcoming Expenses ({data.upcomingExpensePayments.length})
-                </p>
-                <div
-                  className={`space-y-1 ${isMobileView ? "max-h-16" : "max-h-20"} overflow-y-auto`}
-                >
-                  {data.upcomingExpensePayments
-                    .slice(0, isMobileView ? 2 : 3)
-                    .map((payment: any, index: number) => {
-                      const originalAmount = payment.amount || 0;
-                      const originalCurrency =
-                        payment.currency || displayCurrency;
-                      const convertedAmount = convertToDisplayCurrency(
-                        originalAmount,
-                        originalCurrency
-                      );
-                      const needsConversion =
-                        originalCurrency !== displayCurrency;
-
-                      return (
-                        <div
-                          key={index}
-                          className="text-xs text-red-700 bg-red-50 px-2 py-1 rounded border-l-2 border-red-400"
-                        >
-                          <div className="font-medium truncate">
-                            {payment.description ||
-                              payment.name ||
-                              "Upcoming Expense"}
-                          </div>
-                          <div>
-                            -{originalAmount.toFixed(2)} {originalCurrency}
-                            {needsConversion && (
-                              <span className="text-red-600 ml-1">
-                                ({convertedAmount.toFixed(2)} {displayCurrency})
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  {data.upcomingExpensePayments.length >
-                    (isMobileView ? 2 : 3) && (
-                    <div className="text-xs text-red-600 text-center">
-                      +
-                      {data.upcomingExpensePayments.length -
-                        (isMobileView ? 2 : 3)}{" "}
-                      more
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-          {/* Daily Total Summary */}
-          {(() => {
-            // Calculate daily totals
-            const dailyIncome =
-              (data.actualIncome || 0) + (data.upcomingIncome || 0);
-            const dailyExpenses =
-              (data.actualExpenses || 0) + (data.upcomingExpenses || 0);
-            const dailyNet = dailyIncome - dailyExpenses;
-
-            // Only show if there's any activity
-            if (dailyIncome > 0 || dailyExpenses > 0) {
-              return (
-                <div className="border-t pt-2 mt-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700">
-                      Daily Total:
-                    </span>
-                    <span
-                      className={`text-sm font-bold ${
-                        dailyNet >= 0 ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {dailyNet >= 0 ? "+" : ""}
-                      {dailyNet.toFixed(2)} {displayCurrency}
-                    </span>
-                  </div>
-
-                  {/* Breakdown if both income and expenses exist */}
-                  {dailyIncome > 0 && dailyExpenses > 0 && (
-                    <div className="text-xs text-gray-600 mt-1 space-y-0.5">
-                      <div className="flex justify-between">
-                        <span>Income:</span>
-                        <span className="text-green-600">
-                          +{dailyIncome.toFixed(2)} {displayCurrency}
-                        </span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Expenses:</span>
-                        <span className="text-red-600">
-                          -{dailyExpenses.toFixed(2)} {displayCurrency}
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }
-            return null;
-          })()}
         </div>
-      );
-    }
-    return null;
+      </div>
+    );
   };
 
-  // FIXED: Summary stats calculation now correctly includes all payments
+  {
+    /* Summary statistics */
+  }
   const summaryStats = useMemo(() => {
     let totalActualIncome = 0;
     let totalActualExpenses = 0;
+    let totalActualTransfers = 0;
     let totalUpcomingIncome = 0;
     let totalUpcomingExpenses = 0;
+    let totalUpcomingTransfers = 0;
 
-    chartData.dataPoints.forEach((d, dayIndex) => {
-      // Sum actual income and expenses (only positive values)
+    chartData.dataPoints.forEach((d: any) => {
       if (d.actualIncome && d.actualIncome > 0) {
         totalActualIncome += d.actualIncome;
       }
       if (d.actualExpenses && d.actualExpenses > 0) {
         totalActualExpenses += d.actualExpenses;
       }
+      if (d.actualTransfers && d.actualTransfers > 0) {
+        totalActualTransfers += d.actualTransfers;
+      }
       if (d.upcomingIncome && d.upcomingIncome > 0) {
-        console.log(
-          `Day ${d.day} has upcoming income:`,
-          d.upcomingIncome,
-          "Payments:",
-          d.upcomingIncomePayments
-        );
         totalUpcomingIncome += d.upcomingIncome;
       }
       if (d.upcomingExpenses && d.upcomingExpenses > 0) {
-        console.log(
-          `Day ${d.day} has upcoming expenses:`,
-          d.upcomingExpenses,
-          "Payments:",
-          d.upcomingExpensePayments
-        );
         totalUpcomingExpenses += d.upcomingExpenses;
+      }
+      if (d.upcomingTransfers && d.upcomingTransfers > 0) {
+        totalUpcomingTransfers += d.upcomingTransfers;
       }
     });
 
-    const actualNet = totalActualIncome - totalActualExpenses;
+    const actualNet =
+      totalActualIncome - totalActualExpenses - totalActualTransfers;
     const projectedNet =
       totalActualIncome +
       totalUpcomingIncome -
-      (totalActualExpenses + totalUpcomingExpenses);
-
-    // Debug logging for summary stats
-    console.log("=== SUMMARY STATS DEBUG ===");
-    console.log("Summary stats:", {
-      actualIncome: totalActualIncome,
-      actualExpenses: totalActualExpenses,
-      upcomingIncome: totalUpcomingIncome,
-      upcomingExpenses: totalUpcomingExpenses,
-      actualNet,
-      projectedNet,
-    });
+      (totalActualExpenses +
+        totalUpcomingExpenses +
+        totalActualTransfers +
+        totalUpcomingTransfers);
 
     return {
       actualIncome: totalActualIncome,
       actualExpenses: totalActualExpenses,
+      actualTransfers: totalActualTransfers,
       upcomingIncome: totalUpcomingIncome,
       upcomingExpenses: totalUpcomingExpenses,
+      upcomingTransfers: totalUpcomingTransfers,
       actualNet,
       projectedNet,
     };
   }, [chartData]);
 
-  const currentMonthName = new Date().toLocaleString("default", {
-    month: isMobileView ? "short" : "long",
-    year: "numeric",
-  });
-
-  // Custom dot component that can access individual data point properties
-  const AccountBalanceDot = (props: any) => {
-    const { cx, cy, payload } = props;
-    if (!payload || payload.isFuture === undefined) return null;
-    
-    // You can customize the dot appearance based on isFuture property
-    const dotStyle = payload.isFuture 
-      ? { fill: props.stroke, fillOpacity: 0.5, strokeDasharray: "2,2" }
-      : { fill: props.stroke };
-    
+  if (accountsLoading) {
     return (
-      <circle
-        cx={cx}
-        cy={cy}
-        r={isMobileView ? 1.5 : 2}
-        {...dotStyle}
-      />
+      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
+        <div className="flex items-center justify-center h-80">
+          <div className="text-center">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading chart data...</p>
+          </div>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
     <div
       className={`bg-white rounded-2xl shadow-xl border border-gray-100 relative overflow-hidden ${
-        isMobileView ? "p-3 mb-4 mx-2" : isSmallScreen ? "p-4 mb-4" : "p-6 mb-8"
+        isMobileView ? "p-2 mb-3 mx-0" : isSmallScreen ? "p-3 mb-4" : "p-4 mb-6"
       }`}
     >
-      {/* Background decorative elements - smaller on mobile */}
-      <div
-        className={`absolute top-0 right-0 bg-gradient-to-br from-blue-200 to-indigo-200 rounded-full opacity-20 ${
-          isMobileView
-            ? "w-12 h-12 -translate-y-6 translate-x-6"
-            : isSmallScreen
-              ? "w-16 h-16 -translate-y-8 translate-x-8"
-              : "w-24 h-24 -translate-y-12 translate-x-12"
-        }`}
-      ></div>
-      <div
-        className={`absolute bottom-0 left-0 bg-gradient-to-tr from-green-200 to-emerald-200 rounded-full opacity-15 ${
-          isMobileView
-            ? "w-8 h-8 translate-y-4 -translate-x-4"
-            : isSmallScreen
-              ? "w-12 h-12 translate-y-6 -translate-x-6"
-              : "w-16 h-16 translate-y-8 -translate-x-8"
-        }`}
-      ></div>
-      <div
-        className={`absolute bg-gradient-to-br from-purple-200 to-pink-200 rounded-full opacity-10 ${
-          isMobileView
-            ? "top-3 left-6 w-6 h-6"
-            : isSmallScreen
-              ? "top-4 left-8 w-8 h-8"
-              : "top-6 left-12 w-12 h-12"
-        }`}
-      ></div>
-
       <div className="relative z-10">
-        {/* Header Section - Mobile Optimized */}
+        {/* Header */}
         <div
           className={`flex ${isMobileView ? "flex-col space-y-3" : "justify-between items-center"} ${
             isMobileView ? "mb-3" : isSmallScreen ? "mb-4" : "mb-6"
@@ -1012,7 +1090,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
             <motion.div
               className={`bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg ${
                 isMobileView
-                  ? "w-8 h-8"
+                  ? "w-10 h-10"
                   : isSmallScreen
                     ? "w-10 h-10"
                     : "w-12 h-12"
@@ -1021,41 +1099,107 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               transition={{ type: "spring", stiffness: 400, damping: 17 }}
             >
               <TrendingUp
-                className={`text-white ${isMobileView ? "w-4 h-4" : isSmallScreen ? "w-5 h-5" : "w-6 h-6"}`}
+                className={`text-white ${isMobileView ? "w-5 h-5" : isSmallScreen ? "w-5 h-5" : "w-6 h-6"}`}
               />
             </motion.div>
             <div>
               <h3
                 className={`font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent ${
                   isMobileView
-                    ? "text-sm"
+                    ? "text-base"
                     : isSmallScreen
                       ? "text-base"
                       : "text-lg"
                 }`}
               >
-                {isMobileView
-                  ? "Income vs Expenses"
-                  : "Income vs Expenses Trend"}
+                {isMobileView ? "Accounts Trend" : "Accounts Balance Trend"}
               </h3>
               <p
                 className={`text-gray-500 font-medium ${
                   isMobileView
-                    ? "text-xs"
+                    ? "text-sm"
                     : isSmallScreen
                       ? "text-xs"
                       : "text-sm"
                 }`}
               >
-                {currentMonthName}
+                {getDateRangeText()}
               </p>
             </div>
           </div>
 
-          {/* Controls - Mobile Optimized */}
+          {/* Controls */}
           <div
             className={`flex ${isMobileView ? "justify-between w-full" : "items-center space-x-3"}`}
           >
+            {/* Date Range Selector */}
+            <div className="relative" ref={dateDropdownRef}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center shadow-md ${
+                  isMobileView
+                    ? "px-3 py-2 text-sm"
+                    : isSmallScreen
+                      ? "px-3 py-1.5 text-xs"
+                      : "px-4 py-2 text-sm"
+                }`}
+                onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+              >
+                <Calendar size={isMobileView ? 14 : 12} className="mr-1" />
+                <span className={isMobileView ? "hidden" : ""}>
+                  {
+                    dateRangeOptions.find(
+                      (option) => option.key === selectedRange
+                    )?.label
+                  }
+                </span>
+                {isMobileView && (
+                  <span>
+                    {selectedRange === "current_month"
+                      ? "Month"
+                      : selectedRange === "last_3_months"
+                        ? "3M"
+                        : selectedRange === "last_6_months"
+                          ? "6M"
+                          : "Year"}
+                  </span>
+                )}
+                <ChevronDown size={isMobileView ? 14 : 12} className="ml-1" />
+              </motion.button>
+
+              <AnimatePresence>
+                {isDateDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className={`absolute ${isMobileView ? "top-full left-0" : "top-full right-0"} mt-2 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200 ${
+                      isMobileView ? "w-32" : "w-48"
+                    }`}
+                  >
+                    <div className="max-h-48 overflow-y-auto">
+                      {dateRangeOptions.map((option: any) => (
+                        <button
+                          key={`date-option-${option.key}`}
+                          className={`w-full text-left px-3 py-2 transition-colors text-sm ${
+                            option.key === selectedRange
+                              ? "bg-blue-100 text-blue-700 font-medium"
+                              : "text-gray-700 hover:bg-blue-50"
+                          }`}
+                          onClick={() =>
+                            handleDateRangeChange(option.key as DateRangeOption)
+                          }
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
             {/* Currency Selector */}
             <div className="relative" ref={currencyRef}>
               <motion.button
@@ -1063,7 +1207,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 whileTap={{ scale: 0.95 }}
                 className={`bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center shadow-md ${
                   isMobileView
-                    ? "px-3 py-1.5 text-xs"
+                    ? "px-3 py-2 text-sm"
                     : isSmallScreen
                       ? "px-3 py-1.5 text-xs"
                       : "px-4 py-2 text-sm"
@@ -1073,14 +1217,14 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               >
                 {fetchingRates ? (
                   <RefreshCw
-                    size={isMobileView ? 10 : 12}
+                    size={isMobileView ? 14 : 12}
                     className="animate-spin mr-1"
                   />
                 ) : (
-                  <DollarSign size={isMobileView ? 10 : 12} className="mr-1" />
+                  <DollarSign size={isMobileView ? 14 : 12} className="mr-1" />
                 )}
                 <span>{displayCurrency}</span>
-                <ChevronDown size={isMobileView ? 10 : 12} className="ml-1" />
+                <ChevronDown size={isMobileView ? 14 : 12} className="ml-1" />
               </motion.button>
 
               <AnimatePresence>
@@ -1094,9 +1238,9 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                     }`}
                   >
                     <div className="max-h-32 overflow-y-auto">
-                      {availableCurrencies.map((currency) => (
+                      {availableCurrencies.map((currency: string) => (
                         <button
-                          key={currency}
+                          key={`currency-option-${currency}`}
                           className={`w-full text-left px-3 py-2 transition-colors text-sm ${
                             currency === displayCurrency
                               ? "bg-blue-100 text-blue-700 font-medium"
@@ -1114,82 +1258,37 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
             </div>
 
             {/* Toggle Switch */}
-            <div className="flex items-center space-x-2">
-              {!isMobileView && (
-                <span className="text-xs font-medium text-gray-600">
-                  Show upcoming
-                </span>
-              )}
-              <motion.button
-                onClick={() => setIncludeUpcoming(!includeUpcoming)}
-                className={`relative inline-flex items-center rounded-full transition-all duration-200 ${
-                  isMobileView
-                    ? "h-4 w-7"
-                    : isSmallScreen
-                      ? "h-5 w-9"
-                      : "h-6 w-10"
-                } ${
-                  includeUpcoming
-                    ? "bg-gradient-to-r from-purple-500 to-indigo-600 shadow-lg"
-                    : "bg-gray-300"
-                }`}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.span
-                  className={`inline-block rounded-full bg-white shadow-lg ${
-                    isMobileView
-                      ? "h-2.5 w-2.5"
-                      : isSmallScreen
-                        ? "h-3 w-3"
-                        : "h-4 w-4"
-                  }`}
-                  animate={{
-                    x: includeUpcoming
-                      ? isMobileView
-                        ? 16 // translate-x-4 = 16px
-                        : isSmallScreen
-                          ? 20 // translate-x-5 = 20px
-                          : 20 // translate-x-5 = 20px
-                      : 2, // translate-x-0.5 = 2px
-                  }}
-                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
-              </motion.button>
-            </div>
+            <motion.button
+              onClick={() => setIncludeUpcoming(!includeUpcoming)}
+              className={`relative inline-flex items-center justify-center ${
+                isMobileView
+                  ? "px-3 py-2 text-sm"
+                  : isSmallScreen
+                    ? "px-3 py-1.5 text-xs"
+                    : "px-4 py-2 text-sm"
+              } rounded-full transition-all duration-200 ${
+                includeUpcoming
+                  ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white"
+                  : "bg-gray-200 text-gray-700"
+              } shadow-md`}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              {!isMobileView && <Calendar size={12} className="mr-1" />}
+              <span className="flex items-center">
+                {isMobileView ? "Show Upcoming" : "Show Upcoming"}
+              </span>
+            </motion.button>
           </div>
         </div>
 
-        {/* Mobile Info Banner */}
-        {isMobileView && (
-          <div className="mb-3 bg-purple-50 rounded-lg p-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <span className="text-xs">📅</span>
-                <span className="text-xs font-medium text-purple-800">
-                  {includeUpcoming
-                    ? "Showing with upcoming payments"
-                    : "Showing actuals only"}
-                </span>
-              </div>
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  includeUpcoming
-                    ? "bg-purple-100 text-purple-700"
-                    : "bg-gray-200 text-gray-600"
-                }`}
-              >
-                {includeUpcoming ? "PROJECTED" : "ACTUAL"}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Chart Section - Mobile Optimized */}
+        {/* Chart */}
         <div
           className={`relative ${isMobileView ? "h-48" : isSmallScreen ? "h-60" : "h-80"} mb-4`}
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
+              key={`chart-${selectedRange}-${includeUpcoming}`}
               data={chartData.dataPoints}
               margin={{
                 top: 10,
@@ -1203,7 +1302,13 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 dataKey="day"
                 stroke="#6b7280"
                 fontSize={isMobileView ? 8 : 10}
-                interval={isMobileView ? 2 : "preserveStartEnd"}
+                interval={
+                  selectedRange === "current_month"
+                    ? isMobileView
+                      ? 2
+                      : "preserveStartEnd"
+                    : 5
+                }
                 tick={{ fontSize: isMobileView ? 8 : 10 }}
               />
               <YAxis
@@ -1222,7 +1327,6 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 />
               )}
 
-              {/* Vertical separator line at current day when upcoming payments are shown */}
               {includeUpcoming &&
                 chartData.todayDay <= chartData.dataPoints.length && (
                   <ReferenceLine
@@ -1233,7 +1337,6 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                   />
                 )}
 
-              {/* Background area for upcoming section */}
               {includeUpcoming &&
                 chartData.todayDay < chartData.dataPoints.length && (
                   <ReferenceArea
@@ -1246,88 +1349,54 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                   />
                 )}
 
-              {/* Main income line */}
-              <Line
-                dataKey="income"
-                stroke="#10b981"
-                strokeWidth={isMobileView ? 1.5 : 2}
-                name="Income"
-                dot={(props: any) => {
-                  if (props.payload?.income > 0) {
-                    return (
-                      <circle
-                        key={`income-dot-${props.payload?.day}`}
-                        cx={props.cx}
-                        cy={props.cy}
-                        r={isMobileView ? 2 : 3}
-                        fill="#10b981"
-                        strokeWidth={1}
-                        stroke="#10b981"
-                      />
-                    );
-                  }
-                  return <g key={`income-empty-${props.payload?.day}`} />;
-                }}
-                activeDot={{ r: isMobileView ? 4 : 6, fill: "#10b981" }}
-                connectNulls={true}
-              />
+              {/* Account lines */}
+              {defaultAccounts.map((account: any, index: number) => (
+                <React.Fragment key={`account-lines-${account.id}`}>
+                  <Line
+                    key={`account-line-${account.id}`}
+                    dataKey={`account_${account.id}`}
+                    stroke={accountColors[index] || "#6b7280"}
+                    strokeWidth={isMobileView ? 1.5 : 2}
+                    name={account.name || `Account ${index + 1}`}
+                    dot={false}
+                    activeDot={{
+                      r: isMobileView ? 3 : 4,
+                      fill: accountColors[index] || "#6b7280",
+                    }}
+                    connectNulls={false}
+                  />
 
-              {/* Main expense line */}
-              <Line
-                dataKey="expenses"
-                stroke="#ef4444"
-                strokeWidth={isMobileView ? 1.5 : 2}
-                name="Expenses"
-                dot={(props: any) => {
-                  if (props.payload?.expenses > 0) {
-                    return (
-                      <circle
-                        key={`expense-dot-${props.payload?.day}`}
-                        cx={props.cx}
-                        cy={props.cy}
-                        r={isMobileView ? 2 : 3}
-                        fill="#ef4444"
-                        strokeWidth={1}
-                        stroke="#ef4444"
-                      />
-                    );
-                  }
-                  return <g key={`expense-empty-${props.payload?.day}`} />;
-                }}
-                activeDot={{ r: isMobileView ? 4 : 6, fill: "#ef4444" }}
-                connectNulls={true}
-              />
-
-              {/* Account balance lines - only for DEFAULT accounts */}
-              {defaultAccounts.map((account, index) => (
-                <Line
-                  key={`account_${account.id}`}
-                  dataKey={`account_${account.id}`}
-                  stroke={accountColors[index] || '#6b7280'}
-                  strokeWidth={isMobileView ? 1 : 1.5}
-                  name={account.name || `Account ${index + 1}`}
-                  dot={<AccountBalanceDot stroke={accountColors[index] || '#6b7280'} />}
-                  activeDot={{ r: isMobileView ? 3 : 4, fill: accountColors[index] || '#6b7280' }}
-                  connectNulls={true}
-                />
+                  {includeUpcoming && (
+                    <Line
+                      key={`account-line-future-${account.id}`}
+                      dataKey={`account_${account.id}_future`}
+                      stroke={accountColors[index] || "#6b7280"}
+                      strokeWidth={isMobileView ? 1.5 : 2}
+                      strokeDasharray="4 4"
+                      name={`${account.name || `Account ${index + 1}`} (Projected)`}
+                      dot={false}
+                      activeDot={{
+                        r: isMobileView ? 3 : 4,
+                        fill: accountColors[index] || "#6b7280",
+                      }}
+                      connectNulls={false}
+                    />
+                  )}
+                </React.Fragment>
               ))}
             </LineChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Summary Cards - Mobile Optimized */}
+        {/* Summary Cards */}
         <div
           className={`grid gap-2 ${
-            isMobileView
-              ? "grid-cols-1"
-              : isSmallScreen
-                ? "grid-cols-2"
-                : "grid-cols-3"
+            isMobileView ? "grid-cols-2" : "grid-cols-3"
           }`}
         >
           <motion.div
             className={`bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 cursor-pointer ${
-              isMobileView ? "p-2.5" : isSmallScreen ? "p-3" : "p-4"
+              isMobileView ? "p-3" : isSmallScreen ? "p-3" : "p-4"
             }`}
             whileHover={{
               y: -2,
@@ -1342,15 +1411,15 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               <div
                 className={`flex items-center ${isMobileView ? "space-x-2" : "space-x-2"}`}
               >
-                <div className="bg-white rounded-lg p-1 shadow-sm">
+                <div className="bg-white rounded-lg p-1.5 shadow-sm">
                   <TrendingUp
-                    className={`text-green-600 ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
+                    className={`text-green-600 ${isMobileView ? "w-4 h-4" : "w-4 h-4"}`}
                   />
                 </div>
                 <p
                   className={`text-green-700 font-medium ${
                     isMobileView
-                      ? "text-xs"
+                      ? "text-sm"
                       : isSmallScreen
                         ? "text-xs"
                         : "text-sm"
@@ -1366,7 +1435,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               <p
                 className={`font-bold text-green-800 text-center ${
                   isMobileView
-                    ? "text-sm"
+                    ? "text-xl"
                     : isSmallScreen
                       ? "text-lg"
                       : "text-xl"
@@ -1376,7 +1445,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 {(includeUpcoming
                   ? summaryStats.actualIncome + summaryStats.upcomingIncome
                   : summaryStats.actualIncome
-                ).toFixed(isMobileView ? 0 : 2)}{" "}
+                ).toFixed(2)}{" "}
                 {displayCurrency}
               </p>
             </div>
@@ -1384,7 +1453,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
 
           <motion.div
             className={`bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200 cursor-pointer ${
-              isMobileView ? "p-2.5" : isSmallScreen ? "p-3" : "p-4"
+              isMobileView ? "p-3" : isSmallScreen ? "p-3" : "p-4"
             }`}
             whileHover={{
               y: -2,
@@ -1399,15 +1468,15 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               <div
                 className={`flex items-center ${isMobileView ? "space-x-2" : "space-x-2"}`}
               >
-                <div className="bg-white rounded-lg p-1 shadow-sm">
+                <div className="bg-white rounded-lg p-1.5 shadow-sm">
                   <TrendingDown
-                    className={`text-red-600 ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
+                    className={`text-red-600 ${isMobileView ? "w-4 h-4" : "w-4 h-4"}`}
                   />
                 </div>
                 <p
                   className={`text-red-700 font-medium ${
                     isMobileView
-                      ? "text-xs"
+                      ? "text-sm"
                       : isSmallScreen
                         ? "text-xs"
                         : "text-sm"
@@ -1423,7 +1492,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               <p
                 className={`font-bold text-red-800 text-center ${
                   isMobileView
-                    ? "text-sm"
+                    ? "text-xl"
                     : isSmallScreen
                       ? "text-lg"
                       : "text-xl"
@@ -1433,22 +1502,18 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 {(includeUpcoming
                   ? summaryStats.actualExpenses + summaryStats.upcomingExpenses
                   : summaryStats.actualExpenses
-                ).toFixed(isMobileView ? 0 : 2)}{" "}
+                ).toFixed(2)}{" "}
                 {displayCurrency}
               </p>
             </div>
           </motion.div>
 
           <motion.div
-            className={`rounded-xl border cursor-pointer ${
-              summaryStats.actualNet >= 0
-                ? "bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200"
-                : "bg-gradient-to-br from-orange-50 to-red-50 border-orange-200"
-            } ${
+            className={`bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl border border-blue-200 cursor-pointer ${
               isMobileView
-                ? "p-2.5 col-span-1"
+                ? "p-3 col-span-2 md:col-span-1"
                 : isSmallScreen
-                  ? "p-3 col-span-2"
+                  ? "p-3"
                   : "p-4"
             }`}
             whileHover={{
@@ -1456,7 +1521,7 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
             }}
             transition={{ duration: 0.2 }}
-            onClick={() => handleOpenModal("net")}
+            onClick={() => handleOpenModal("transfer")}
           >
             <div
               className={`flex items-center justify-center flex-col space-y-1 ${isMobileView ? "" : "mb-2"}`}
@@ -1464,123 +1529,51 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
               <div
                 className={`flex items-center ${isMobileView ? "space-x-2" : "space-x-2"}`}
               >
-                <div className="bg-white rounded-lg p-1 shadow-sm">
-                  {(includeUpcoming
-                    ? summaryStats.projectedNet
-                    : summaryStats.actualNet) >= 0 ? (
-                    <TrendingUp
-                      className={`text-blue-600 ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
-                    />
-                  ) : (
-                    <TrendingDown
-                      className={`text-orange-600 ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
-                    />
-                  )}
+                <div className="bg-white rounded-lg p-1.5 shadow-sm">
+                  <ArrowRightLeft
+                    className={`text-blue-600 ${isMobileView ? "w-4 h-4" : "w-4 h-4"}`}
+                  />
                 </div>
                 <p
-                  className={`font-medium ${
-                    (includeUpcoming
-                      ? summaryStats.projectedNet
-                      : summaryStats.actualNet) >= 0
-                      ? "text-blue-700"
-                      : "text-orange-700"
-                  } ${isMobileView ? "text-xs" : isSmallScreen ? "text-xs" : "text-sm"}`}
+                  className={`text-blue-700 font-medium ${
+                    isMobileView
+                      ? "text-sm"
+                      : isSmallScreen
+                        ? "text-xs"
+                        : "text-sm"
+                  }`}
                 >
                   {isMobileView
-                    ? "Net"
+                    ? "Transfers"
                     : includeUpcoming
-                      ? "Projected Net"
-                      : "Actual Net"}
+                      ? "Projected Transfers"
+                      : "Total Transfers"}
                 </p>
               </div>
               <p
-                className={`font-bold text-center ${
-                  (includeUpcoming
-                    ? summaryStats.projectedNet
-                    : summaryStats.actualNet) >= 0
-                    ? "text-blue-800"
-                    : "text-orange-800"
-                } ${isMobileView ? "text-sm" : isSmallScreen ? "text-lg" : "text-xl"}`}
+                className={`font-bold text-blue-800 text-center ${
+                  isMobileView
+                    ? "text-xl"
+                    : isSmallScreen
+                      ? "text-lg"
+                      : "text-xl"
+                }`}
               >
                 {(includeUpcoming
-                  ? summaryStats.projectedNet
-                  : summaryStats.actualNet) >= 0
-                  ? "+"
-                  : ""}
-                {(includeUpcoming
-                  ? summaryStats.projectedNet
-                  : summaryStats.actualNet
-                ).toFixed(isMobileView ? 0 : 2)}{" "}
+                  ? summaryStats.actualTransfers +
+                    summaryStats.upcomingTransfers
+                  : summaryStats.actualTransfers
+                ).toFixed(2)}{" "}
                 {displayCurrency}
               </p>
             </div>
           </motion.div>
-
-          {/* Mobile-specific additional info cards */}
-          {isMobileView &&
-            includeUpcoming &&
-            (summaryStats.upcomingIncome > 0 ||
-              summaryStats.upcomingExpenses > 0) && (
-              <>
-                {summaryStats.upcomingIncome > 0 && (
-                  <motion.div
-                    className="bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 border-dashed p-2.5"
-                    whileHover={{
-                      y: -2,
-                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                    }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="bg-white rounded-lg p-1 shadow-sm">
-                          <span className="text-green-600 text-xs">📅</span>
-                        </div>
-                        <p className="text-green-700 font-medium text-xs">
-                          Upcoming Income
-                        </p>
-                      </div>
-                      <p className="font-bold text-green-800 text-sm">
-                        +{summaryStats.upcomingIncome.toFixed(0)}{" "}
-                        {displayCurrency}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {summaryStats.upcomingExpenses > 0 && (
-                  <motion.div
-                    className="bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200 border-dashed p-2.5"
-                    whileHover={{
-                      y: -2,
-                      boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-                    }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <div className="bg-white rounded-lg p-1 shadow-sm">
-                          <span className="text-red-600 text-xs">📅</span>
-                        </div>
-                        <p className="text-red-700 font-medium text-xs">
-                          Upcoming Expenses
-                        </p>
-                      </div>
-                      <p className="font-bold text-red-800 text-sm">
-                        -{summaryStats.upcomingExpenses.toFixed(0)}{" "}
-                        {displayCurrency}
-                      </p>
-                    </div>
-                  </motion.div>
-                )}
-              </>
-            )}
         </div>
 
         {/* Mobile Legend */}
         {isMobileView && (
           <div className="mt-3 bg-gray-50 rounded-lg p-2">
-            <div className="flex justify-center space-x-4 text-xs">
+            <div className="flex justify-center space-x-3 text-sm flex-wrap gap-1">
               <div className="flex items-center space-x-1">
                 <div className="w-3 h-0.5 bg-green-500 rounded"></div>
                 <span className="text-gray-600">Income</span>
@@ -1589,47 +1582,49 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
                 <div className="w-3 h-0.5 bg-red-500 rounded"></div>
                 <span className="text-gray-600">Expenses</span>
               </div>
-              {defaultAccounts.slice(0, 2).map((account, index) => (
-                <div key={account.id} className="flex items-center space-x-1">
-                  <div 
-                    className="w-3 h-0.5 rounded" 
-                    style={{ backgroundColor: accountColors[index] || '#6b7280' }}
-                  ></div>
-                  <span className="text-gray-600 truncate max-w-16">
-                    {account.name || `Acc ${index + 1}`}
-                  </span>
-                </div>
-              ))}
+              <div className="flex items-center space-x-1">
+                <div className="w-3 h-0.5 bg-blue-500 rounded"></div>
+                <span className="text-gray-600">Transfers</span>
+              </div>
+              {defaultAccounts
+                .slice(0, 1)
+                .map((account: any, index: number) => (
+                  <div
+                    key={`legend-account-${account.id}`}
+                    className="flex items-center space-x-1"
+                  >
+                    <div className="flex space-x-0.5">
+                      <div
+                        className="w-2 h-0.5 rounded"
+                        style={{
+                          backgroundColor: accountColors[index] || "#6b7280",
+                        }}
+                      ></div>
+                      {includeUpcoming && (
+                        <div
+                          className="w-2 h-0.5 rounded border-t border-dashed"
+                          style={{
+                            backgroundColor: "transparent",
+                            borderColor: accountColors[index] || "#6b7280",
+                          }}
+                        ></div>
+                      )}
+                    </div>
+                    <span className="text-gray-600 truncate max-w-12">
+                      {account.name || `Acc ${index + 1}`}
+                    </span>
+                  </div>
+                ))}
             </div>
-          </div>
-        )}
-
-        {/* Mobile Quick Stats */}
-        {isMobileView && (
-          <div className="mt-3 grid grid-cols-2 gap-2 text-center">
-            <div className="bg-gray-50 rounded-lg p-2">
-              <p className="text-xs text-gray-600">Days with Income</p>
-              <p className="font-bold text-gray-800">
-                {
-                  chartData.dataPoints.filter(
-                    (d) => d.actualIncome && d.actualIncome > 0
-                  ).length
-                }
-              </p>
-            </div>
-            <div className="bg-gray-50 rounded-lg p-2">
-              <p className="text-xs text-gray-600">Days with Expenses</p>
-              <p className="font-bold text-gray-800">
-                {
-                  chartData.dataPoints.filter(
-                    (d) => d.actualExpenses && d.actualExpenses > 0
-                  ).length
-                }
-              </p>
-            </div>
+            {includeUpcoming && (
+              <div className="text-center text-sm text-gray-500 mt-1">
+                Solid: historical • Dashed: projected
+              </div>
+            )}
           </div>
         )}
       </div>
+
       <TransactionDetailsModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -1638,12 +1633,13 @@ const IncomeExpenseChart: React.FC<IncomeExpenseChartProps> = ({
         futureOutgoingPayments={futureOutgoingPayments}
         displayCurrency={displayCurrency}
         includeUpcoming={includeUpcoming}
-        monthName={currentMonthName}
+        monthName={getDateRangeText()}
         convertToDisplayCurrency={convertToDisplayCurrency}
         filterType={modalType === "net" ? "all" : modalType}
+        accounts={accounts}
       />
     </div>
   );
 };
 
-export default IncomeExpenseChart;
+export default AccountsTrendChart;

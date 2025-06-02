@@ -4,18 +4,50 @@ import { AccountsController } from "../controllers/accountsController";
 const accounts = new Hono();
 const accountsController = new AccountsController();
 
-
 accounts.get("/getAllAccounts", async (c) => {
   try {
     const userId = c.req.query("userId");
+    const startDate = c.req.query("startDate");
+    const endDate = c.req.query("endDate");
 
     if (!userId || isNaN(Number(userId))) {
       return c.json({ error: "Invalid or missing userId" }, 400);
     }
 
-    return await accountsController.getAllAccounts(c, Number(userId));
+    // Parse optional date parameters
+    let parsedStartDate: Date | undefined;
+    let parsedEndDate: Date | undefined;
+
+    if (startDate && endDate) {
+      try {
+        parsedStartDate = new Date(startDate);
+        parsedEndDate = new Date(endDate);
+
+        // Validate that the dates are valid
+        if (
+          isNaN(parsedStartDate.getTime()) ||
+          isNaN(parsedEndDate.getTime())
+        ) {
+          return c.json({ error: "Invalid date format" }, 400);
+        }
+
+        // Validate that startDate is before endDate
+        if (parsedStartDate > parsedEndDate) {
+          return c.json({ error: "startDate must be before endDate" }, 400);
+        }
+      } catch (error) {
+        return c.json({ error: "Invalid date format" }, 400);
+      }
+    }
+
+    return await accountsController.getAllAccounts(
+      c,
+      Number(userId),
+      parsedStartDate,
+      parsedEndDate
+    );
   } catch (error) {
-    console.error("Error in /getDefault route:", error);
+    console.error("Error in /getAllAccounts route:", error);
     return c.json({ error: "Internal server error" }, 500);
   }
 });
@@ -251,10 +283,8 @@ accounts.post("/editSavingAccount", async (c) => {
     const body = await c.req.json();
     console.log("Request Body:", body);
 
-   
     const { name, description, currency, accountType } = body;
 
-   
     const targetAmount = body.savingAccount?.update?.targetAmount;
     const targetDate = body.savingAccount?.update?.targetDate;
 
@@ -272,7 +302,6 @@ accounts.post("/editSavingAccount", async (c) => {
       return c.json({ error: "Name is required" }, 400);
     }
 
-  
     if (targetDate === undefined) {
       return c.json({ error: "Date is required" }, 400);
     }
@@ -286,7 +315,7 @@ accounts.post("/editSavingAccount", async (c) => {
       currency,
       accountType,
       targetAmount,
-      new Date(targetDate) 
+      new Date(targetDate)
     );
 
     return c.json({ message: "Account edited successfully" });

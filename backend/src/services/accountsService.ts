@@ -7,9 +7,18 @@ export class AccountsService {
   constructor() {
     this.accountRepo = new AccountsRepository();
   }
-  async getAllAccounts(userId: number) {
-    const accounts = await this.accountRepo.getUserAllAccount(userId);
-    return accounts;
+
+  async getAllAccounts(userId: number, startDate?: Date, endDate?: Date) {
+    try {
+      return await this.accountRepo.getUserAllAccount(
+        userId,
+        startDate,
+        endDate
+      );
+    } catch (error) {
+      console.error("Service - Get accounts error:", error);
+      throw error;
+    }
   }
 
   async getDefaultAccounts(userId: number) {
@@ -108,7 +117,7 @@ export class AccountsService {
     description: string,
     currency: CurrencyType,
     accountType: AccountType,
-    amount?: number 
+    amount?: number
   ) {
     try {
       await this.accountRepo.editDefaultAccount(

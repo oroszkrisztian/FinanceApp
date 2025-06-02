@@ -11,19 +11,22 @@ import {
   Clock,
   ArrowUp,
   ArrowDown,
+  ArrowRightLeft,
 } from "lucide-react";
 
 interface Transaction {
   id?: number;
   amount: number;
   currency: string;
-  type: "INCOME" | "EXPENSE";
+  type: "INCOME" | "EXPENSE" | "TRANSFER";
   description?: string;
   name?: string;
   category?: string;
   categories?: any[]; // For upcoming payments
   transactionCategories?: any[]; // For regular transactions
   account?: string;
+  fromAccount?: string; // For transfer transactions
+  toAccount?: string; // For transfer transactions
   createdAt?: string;
   date?: string;
 }
@@ -39,6 +42,7 @@ interface UpcomingPayment {
   account?: string;
   nextExecution: string;
   frequency?: string;
+  type?: "INCOME" | "EXPENSE" | "TRANSFER";
 }
 
 interface CombinedTransaction extends Transaction {
@@ -58,7 +62,8 @@ interface TransactionDetailsModalProps {
   includeUpcoming: boolean;
   monthName: string;
   convertToDisplayCurrency: (amount: number, currency: string) => number;
-  filterType?: "income" | "expense" | "all";
+  filterType?: "income" | "expense" | "transfer" | "all";
+  accounts: any[];
 }
 
 const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
@@ -72,6 +77,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   monthName,
   convertToDisplayCurrency,
   filterType = "all",
+  accounts,
 }) => {
   const [isMobileView, setIsMobileView] = React.useState(false);
 
@@ -167,12 +173,15 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       );
     });
 
-    // Separate income and expense transactions
+    // Separate income, expense, and transfer transactions
     const incomeTransactions = monthlyTransactions.filter(
       (t) => t.type === "INCOME"
     );
     const expenseTransactions = monthlyTransactions.filter(
       (t) => t.type === "EXPENSE"
+    );
+    const transferTransactions = monthlyTransactions.filter(
+      (t) => t.type === "TRANSFER"
     );
 
     // Filter upcoming payments for current month using the same logic as the chart
@@ -190,11 +199,14 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     const upcomingExpenses = futureOutgoingPayments.filter((p) => {
       if (!p.nextExecution) return false;
       const nextDate = new Date(p.nextExecution);
-      return shouldIncludePaymentInMonth(
-        nextDate,
-        currentMonth,
-        startOfMonth,
-        endOfMonth
+      return (
+        shouldIncludePaymentInMonth(
+          nextDate,
+          currentMonth,
+          startOfMonth,
+          endOfMonth
+        ) &&
+        (!p.type || p.type === "EXPENSE")
       );
     });
 
@@ -207,6 +219,13 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     );
 
     const totalActualExpenses = expenseTransactions.reduce(
+      (sum, t) =>
+        sum +
+        convertToDisplayCurrency(t.amount || 0, t.currency || displayCurrency),
+      0
+    );
+
+    const totalActualTransfers = transferTransactions.reduce(
       (sum, t) =>
         sum +
         convertToDisplayCurrency(t.amount || 0, t.currency || displayCurrency),
@@ -268,19 +287,22 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     return {
       incomeTransactions,
       expenseTransactions,
+      transferTransactions,
       upcomingIncome,
       upcomingExpenses,
       allTransactionsWithUpcoming,
       totalActualIncome,
       totalActualExpenses,
+      totalActualTransfers,
       totalUpcomingIncome,
       totalUpcomingExpenses,
       totalIncome:
         totalActualIncome + (includeUpcoming ? totalUpcomingIncome : 0),
       totalExpenses:
         totalActualExpenses + (includeUpcoming ? totalUpcomingExpenses : 0),
+      totalTransfers: totalActualTransfers,
       // For simplified view calculations
-      actualNet: totalActualIncome - totalActualExpenses,
+      actualNet: totalActualIncome - totalActualExpenses - totalActualTransfers,
       projectedNet: totalUpcomingIncome - totalUpcomingExpenses,
     };
   }, [
@@ -297,10 +319,14 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       ? processedData.totalIncome
       : filterType === "expense"
         ? -processedData.totalExpenses
-        : processedData.totalIncome - processedData.totalExpenses;
+        : filterType === "transfer"
+          ? -processedData.totalTransfers
+          : processedData.totalIncome -
+            processedData.totalExpenses -
+            processedData.totalTransfers;
 
   const isPositive =
-    filterType === "expense"
+    filterType === "expense" || filterType === "transfer"
       ? false
       : filterType === "income"
         ? true
@@ -311,6 +337,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return "bg-gradient-to-r from-green-600 to-green-800";
     if (filterType === "expense")
       return "bg-gradient-to-r from-red-600 to-red-800";
+    if (filterType === "transfer")
+      return "bg-gradient-to-r from-blue-600 to-blue-800";
     // For 'all' type, use blue theme
     return "bg-gradient-to-r from-blue-600 to-blue-800";
   };
@@ -320,6 +348,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return <TrendingUp size={isMobileView ? 20 : 24} />;
     if (filterType === "expense")
       return <TrendingDown size={isMobileView ? 20 : 24} />;
+    if (filterType === "transfer")
+      return <ArrowRightLeft size={isMobileView ? 20 : 24} />;
     // For 'all' type, show DollarSign icon
     return <DollarSign size={isMobileView ? 20 : 24} />;
   };
@@ -327,28 +357,54 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   const getIconColor = () => {
     if (filterType === "income") return "text-green-600";
     if (filterType === "expense") return "text-red-600";
+    if (filterType === "transfer") return "text-blue-600";
     // For 'all' type, use blue
     return "text-blue-600";
+  };
+
+  const getTextColor = () => {
+    if (filterType === "income") return "text-green-700";
+    if (filterType === "expense") return "text-red-700";
+    if (filterType === "transfer") return "text-blue-700";
+    return "text-gray-700";
   };
 
   const getModalTitle = () => {
     if (filterType === "income") return `${monthName} Income`;
     if (filterType === "expense") return `${monthName} Expenses`;
+    if (filterType === "transfer") return `${monthName} Account Movements`;
     return `${monthName} Transactions`;
   };
 
   const getAmountDisplay = () => {
     if (filterType === "income")
-      return `+${processedData.totalIncome.toFixed(2)} ${displayCurrency}`;
+      return `${processedData.totalIncome.toFixed(2)} ${displayCurrency}`;
     if (filterType === "expense")
-      return `-${processedData.totalExpenses.toFixed(2)} ${displayCurrency}`;
-    return `${isPositive ? "+" : ""}${netAmount.toFixed(2)} ${displayCurrency}`;
+      return `${processedData.totalExpenses.toFixed(2)} ${displayCurrency}`;
+    if (filterType === "transfer")
+      return `${processedData.totalTransfers.toFixed(2)} ${displayCurrency}`;
+    return `${Math.abs(netAmount).toFixed(2)} ${displayCurrency}`;
   };
 
   const getSubtitle = () => {
     if (filterType === "income") return "Total Income";
     if (filterType === "expense") return "Total Expenses";
+    if (filterType === "transfer") return "Total Transfers";
     return `Net ${isPositive ? "Surplus" : "Deficit"}`;
+  };
+
+  const getAccountName = (accountId: number | string | any) => {
+    // Handle case where accountId is an object
+    if (
+      typeof accountId === "object" &&
+      accountId !== null &&
+      "name" in accountId
+    ) {
+      return accountId.name || `Account ${accountId.id || "Unknown"}`;
+    }
+    // Handle regular account id lookup
+    const account = accounts.find((a) => a.id === accountId);
+    return account?.name || `Account ${accountId}`;
   };
 
   const TransactionItem: React.FC<{
@@ -360,6 +416,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       isUpcoming ||
       ("isUpcoming" in transaction ? transaction.isUpcoming : false);
     const isIncome = transaction.type === "INCOME";
+    const isExpense = transaction.type === "EXPENSE";
+    const isTransfer = transaction.type === "TRANSFER";
     const originalAmount = transaction.amount || 0;
     const originalCurrency = transaction.currency || displayCurrency;
     const convertedAmount = convertToDisplayCurrency(
@@ -402,30 +460,74 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       categoryList.push(transaction.category);
     }
 
+    const getBorderColor = () => {
+      if (isIncome) return "border-green-200";
+      if (isExpense) return "border-red-200";
+      if (isTransfer) return "border-blue-200";
+      return "border-gray-200";
+    };
+
+    const getBackgroundColor = () => {
+      if (isIncome) return "bg-green-50/50";
+      if (isExpense) return "bg-red-50/50";
+      if (isTransfer) return "bg-blue-50/50";
+      return "bg-gray-50/50";
+    };
+
+    const getIconColor = () => {
+      if (isIncome) return "bg-green-100 text-green-600";
+      if (isExpense) return "bg-red-100 text-red-600";
+      if (isTransfer) return "bg-blue-100 text-blue-600";
+      return "bg-gray-100 text-gray-600";
+    };
+
+    const getTextColor = () => {
+      if (isIncome) return "text-green-700";
+      if (isExpense) return "text-red-700";
+      if (isTransfer) return "text-blue-700";
+      return "text-gray-700";
+    };
+
+    const getCategoryColor = () => {
+      if (isIncome) return "bg-green-100 text-green-700";
+      if (isExpense) return "bg-red-100 text-red-700";
+      if (isTransfer) return "bg-blue-100 text-blue-700";
+      return "bg-gray-100 text-gray-700";
+    };
+
+    const getIcon = () => {
+      if (isIncome) return <ArrowUp size={isMobileView ? 12 : 16} />;
+      if (isExpense) return <ArrowDown size={isMobileView ? 12 : 16} />;
+      if (isTransfer)
+        return (
+          <ArrowRightLeft
+            className="text-blue-600"
+            size={isMobileView ? 12 : 16}
+          />
+        );
+      return <ArrowDown size={isMobileView ? 12 : 16} />;
+    };
+
+    // Add account name resolution for transfers
+    const fromAccountName = transaction.fromAccount
+      ? getAccountName(transaction.fromAccount)
+      : "";
+    const toAccountName = transaction.toAccount
+      ? getAccountName(transaction.toAccount)
+      : "";
+
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`${isMobileView ? "p-2" : "p-3"} rounded-xl border shadow-sm ${
-          isIncome
-            ? "bg-green-50/50 border-green-200"
-            : "bg-red-50/50 border-red-200"
-        } ${actualIsUpcoming ? "border-dashed" : ""}`}
+        className={`${isMobileView ? "p-2" : "p-3"} rounded-xl border shadow-sm ${getBackgroundColor()} ${getBorderColor()} ${actualIsUpcoming ? "border-dashed" : ""}`}
       >
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-2 flex-1">
             <div
-              className={`${isMobileView ? "p-1" : "p-2"} rounded-lg ${
-                isIncome
-                  ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
-              }`}
+              className={`${isMobileView ? "p-1" : "p-2"} rounded-lg ${getIconColor()}`}
             >
-              {isIncome ? (
-                <ArrowUp size={isMobileView ? 12 : 16} />
-              ) : (
-                <ArrowDown size={isMobileView ? 12 : 16} />
-              )}
+              {getIcon()}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -434,9 +536,17 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                   <p
                     className={`font-medium text-gray-900 truncate ${isMobileView ? "text-sm" : ""}`}
                   >
-                    {transaction.description ||
+                    {isTransfer &&
+                    transaction.fromAccount &&
+                    transaction.toAccount ? (
+                      <span className="font-bold text-gray-900">
+                        {fromAccountName} → {toAccountName}
+                      </span>
+                    ) : (
+                      transaction.description ||
                       transaction.name ||
-                      (isIncome ? "Income" : "Expense")}
+                      (isIncome ? "Income" : "Expense")
+                    )}
                   </p>
 
                   {/* Date and time display */}
@@ -507,18 +617,15 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 
                 <div className="text-right ml-2">
                   <p
-                    className={`font-bold ${
-                      isIncome ? "text-green-700" : "text-red-700"
-                    } ${isMobileView ? "text-sm" : ""}`}
+                    className={`font-bold text-black ${isMobileView ? "text-sm" : ""}`}
                   >
-                    {isIncome ? "+" : "-"}
-                    {originalAmount.toFixed(isMobileView ? 0 : 2)}{" "}
-                    {originalCurrency}
+                    {isTransfer
+                      ? `${originalAmount.toFixed(2)} ${originalCurrency}`
+                      : `${originalAmount.toFixed(2)} ${originalCurrency}`}
                   </p>
                   {needsConversion && (
                     <p className="text-xs text-gray-600">
-                      ({convertedAmount.toFixed(isMobileView ? 0 : 2)}{" "}
-                      {displayCurrency})
+                      ({convertedAmount.toFixed(2)} {displayCurrency})
                     </p>
                   )}
                 </div>
@@ -536,11 +643,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                         key={index}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
                           isMobileView ? "text-xs" : "text-xs"
-                        } ${
-                          isIncome
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
+                        } ${getCategoryColor()}`}
                       >
                         <Tag size={isMobileView ? 6 : 8} />
                         {category}
@@ -564,6 +667,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     payment,
   }) => {
     const isIncome = futureIncomingPayments.includes(payment);
+    const isTransfer = payment.type === "TRANSFER";
+    const isExpense = !isIncome && !isTransfer;
     const originalAmount = payment.amount || 0;
     const originalCurrency = payment.currency || displayCurrency;
     const convertedAmount = convertToDisplayCurrency(
@@ -592,38 +697,60 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       categoryList.push(payment.category);
     }
 
-    // Debug logging
-    if (process.env.NODE_ENV === "development") {
-      if (payment.categories) {
-        console.log("Payment categories:", payment.categories);
-      }
-      console.log("Processed payment categoryList:", categoryList);
-    }
+    const getBorderColor = () => {
+      if (isIncome) return "border-green-300";
+      if (isExpense) return "border-red-300";
+      if (isTransfer) return "border-blue-300";
+      return "border-gray-300";
+    };
+
+    const getBackgroundColor = () => {
+      if (isIncome) return "bg-green-50/30";
+      if (isExpense) return "bg-red-50/30";
+      if (isTransfer) return "bg-blue-50/30";
+      return "bg-gray-50/30";
+    };
+
+    const getIconColor = () => {
+      if (isIncome) return "bg-green-100 text-green-600";
+      if (isExpense) return "bg-red-100 text-red-600";
+      if (isTransfer) return "bg-blue-100 text-blue-600";
+      return "bg-gray-100 text-gray-600";
+    };
+
+    const getTextColor = () => {
+      if (isIncome) return "text-green-700";
+      if (isExpense) return "text-red-700";
+      if (isTransfer) return "text-blue-700";
+      return "text-gray-700";
+    };
+
+    const getCategoryColor = () => {
+      if (isIncome) return "bg-green-100 text-green-700";
+      if (isExpense) return "bg-red-100 text-red-700";
+      if (isTransfer) return "bg-blue-100 text-blue-700";
+      return "bg-gray-100 text-gray-700";
+    };
+
+    const getIcon = () => {
+      if (isIncome) return <ArrowUp size={isMobileView ? 12 : 16} />;
+      if (isExpense) return <ArrowDown size={isMobileView ? 12 : 16} />;
+      if (isTransfer) return <ArrowRightLeft size={isMobileView ? 12 : 16} />;
+      return <ArrowDown size={isMobileView ? 12 : 16} />;
+    };
 
     return (
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        className={`${isMobileView ? "p-2" : "p-3"} rounded-xl border-2 border-dashed shadow-sm ${
-          isIncome
-            ? "bg-green-50/30 border-green-300"
-            : "bg-red-50/30 border-red-300"
-        }`}
+        className={`${isMobileView ? "p-2" : "p-3"} rounded-xl border-2 border-dashed shadow-sm ${getBackgroundColor()} ${getBorderColor()}`}
       >
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-2 flex-1">
             <div
-              className={`${isMobileView ? "p-1" : "p-2"} rounded-lg ${
-                isIncome
-                  ? "bg-green-100 text-green-600"
-                  : "bg-red-100 text-red-600"
-              }`}
+              className={`${isMobileView ? "p-1" : "p-2"} rounded-lg ${getIconColor()}`}
             >
-              {isIncome ? (
-                <ArrowUp size={isMobileView ? 12 : 16} />
-              ) : (
-                <ArrowDown size={isMobileView ? 12 : 16} />
-              )}
+              {getIcon()}
             </div>
 
             <div className="flex-1 min-w-0">
@@ -634,7 +761,11 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                   >
                     {payment.description ||
                       payment.name ||
-                      (isIncome ? "Upcoming Income" : "Upcoming Expense")}
+                      (isIncome
+                        ? "Upcoming Income"
+                        : isTransfer
+                          ? "Upcoming Transfer"
+                          : "Upcoming Expense")}
                   </p>
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                     <Calendar size={10} />
@@ -670,18 +801,13 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 
                 <div className="text-right ml-2">
                   <p
-                    className={`font-bold ${
-                      isIncome ? "text-green-700" : "text-red-700"
-                    } ${isMobileView ? "text-sm" : ""}`}
+                    className={`font-bold text-black ${isMobileView ? "text-sm" : ""}`}
                   >
-                    {isIncome ? "+" : "-"}
-                    {originalAmount.toFixed(isMobileView ? 0 : 2)}{" "}
-                    {originalCurrency}
+                    {originalAmount.toFixed(2)} {originalCurrency}
                   </p>
                   {needsConversion && (
                     <p className="text-xs text-gray-600">
-                      ({convertedAmount.toFixed(isMobileView ? 0 : 2)}{" "}
-                      {displayCurrency})
+                      ({convertedAmount.toFixed(2)} {displayCurrency})
                     </p>
                   )}
                 </div>
@@ -699,11 +825,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                         key={index}
                         className={`inline-flex items-center gap-1 px-2 py-1 rounded-full ${
                           isMobileView ? "text-xs" : "text-xs"
-                        } ${
-                          isIncome
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-700"
-                        }`}
+                        } ${getCategoryColor()}`}
                       >
                         <Tag size={isMobileView ? 6 : 8} />
                         {category}
@@ -835,23 +957,16 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                       </span>
                     </div>
                     <p
-                      className={`font-bold ${
-                        processedData.actualNet >= 0
-                          ? "text-green-800"
-                          : "text-red-800"
-                      } ${isMobileView ? "text-base" : "text-lg"}`}
+                      className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
                     >
-                      {processedData.actualNet >= 0 ? "+" : ""}
-                      {processedData.actualNet.toFixed(
-                        isMobileView ? 0 : 2
-                      )}{" "}
-                      {displayCurrency}
+                      {processedData.actualNet.toFixed(2)} {displayCurrency}
                     </p>
                     <p
                       className={`text-xs ${parseFloat(getAmountDisplay()) >= 0 ? "text-green-600" : "text-red-600"}`}
                     >
                       {processedData.incomeTransactions.length +
-                        processedData.expenseTransactions.length}{" "}
+                        processedData.expenseTransactions.length +
+                        processedData.transferTransactions.length}{" "}
                       transactions
                     </p>
                   </div>
@@ -883,14 +998,9 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                       </span>
                     </div>
                     <p
-                      className={`font-bold ${
-                        parseFloat(getAmountDisplay()) >= 0
-                          ? "text-green-800"
-                          : "text-red-800"
-                      } ${isMobileView ? "text-base" : "text-lg"}`}
+                      className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
                     >
-                      {getAmountDisplay()}{" "}
-                      {displayCurrency}
+                      {Math.abs(processedData.totalUpcomingExpenses).toFixed(2)} {displayCurrency}
                     </p>
                     <p
                       className={`text-xs ${parseFloat(getAmountDisplay()) >= 0 ? "text-green-600" : "text-red-600"}`}
@@ -909,8 +1019,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                       ? isMobileView
                         ? "grid-cols-2"
                         : includeUpcoming
-                          ? "grid-cols-4"
-                          : "grid-cols-2"
+                          ? "grid-cols-6"
+                          : "grid-cols-3"
                       : includeUpcoming
                         ? "grid-cols-2"
                         : "grid-cols-1"
@@ -932,13 +1042,9 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                         </span>
                       </div>
                       <p
-                        className={`font-bold text-green-800 ${isMobileView ? "text-base" : "text-lg"}`}
+                        className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
                       >
-                        +
-                        {processedData.totalActualIncome.toFixed(
-                          isMobileView ? 0 : 2
-                        )}{" "}
-                        {displayCurrency}
+                        {processedData.totalActualIncome.toFixed(2)} {displayCurrency}
                       </p>
                       <p className="text-xs text-green-600">
                         {processedData.incomeTransactions.length} transactions
@@ -962,16 +1068,38 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                         </span>
                       </div>
                       <p
-                        className={`font-bold text-red-800 ${isMobileView ? "text-base" : "text-lg"}`}
+                        className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
                       >
-                        -
-                        {processedData.totalActualExpenses.toFixed(
-                          isMobileView ? 0 : 2
-                        )}{" "}
-                        {displayCurrency}
+                        {processedData.totalActualExpenses.toFixed(2)} {displayCurrency}
                       </p>
                       <p className="text-xs text-red-600">
                         {processedData.expenseTransactions.length} transactions
+                      </p>
+                    </div>
+                  )}
+
+                  {(filterType === "transfer" || filterType === "all") && (
+                    <div
+                      className={`bg-blue-50 border border-blue-200 rounded-xl ${isMobileView ? "p-2" : "p-3"}`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <ArrowRightLeft
+                          className="text-blue-600"
+                          size={isMobileView ? 14 : 16}
+                        />
+                        <span
+                          className={`text-blue-700 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
+                        >
+                          {isMobileView ? "Movements" : "Account Movements"}
+                        </span>
+                      </div>
+                      <p
+                        className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
+                      >
+                        {processedData.totalActualTransfers.toFixed(2)} {displayCurrency}
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        {processedData.transferTransactions.length} transactions
                       </p>
                     </div>
                   )}
@@ -993,13 +1121,9 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                           </span>
                         </div>
                         <p
-                          className={`font-bold text-green-800 ${isMobileView ? "text-base" : "text-lg"}`}
+                          className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
                         >
-                          +
-                          {processedData.totalUpcomingIncome.toFixed(
-                            isMobileView ? 0 : 2
-                          )}{" "}
-                          {displayCurrency}
+                          {processedData.totalUpcomingIncome.toFixed(2)} {displayCurrency}
                         </p>
                         <p className="text-xs text-green-600">
                           {processedData.upcomingIncome.length} payments
@@ -1024,13 +1148,9 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                           </span>
                         </div>
                         <p
-                          className={`font-bold text-red-800 ${isMobileView ? "text-base" : "text-lg"}`}
+                          className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
                         >
-                          -
-                          {processedData.totalUpcomingExpenses.toFixed(
-                            isMobileView ? 0 : 2
-                          )}{" "}
-                          {displayCurrency}
+                          {Math.abs(processedData.totalUpcomingExpenses).toFixed(2)} {displayCurrency}
                         </p>
                         <p className="text-xs text-red-600">
                           {processedData.upcomingExpenses.length} payments
@@ -1071,7 +1191,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                   )}
                 </div>
               ) : (
-                // Original separate columns view for income/expense only filters
+                // Original separate columns view for income/expense/transfer only filters
                 <div>
                   {/* Income Section */}
                   {filterType === "income" && (
@@ -1144,6 +1264,35 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                             </p>
                           </div>
                         )}
+                    </div>
+                  )}
+
+                  {/* Transfers Section */}
+                  {filterType === "transfer" && (
+                    <div
+                      className={`space-y-${isMobileView ? "2" : "3"} ${isMobileView ? "max-h-80" : "max-h-96"} overflow-y-auto`}
+                    >
+                      {processedData.transferTransactions.map(
+                        (transaction, index) => (
+                          <TransactionItem
+                            key={`transfer-${index}`}
+                            transaction={transaction}
+                          />
+                        )
+                      )}
+                      {processedData.transferTransactions.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <ArrowRightLeft
+                            className="mx-auto mb-2 text-gray-400 opacity-50"
+                            size={isMobileView ? 24 : 32}
+                          />
+                          <p
+                            className={`${isMobileView ? "text-sm" : ""} text-gray-600`}
+                          >
+                            No movements between accounts this month
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,9 @@
-import { CurrencyType, PrismaClient, TransactionType, BalanceChangeType } from "@prisma/client";
+import {
+  CurrencyType,
+  PrismaClient,
+  TransactionType,
+  BalanceChangeType,
+} from "@prisma/client";
 import axios from "axios";
 import { parseStringPromise } from "xml2js";
 
@@ -21,7 +26,7 @@ export class TransactionRepository {
     description?: string
   ) {
     const amountChanged = newBalance - previousBalance;
-    
+
     await prisma.accountBalanceHistory.create({
       data: {
         accountId,
@@ -35,7 +40,9 @@ export class TransactionRepository {
       },
     });
 
-    console.log(`Balance change recorded for account ${accountId}: ${previousBalance} -> ${newBalance} (${amountChanged >= 0 ? '+' : ''}${amountChanged})`);
+    console.log(
+      `Balance change recorded for account ${accountId}: ${previousBalance} -> ${newBalance} (${amountChanged >= 0 ? "+" : ""}${amountChanged})`
+    );
   }
 
   // Helper function to update account balance and record history
@@ -51,7 +58,7 @@ export class TransactionRepository {
     // Get current account state
     const account = await prisma.account.findUnique({
       where: { id: accountId },
-      select: { amount: true, currency: true }
+      select: { amount: true, currency: true },
     });
 
     if (!account) {
@@ -59,13 +66,15 @@ export class TransactionRepository {
     }
 
     const previousBalance = account.amount;
-    const newBalance = isIncrement ? previousBalance + amount : previousBalance - amount;
+    const newBalance = isIncrement
+      ? previousBalance + amount
+      : previousBalance - amount;
 
     // Update account balance
     await prisma.account.update({
       where: { id: accountId },
       data: {
-        amount: isIncrement ? { increment: amount } : { decrement: amount }
+        amount: isIncrement ? { increment: amount } : { decrement: amount },
       },
     });
 
@@ -133,7 +142,11 @@ export class TransactionRepository {
   }
 
   // New method to get account balance history
-  async getAccountBalanceHistory(accountId: number, userId: number, limit?: number) {
+  async getAccountBalanceHistory(
+    accountId: number,
+    userId: number,
+    limit?: number
+  ) {
     // Verify account belongs to user
     const account = await this.prisma.account.findFirst({
       where: {
@@ -230,11 +243,11 @@ export class TransactionRepository {
     customCategoryId: number | null,
     currency: CurrencyType
   ) {
+    console.log("Sent account id ", toAccountId);
     const defaultAccount = await this.prisma.account.findFirst({
       where: {
         id: toAccountId,
         userId: userId,
-        isDefault: true,
         deletedAt: null,
       },
     });
@@ -278,7 +291,7 @@ export class TransactionRepository {
         true, // increment
         transaction.id,
         BalanceChangeType.TRANSACTION_INCOME,
-        `Income: ${name || 'Funds added'}`
+        `Income: ${name || "Funds added"}`
       );
 
       return transaction;
@@ -589,10 +602,7 @@ export class TransactionRepository {
         const validCategories = await prisma.customCategory.findMany({
           where: {
             id: { in: customCategoriesId },
-            OR: [
-              { userId: userId },
-              { type: "SYSTEM" },
-            ],
+            OR: [{ userId: userId }, { type: "SYSTEM" }],
             deletedAt: null,
           },
         });

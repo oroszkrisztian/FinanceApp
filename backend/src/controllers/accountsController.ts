@@ -8,12 +8,21 @@ export class AccountsController {
     this.accountService = new AccountsService();
   }
 
-  async getAllAccounts(c: Context, userId: number) {
+  async getAllAccounts(
+    c: Context,
+    userId: number,
+    startDate?: Date,
+    endDate?: Date
+  ) {
     try {
       if (!userId) {
         throw "User id not found";
       }
-      const accounts = await this.accountService.getAllAccounts(userId);
+      const accounts = await this.accountService.getAllAccounts(
+        userId,
+        startDate,
+        endDate
+      );
       return c.json(accounts);
     } catch (error) {
       console.error("Get accounts error:", error);
