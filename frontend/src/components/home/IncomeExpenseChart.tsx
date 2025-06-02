@@ -275,7 +275,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   };
 
   {
-    /* Mobile view detection */
+    /* Enhanced mobile view detection */
   }
   useEffect(() => {
     const checkMobileView = () => {
@@ -1062,8 +1062,34 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
   if (accountsLoading) {
     return (
-      <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 mb-8">
-        <div className="flex items-center justify-center h-80">
+      <div
+        className={`bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden ${
+          isMobileView 
+            ? "p-3 mb-4 mx-2" 
+            : "p-6 mb-8"
+        }`}
+        style={{ 
+          height: isMobileView ? "350px" : "400px",
+          overflowX: "hidden"
+        }}
+      >
+        {/* Mobile-optimized background elements */}
+        <div
+          className={`absolute top-0 right-0 bg-gradient-to-br from-blue-300 to-indigo-500 rounded-full opacity-20 ${
+            isMobileView
+              ? "w-12 h-12 -translate-y-6 translate-x-6"
+              : "w-28 h-28 -translate-y-14 translate-x-14"
+          }`}
+        ></div>
+        <div
+          className={`absolute bottom-0 left-0 bg-gradient-to-tr from-purple-300 to-pink-500 rounded-full opacity-15 ${
+            isMobileView
+              ? "w-8 h-8 translate-y-4 -translate-x-4"
+              : "w-20 h-20 translate-y-10 -translate-x-10"
+          }`}
+        ></div>
+
+        <div className="relative z-10 h-full flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
             <p className="text-gray-600">Loading chart data...</p>
@@ -1075,217 +1101,213 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
   return (
     <div
-      className={`bg-white rounded-2xl shadow-xl border border-gray-100 relative overflow-hidden ${
-        isMobileView ? "p-2 mb-3 mx-0" : isSmallScreen ? "p-3 mb-4" : "p-4 mb-6"
+      className={`bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden ${
+        isMobileView 
+          ? "p-3 mb-4 mx-2" 
+          : "p-6 mb-8"
       }`}
+      style={{ 
+        height: isMobileView ? "auto" : "500px",
+        minHeight: isMobileView ? "500px" : "500px",
+        overflowX: "hidden"
+      }}
     >
-      <div className="relative z-10">
-        {/* Header */}
-        <div
-          className={`flex ${isMobileView ? "flex-col space-y-3" : "justify-between items-center"} ${
-            isMobileView ? "mb-3" : isSmallScreen ? "mb-4" : "mb-6"
-          }`}
-        >
-          <div className="flex items-center space-x-3">
-            <motion.div
-              className={`bg-gradient-to-r from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg ${
-                isMobileView
-                  ? "w-10 h-10"
-                  : isSmallScreen
-                    ? "w-10 h-10"
-                    : "w-12 h-12"
-              }`}
-              whileHover={{ scale: 1.05, rotate: 5 }}
-              transition={{ type: "spring", stiffness: 400, damping: 17 }}
-            >
-              <TrendingUp
-                className={`text-white ${isMobileView ? "w-5 h-5" : isSmallScreen ? "w-5 h-5" : "w-6 h-6"}`}
-              />
-            </motion.div>
-            <div>
-              <h3
-                className={`font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent ${
-                  isMobileView
-                    ? "text-base"
-                    : isSmallScreen
-                      ? "text-base"
-                      : "text-lg"
-                }`}
-              >
-                {isMobileView ? "Accounts Trend" : "Accounts Balance Trend"}
-              </h3>
-              <p
-                className={`text-gray-500 font-medium ${
-                  isMobileView
-                    ? "text-sm"
-                    : isSmallScreen
-                      ? "text-xs"
-                      : "text-sm"
-                }`}
-              >
-                {getDateRangeText()}
-              </p>
-            </div>
-          </div>
+      {/* Mobile-optimized background elements */}
+      <div
+        className={`absolute top-0 right-0 bg-gradient-to-br from-blue-300 to-indigo-500 rounded-full opacity-20 ${
+          isMobileView
+            ? "w-12 h-12 -translate-y-6 translate-x-6"
+            : "w-28 h-28 -translate-y-14 translate-x-14"
+        }`}
+      ></div>
+      <div
+        className={`absolute bottom-0 left-0 bg-gradient-to-tr from-purple-300 to-pink-500 rounded-full opacity-15 ${
+          isMobileView
+            ? "w-8 h-8 translate-y-4 -translate-x-4"
+            : "w-20 h-20 translate-y-10 -translate-x-10"
+        }`}
+      ></div>
+      <div
+        className={`absolute bg-gradient-to-br from-emerald-300 to-teal-500 rounded-full opacity-10 ${
+          isMobileView ? "top-3 left-16 w-6 h-6" : "top-8 left-32 w-16 h-16"
+        }`}
+      ></div>
+      <div
+        className={`absolute bg-gradient-to-br from-amber-300 to-orange-400 rounded-full opacity-10 ${
+          isMobileView ? "bottom-3 right-12 w-6 h-6" : "bottom-12 right-20 w-12 h-12"
+        }`}
+      ></div>
 
-          {/* Controls */}
-          <div
-            className={`flex ${isMobileView ? "justify-between w-full" : "items-center space-x-3"}`}
-          >
-            {/* Date Range Selector */}
-            <div className="relative" ref={dateDropdownRef}>
-              <motion.button
+      <div className="relative z-10 h-full flex flex-col">
+        {/* Enhanced Header */}
+        <div className={`flex-shrink-0 ${isMobileView ? "mb-2" : "mb-4"}`}>
+          <div className={`flex ${isMobileView ? "flex-col space-y-3" : "justify-between items-center"}`}>
+            {/* Title Section */}
+            <div className="flex items-center space-x-3">
+              <motion.div
+                className={`bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md ${
+                  isMobileView ? "w-8 h-8" : "w-12 h-12"
+                }`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center shadow-md ${
-                  isMobileView
-                    ? "px-3 py-2 text-sm"
-                    : isSmallScreen
-                      ? "px-3 py-1.5 text-xs"
-                      : "px-4 py-2 text-sm"
-                }`}
-                onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
               >
-                <Calendar size={isMobileView ? 14 : 12} className="mr-1" />
-                <span className={isMobileView ? "hidden" : ""}>
-                  {
-                    dateRangeOptions.find(
-                      (option) => option.key === selectedRange
-                    )?.label
-                  }
-                </span>
-                {isMobileView && (
+                <TrendingUp
+                  className={`text-white ${isMobileView ? "w-4 h-4" : "w-6 h-6"}`}
+                />
+              </motion.div>
+              <div>
+                <h3
+                  className={`font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent ${
+                    isMobileView ? "text-lg" : "text-xl"
+                  }`}
+                >
+                  {isMobileView ? "Accounts Trend" : "Accounts Balance Trend"}
+                </h3>
+                <p
+                  className={`text-gray-500 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
+                >
+                  {getDateRangeText()}
+                </p>
+              </div>
+            </div>
+
+            {/* Controls */}
+            <div className={`flex ${isMobileView ? "justify-between w-full" : "items-center space-x-3"}`}>
+              {/* Date Range Selector */}
+              <div className="relative" ref={dateDropdownRef}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center shadow-md ${
+                    isMobileView ? "px-2.5 py-1.5 text-xs" : "px-4 py-2 text-sm"
+                  }`}
+                  onClick={() => setIsDateDropdownOpen(!isDateDropdownOpen)}
+                >
+                  <Calendar size={isMobileView ? 12 : 14} className="mr-1" />
                   <span>
-                    {selectedRange === "current_month"
-                      ? "Month"
-                      : selectedRange === "last_3_months"
-                        ? "3M"
-                        : selectedRange === "last_6_months"
-                          ? "6M"
-                          : "Year"}
+                    {isMobileView
+                      ? selectedRange === "current_month"
+                        ? "Month"
+                        : selectedRange === "last_3_months"
+                          ? "3M"
+                          : selectedRange === "last_6_months"
+                            ? "6M"
+                            : "Year"
+                      : dateRangeOptions.find((option) => option.key === selectedRange)?.label
+                    }
                   </span>
-                )}
-                <ChevronDown size={isMobileView ? 14 : 12} className="ml-1" />
-              </motion.button>
+                  <ChevronDown size={isMobileView ? 12 : 14} className="ml-1" />
+                </motion.button>
 
-              <AnimatePresence>
-                {isDateDropdownOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`absolute ${isMobileView ? "top-full left-0" : "top-full right-0"} mt-2 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200 ${
-                      isMobileView ? "w-32" : "w-48"
-                    }`}
-                  >
-                    <div className="max-h-48 overflow-y-auto">
-                      {dateRangeOptions.map((option: any) => (
-                        <button
-                          key={`date-option-${option.key}`}
-                          className={`w-full text-left px-3 py-2 transition-colors text-sm ${
-                            option.key === selectedRange
-                              ? "bg-blue-100 text-blue-700 font-medium"
-                              : "text-gray-700 hover:bg-blue-50"
-                          }`}
-                          onClick={() =>
-                            handleDateRangeChange(option.key as DateRangeOption)
-                          }
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+                <AnimatePresence>
+                  {isDateDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className={`absolute ${isMobileView ? "top-full left-0" : "top-full right-0"} mt-2 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200 ${
+                        isMobileView ? "w-32" : "w-48"
+                      }`}
+                    >
+                      <div className="max-h-48 overflow-y-auto">
+                        {dateRangeOptions.map((option: any) => (
+                          <motion.button
+                            key={`date-option-${option.key}`}
+                            whileTap={{ scale: 0.98 }}
+                            className={`w-full text-left px-3 py-2 transition-colors ${isMobileView ? "text-xs" : "text-sm"} ${
+                              option.key === selectedRange
+                                ? "bg-blue-100 text-blue-700 font-medium"
+                                : "text-gray-700 hover:bg-blue-50 active:bg-blue-100"
+                            }`}
+                            onClick={() => handleDateRangeChange(option.key as DateRangeOption)}
+                          >
+                            {option.label}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-            {/* Currency Selector */}
-            <div className="relative" ref={currencyRef}>
+              {/* Currency Selector */}
+              <div className="relative" ref={currencyRef}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center shadow-md ${
+                    isMobileView ? "px-2.5 py-1.5 text-xs" : "px-4 py-2 text-sm"
+                  }`}
+                  onClick={() => setIsCurrencyMenuOpen(!isCurrencyMenuOpen)}
+                  disabled={fetchingRates}
+                >
+                  {fetchingRates ? (
+                    <RefreshCw
+                      size={isMobileView ? 12 : 14}
+                      className="animate-spin mr-1"
+                    />
+                  ) : (
+                    <DollarSign size={isMobileView ? 12 : 14} className="mr-1" />
+                  )}
+                  <span>{displayCurrency}</span>
+                  <ChevronDown size={isMobileView ? 12 : 14} className="ml-1" />
+                </motion.button>
+
+                <AnimatePresence>
+                  {isCurrencyMenuOpen && availableCurrencies.length > 0 && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className={`absolute ${isMobileView ? "top-full left-0" : "top-full right-0"} mt-2 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200 ${
+                        isMobileView ? "w-20" : "w-32"
+                      }`}
+                    >
+                      <div className="max-h-32 overflow-y-auto">
+                        {availableCurrencies.map((currency: string) => (
+                          <motion.button
+                            key={`currency-option-${currency}`}
+                            whileTap={{ scale: 0.98 }}
+                            className={`w-full text-left px-3 py-2 transition-colors ${isMobileView ? "text-xs" : "text-sm"} ${
+                              currency === displayCurrency
+                                ? "bg-blue-100 text-blue-700 font-medium"
+                                : "text-gray-700 hover:bg-blue-50 active:bg-blue-100"
+                            }`}
+                            onClick={() => handleCurrencyChange(currency)}
+                          >
+                            {currency}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
+              {/* Toggle Switch */}
               <motion.button
+                onClick={() => setIncludeUpcoming(!includeUpcoming)}
+                className={`relative inline-flex items-center justify-center ${
+                  isMobileView ? "px-2.5 py-1.5 text-xs" : "px-4 py-2 text-sm"
+                } rounded-full transition-all duration-200 ${
+                  includeUpcoming
+                    ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white"
+                    : "bg-gray-200 text-gray-700"
+                } shadow-md`}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className={`bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors flex items-center shadow-md ${
-                  isMobileView
-                    ? "px-3 py-2 text-sm"
-                    : isSmallScreen
-                      ? "px-3 py-1.5 text-xs"
-                      : "px-4 py-2 text-sm"
-                }`}
-                onClick={() => setIsCurrencyMenuOpen(!isCurrencyMenuOpen)}
-                disabled={fetchingRates}
               >
-                {fetchingRates ? (
-                  <RefreshCw
-                    size={isMobileView ? 14 : 12}
-                    className="animate-spin mr-1"
-                  />
-                ) : (
-                  <DollarSign size={isMobileView ? 14 : 12} className="mr-1" />
-                )}
-                <span>{displayCurrency}</span>
-                <ChevronDown size={isMobileView ? 14 : 12} className="ml-1" />
+                {!isMobileView && <Calendar size={12} className="mr-1" />}
+                <span className="flex items-center">
+                  {isMobileView ? "Upcoming" : "Show Upcoming"}
+                </span>
               </motion.button>
-
-              <AnimatePresence>
-                {isCurrencyMenuOpen && availableCurrencies.length > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={`absolute ${isMobileView ? "top-full left-0" : "top-full right-0"} mt-2 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200 ${
-                      isMobileView ? "w-24" : "w-32"
-                    }`}
-                  >
-                    <div className="max-h-32 overflow-y-auto">
-                      {availableCurrencies.map((currency: string) => (
-                        <button
-                          key={`currency-option-${currency}`}
-                          className={`w-full text-left px-3 py-2 transition-colors text-sm ${
-                            currency === displayCurrency
-                              ? "bg-blue-100 text-blue-700 font-medium"
-                              : "text-gray-700 hover:bg-blue-50"
-                          }`}
-                          onClick={() => handleCurrencyChange(currency)}
-                        >
-                          {currency}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
             </div>
-
-            {/* Toggle Switch */}
-            <motion.button
-              onClick={() => setIncludeUpcoming(!includeUpcoming)}
-              className={`relative inline-flex items-center justify-center ${
-                isMobileView
-                  ? "px-3 py-2 text-sm"
-                  : isSmallScreen
-                    ? "px-3 py-1.5 text-xs"
-                    : "px-4 py-2 text-sm"
-              } rounded-full transition-all duration-200 ${
-                includeUpcoming
-                  ? "bg-gradient-to-r from-purple-500 to-indigo-600 text-white"
-                  : "bg-gray-200 text-gray-700"
-              } shadow-md`}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-            >
-              {!isMobileView && <Calendar size={12} className="mr-1" />}
-              <span className="flex items-center">
-                {isMobileView ? "Show Upcoming" : "Show Upcoming"}
-              </span>
-            </motion.button>
           </div>
         </div>
 
         {/* Chart */}
-        <div
-          className={`relative ${isMobileView ? "h-48" : isSmallScreen ? "h-60" : "h-80"} mb-4`}
-        >
+        <div className={`${isMobileView ? "h-64 mb-3" : "flex-1 h-64 mb-4 min-h-0"}`}>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               key={`chart-${selectedRange}-${includeUpcoming}`}
@@ -1322,9 +1344,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
               />
               <Tooltip content={<CustomTooltip />} />
               {!isMobileView && (
-                <Legend
-                  wrapperStyle={{ fontSize: isSmallScreen ? "10px" : "12px" }}
-                />
+                <Legend wrapperStyle={{ fontSize: "12px" }} />
               )}
 
               {includeUpcoming &&
@@ -1388,236 +1408,158 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
           </ResponsiveContainer>
         </div>
 
-        {/* Summary Cards */}
-        <div
-          className={`grid gap-2 ${
-            isMobileView ? "grid-cols-2" : "grid-cols-3"
-          }`}
-        >
+        {/* Enhanced Summary Cards */}
+        <div className={`flex-shrink-0 grid gap-2 ${isMobileView ? "grid-cols-3" : "grid-cols-3"}`}>
           <motion.div
-            className={`bg-gradient-to-br from-green-50 to-emerald-50 rounded-xl border border-green-200 cursor-pointer ${
-              isMobileView ? "p-3" : isSmallScreen ? "p-3" : "p-4"
+            className={`bg-gradient-to-br from-emerald-400 via-green-500 to-emerald-600 rounded-xl shadow-lg cursor-pointer relative overflow-hidden ${
+              isMobileView ? "p-2" : "p-4"
             }`}
-            whileHover={{
-              y: -2,
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-            }}
+            whileHover={{ y: -2, scale: 1.02, boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)" }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={() => handleOpenModal("income")}
           >
-            <div
-              className={`flex items-center justify-center flex-col space-y-1 ${isMobileView ? "" : "mb-2"}`}
-            >
-              <div
-                className={`flex items-center ${isMobileView ? "space-x-2" : "space-x-2"}`}
-              >
-                <div className="bg-white rounded-lg p-1.5 shadow-sm">
-                  <TrendingUp
-                    className={`text-green-600 ${isMobileView ? "w-4 h-4" : "w-4 h-4"}`}
-                  />
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-6 h-6 bg-white/20 rounded-full -translate-y-3 translate-x-3"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 bg-white/10 rounded-full translate-y-2 -translate-x-2"></div>
+            
+            <div className="relative z-10">
+              <div className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}>
+                <div className="bg-white/20 rounded-lg p-1 shadow-sm backdrop-blur-sm">
+                  <TrendingUp className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`} />
                 </div>
-                <p
-                  className={`text-green-700 font-medium ${
-                    isMobileView
-                      ? "text-sm"
-                      : isSmallScreen
-                        ? "text-xs"
-                        : "text-sm"
-                  }`}
-                >
-                  {isMobileView
-                    ? "Income"
-                    : includeUpcoming
-                      ? "Projected Income"
-                      : "Actual Income"}
+                {!isMobileView && (
+                  <p className="text-white font-medium text-sm">
+                    {includeUpcoming ? "Projected Income" : "Actual Income"}
+                  </p>
+                )}
+              </div>
+              <div className={`${isMobileView ? "mt-1" : "mt-2"}`}>
+                {isMobileView && (
+                  <p className="text-white/90 font-medium text-xs text-center mb-1">Income</p>
+                )}
+                <p className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}>
+                  +{(includeUpcoming
+                    ? summaryStats.actualIncome + summaryStats.upcomingIncome
+                    : summaryStats.actualIncome
+                  ).toFixed(isMobileView ? 0 : 2)}
+                  {isMobileView && <span className="text-xs block">{displayCurrency}</span>}
+                  {!isMobileView && <span className="ml-1">{displayCurrency}</span>}
                 </p>
               </div>
-              <p
-                className={`font-bold text-green-800 text-center ${
-                  isMobileView
-                    ? "text-xl"
-                    : isSmallScreen
-                      ? "text-lg"
-                      : "text-xl"
-                }`}
-              >
-                +
-                {(includeUpcoming
-                  ? summaryStats.actualIncome + summaryStats.upcomingIncome
-                  : summaryStats.actualIncome
-                ).toFixed(2)}{" "}
-                {displayCurrency}
-              </p>
             </div>
           </motion.div>
 
           <motion.div
-            className={`bg-gradient-to-br from-red-50 to-rose-50 rounded-xl border border-red-200 cursor-pointer ${
-              isMobileView ? "p-3" : isSmallScreen ? "p-3" : "p-4"
+            className={`bg-gradient-to-br from-red-500 via-red-600 to-rose-600 rounded-xl shadow-lg cursor-pointer relative overflow-hidden ${
+              isMobileView ? "p-2" : "p-4"
             }`}
-            whileHover={{
-              y: -2,
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-            }}
+            whileHover={{ y: -2, scale: 1.02, boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)" }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={() => handleOpenModal("expense")}
           >
-            <div
-              className={`flex items-center justify-center flex-col space-y-1 ${isMobileView ? "" : "mb-2"}`}
-            >
-              <div
-                className={`flex items-center ${isMobileView ? "space-x-2" : "space-x-2"}`}
-              >
-                <div className="bg-white rounded-lg p-1.5 shadow-sm">
-                  <TrendingDown
-                    className={`text-red-600 ${isMobileView ? "w-4 h-4" : "w-4 h-4"}`}
-                  />
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-6 h-6 bg-white/20 rounded-full -translate-y-3 translate-x-3"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 bg-white/10 rounded-full translate-y-2 -translate-x-2"></div>
+            
+            <div className="relative z-10">
+              <div className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}>
+                <div className="bg-white/20 rounded-lg p-1 shadow-sm backdrop-blur-sm">
+                  <TrendingDown className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`} />
                 </div>
-                <p
-                  className={`text-red-700 font-medium ${
-                    isMobileView
-                      ? "text-sm"
-                      : isSmallScreen
-                        ? "text-xs"
-                        : "text-sm"
-                  }`}
-                >
-                  {isMobileView
-                    ? "Expenses"
-                    : includeUpcoming
-                      ? "Projected Expenses"
-                      : "Actual Expenses"}
+                {!isMobileView && (
+                  <p className="text-white font-medium text-sm">
+                    {includeUpcoming ? "Projected Expenses" : "Actual Expenses"}
+                  </p>
+                )}
+              </div>
+              <div className={`${isMobileView ? "mt-1" : "mt-2"}`}>
+                {isMobileView && (
+                  <p className="text-white/90 font-medium text-xs text-center mb-1">Expenses</p>
+                )}
+                <p className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}>
+                  -{(includeUpcoming
+                    ? summaryStats.actualExpenses + summaryStats.upcomingExpenses
+                    : summaryStats.actualExpenses
+                  ).toFixed(isMobileView ? 0 : 2)}
+                  {isMobileView && <span className="text-xs block">{displayCurrency}</span>}
+                  {!isMobileView && <span className="ml-1">{displayCurrency}</span>}
                 </p>
               </div>
-              <p
-                className={`font-bold text-red-800 text-center ${
-                  isMobileView
-                    ? "text-xl"
-                    : isSmallScreen
-                      ? "text-lg"
-                      : "text-xl"
-                }`}
-              >
-                -
-                {(includeUpcoming
-                  ? summaryStats.actualExpenses + summaryStats.upcomingExpenses
-                  : summaryStats.actualExpenses
-                ).toFixed(2)}{" "}
-                {displayCurrency}
-              </p>
             </div>
           </motion.div>
 
           <motion.div
-            className={`bg-gradient-to-br from-blue-50 to-sky-50 rounded-xl border border-blue-200 cursor-pointer ${
-              isMobileView
-                ? "p-3 col-span-2 md:col-span-1"
-                : isSmallScreen
-                  ? "p-3"
-                  : "p-4"
+            className={`bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-xl shadow-lg cursor-pointer relative overflow-hidden ${
+              isMobileView ? "p-2" : "p-4"
             }`}
-            whileHover={{
-              y: -2,
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
-            }}
+            whileHover={{ y: -2, scale: 1.02, boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)" }}
+            whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={() => handleOpenModal("transfer")}
           >
-            <div
-              className={`flex items-center justify-center flex-col space-y-1 ${isMobileView ? "" : "mb-2"}`}
-            >
-              <div
-                className={`flex items-center ${isMobileView ? "space-x-2" : "space-x-2"}`}
-              >
-                <div className="bg-white rounded-lg p-1.5 shadow-sm">
-                  <ArrowRightLeft
-                    className={`text-blue-600 ${isMobileView ? "w-4 h-4" : "w-4 h-4"}`}
-                  />
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-6 h-6 bg-white/20 rounded-full -translate-y-3 translate-x-3"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 bg-white/10 rounded-full translate-y-2 -translate-x-2"></div>
+            
+            <div className="relative z-10">
+              <div className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}>
+                <div className="bg-white/20 rounded-lg p-1 shadow-sm backdrop-blur-sm">
+                  <ArrowRightLeft className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`} />
                 </div>
-                <p
-                  className={`text-blue-700 font-medium ${
-                    isMobileView
-                      ? "text-sm"
-                      : isSmallScreen
-                        ? "text-xs"
-                        : "text-sm"
-                  }`}
-                >
-                  {isMobileView
-                    ? "Transfers"
-                    : includeUpcoming
-                      ? "Projected Transfers"
-                      : "Total Transfers"}
+                {!isMobileView && (
+                  <p className="text-white font-medium text-sm">
+                    {includeUpcoming ? "Projected Transfers" : "Total Transfers"}
+                  </p>
+                )}
+              </div>
+              <div className={`${isMobileView ? "mt-1" : "mt-2"}`}>
+                {isMobileView && (
+                  <p className="text-white/90 font-medium text-xs text-center mb-1">Transfers</p>
+                )}
+                <p className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}>
+                  {(includeUpcoming
+                    ? summaryStats.actualTransfers + summaryStats.upcomingTransfers
+                    : summaryStats.actualTransfers
+                  ).toFixed(isMobileView ? 0 : 2)}
+                  {isMobileView && <span className="text-xs block">{displayCurrency}</span>}
+                  {!isMobileView && <span className="ml-1">{displayCurrency}</span>}
                 </p>
               </div>
-              <p
-                className={`font-bold text-blue-800 text-center ${
-                  isMobileView
-                    ? "text-xl"
-                    : isSmallScreen
-                      ? "text-lg"
-                      : "text-xl"
-                }`}
-              >
-                {(includeUpcoming
-                  ? summaryStats.actualTransfers +
-                    summaryStats.upcomingTransfers
-                  : summaryStats.actualTransfers
-                ).toFixed(2)}{" "}
-                {displayCurrency}
-              </p>
             </div>
           </motion.div>
         </div>
 
-        {/* Mobile Legend */}
+        {/* Enhanced Mobile Legend */}
         {isMobileView && (
-          <div className="mt-3 bg-gray-50 rounded-lg p-2">
-            <div className="flex justify-center space-x-3 text-sm flex-wrap gap-1">
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-0.5 bg-green-500 rounded"></div>
-                <span className="text-gray-600">Income</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-0.5 bg-red-500 rounded"></div>
-                <span className="text-gray-600">Expenses</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <div className="w-3 h-0.5 bg-blue-500 rounded"></div>
-                <span className="text-gray-600">Transfers</span>
-              </div>
-              {defaultAccounts
-                .slice(0, 1)
-                .map((account: any, index: number) => (
-                  <div
-                    key={`legend-account-${account.id}`}
-                    className="flex items-center space-x-1"
-                  >
-                    <div className="flex space-x-0.5">
+          <div className="flex-shrink-0 mt-2 bg-gray-50 rounded-lg p-1.5">
+            <div className="flex justify-center space-x-2 text-xs flex-wrap gap-1">
+              {defaultAccounts.slice(0, 2).map((account: any, index: number) => (
+                <div key={`legend-account-${account.id}`} className="flex items-center space-x-1">
+                  <div className="flex space-x-0.5">
+                    <div
+                      className="w-1.5 h-0.5 rounded"
+                      style={{ backgroundColor: accountColors[index] || "#6b7280" }}
+                    ></div>
+                    {includeUpcoming && (
                       <div
-                        className="w-2 h-0.5 rounded"
+                        className="w-1.5 h-0.5 rounded border-t border-dashed"
                         style={{
-                          backgroundColor: accountColors[index] || "#6b7280",
+                          backgroundColor: "transparent",
+                          borderColor: accountColors[index] || "#6b7280",
                         }}
                       ></div>
-                      {includeUpcoming && (
-                        <div
-                          className="w-2 h-0.5 rounded border-t border-dashed"
-                          style={{
-                            backgroundColor: "transparent",
-                            borderColor: accountColors[index] || "#6b7280",
-                          }}
-                        ></div>
-                      )}
-                    </div>
-                    <span className="text-gray-600 truncate max-w-12">
-                      {account.name || `Acc ${index + 1}`}
-                    </span>
+                    )}
                   </div>
-                ))}
+                  <span className="text-gray-600 truncate max-w-10">
+                    {account.name || `Acc ${index + 1}`}
+                  </span>
+                </div>
+              ))}
             </div>
             {includeUpcoming && (
-              <div className="text-center text-sm text-gray-500 mt-1">
+              <div className="text-center text-xs text-gray-500 mt-0.5">
                 Solid: historical • Dashed: projected
               </div>
             )}

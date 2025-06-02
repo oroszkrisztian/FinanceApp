@@ -10,8 +10,7 @@ import { getAllBudgets } from "../services/budgetService";
 import { getAllPaymentsUser } from "../services/paymentService";
 import IncomeExpenseChart from "../components/home/IncomeExpenseChart";
 import UpcomingPaymentsSection from "../components/home/UpcomingPaymentsSection";
-import SavingsGoalsSection from "../components/home/SavingsGoalsSection";
-import BudgetCompletionSection from "../components/home/BudgetCompletionSection";
+import BudgetSavingsTabSection from "../components/home/BudgetSavingsTabSection";
 
 const HomePage: React.FC = () => {
   const { user } = useAuth();
@@ -198,9 +197,8 @@ const HomePage: React.FC = () => {
 
         {/* Two Column Layout for Sections */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 px-2">
-          {/* Left Column */}
+          {/* Left Column - Upcoming Payments */}
           <div className="space-y-8">
-            {/* Upcoming Payments Section */}
             <UpcomingPaymentsSection
               futureOutgoingPayments={futureOutgoingPayments}
               futureIncomingPayments={futureIncomingPayments}
@@ -208,22 +206,16 @@ const HomePage: React.FC = () => {
             />
           </div>
 
-          {/* Right Column */}
+          {/* Right Column - Budget & Savings Tabs */}
           <div className="space-y-8">
-            {/* Savings Goals Section */}
-            <SavingsGoalsSection
+            <BudgetSavingsTabSection
               accounts={accounts}
+              budgets={budgets}
+              transactions={transactions}
               displayCurrency={displayCurrency}
             />
           </div>
         </div>
-
-        {/* Budget Completion Section - Full Width */}
-        <BudgetCompletionSection
-          budgets={budgets}
-          transactions={transactions}
-          displayCurrency={displayCurrency}
-        />
       </div>
     </div>
   );
