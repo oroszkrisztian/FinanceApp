@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Budget } from "../../interfaces/Budget";
 import { CustomCategory } from "../../interfaces/CustomCategory";
 import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, AlertCircle, Search, ChevronDown } from "lucide-react";
+import { X, AlertCircle, Search, ChevronDown, Edit, DollarSign, Tag, TrendingUp } from "lucide-react";
 
 import {
   ExchangeRates,
@@ -43,6 +43,7 @@ const EditBudget: React.FC<EditBudgetProps> = ({
   >(budget.customCategories);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   // Currency conversion state
   const [originalCurrency, setOriginalCurrency] = useState<CurrencyType>(
@@ -59,6 +60,40 @@ const EditBudget: React.FC<EditBudgetProps> = ({
   const [searchTerm, setSearchTerm] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+
+  const searchRef = useRef<HTMLDivElement>(null);
+  const currencyRef = useRef<HTMLDivElement>(null);
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
+        setIsSearchOpen(false);
+      }
+      if (
+        currencyRef.current &&
+        !currencyRef.current.contains(event.target as Node)
+      ) {
+        setIsCurrencyOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const filteredCategories = useMemo(() => {
     const selectedIds = selectedCategories.map((cat) => cat.id);
@@ -96,6 +131,9 @@ const EditBudget: React.FC<EditBudgetProps> = ({
       setIsSubmitting(false);
       setHasChangedCurrency(false);
       setConvertedAmount(null);
+      setSearchTerm("");
+      setIsSearchOpen(false);
+      setIsCurrencyOpen(false);
     }
   }, [isOpen, budget]);
 
@@ -179,14 +217,21 @@ const EditBudget: React.FC<EditBudgetProps> = ({
 
   const handleSearchFocus = () => {
     setIsSearchOpen(true);
+    setIsCurrencyOpen(false); // Close currency dropdown when search is focused
   };
 
-  const handleSearchBlur = () => {
-    setTimeout(() => setIsSearchOpen(false), 200);
+  const handleCurrencyToggle = () => {
+    setIsCurrencyOpen(!isCurrencyOpen);
+    setIsSearchOpen(false); // Close search dropdown when currency is clicked
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Close any open dropdowns
+    setIsSearchOpen(false);
+    setIsCurrencyOpen(false);
+    
     if (!user?.id) {
       setError("User not authenticated");
       return;
@@ -233,107 +278,156 @@ const EditBudget: React.FC<EditBudgetProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={onClose}
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          onClick={() => {
+            setIsSearchOpen(false);
+            setIsCurrencyOpen(false);
+            onClose();
+          }}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-lg w-full max-h-[90vh] overflow-y-auto"
+            className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
+              isMobileView ? "max-w-sm w-full max-h-[95vh]" : "max-w-md w-full max-h-[90vh]"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - matching transaction component style */}
-            <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 text-white p-6">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white text-indigo-600 rounded-full p-2 shadow-md">
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
+            {/* Enhanced Header */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              {/* Mobile-optimized background elements */}
+              <div
+                className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                  isMobileView
+                    ? "w-12 h-12 -translate-y-6 translate-x-6"
+                    : "w-16 h-16 -translate-y-8 translate-x-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "w-8 h-8 translate-y-4 -translate-x-4"
+                    : "w-12 h-12 translate-y-6 -translate-x-6"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/15 rounded-full ${
+                  isMobileView
+                    ? "top-2 left-16 w-6 h-6"
+                    : "top-2 left-16 w-8 h-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "bottom-2 right-12 w-4 h-4"
+                    : "bottom-2 right-12 w-6 h-6"
+                }`}
+              ></div>
+
+              <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`bg-white text-indigo-600 rounded-full shadow-lg ${
+                        isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"
+                      } flex items-center justify-center`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
+                      <Edit size={isMobileView ? 14 : 18} />
+                    </div>
+                    <div>
+                      <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                        Edit Budget
+                      </h2>
+                      <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                        {budget.name}
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h2 className="text-xl font-semibold">Edit Budget</h2>
-                    <p className="text-indigo-100 text-sm">{budget.name}</p>
-                  </div>
+                  <motion.button
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => {
+                      setIsSearchOpen(false);
+                      setIsCurrencyOpen(false);
+                      onClose();
+                    }}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <X size={isMobileView ? 20 : 20} />
+                  </motion.button>
                 </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={onClose}
-                  className="text-white hover:text-indigo-100 transition-colors p-2 hover:bg-white/10 rounded-lg"
-                >
-                  <X size={20} />
-                </motion.button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6">
+            <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="mb-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2"
+                  className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-2 shadow-sm"
                 >
-                  <AlertCircle size={20} />
+                  <AlertCircle size={16} />
                   <span>{error}</span>
                 </motion.div>
               )}
 
-              <form onSubmit={handleSubmit} className="space-y-5">
+              <form onSubmit={handleSubmit} className={`space-y-4 ${isSearchOpen ? "pb-32" : ""}`}>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Budget Name *
                   </label>
                   <input
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
                     placeholder="Monthly Groceries"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Limit Amount *
                   </label>
-                  <div className="flex border border-gray-300 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all overflow-hidden">
-                    <input
-                      type="number"
-                      value={limitAmount}
-                      onChange={(e) => setLimitAmount(e.target.value)}
-                      min="0"
-                      step="0.01"
-                      className="flex-1 px-4 py-3 focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                      placeholder="500"
-                      required
-                    />
+                  <div className="grid grid-cols-2 gap-3">
                     <div className="relative">
+                      <DollarSign
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
+                      <input
+                        type="number"
+                        value={limitAmount}
+                        onChange={(e) => setLimitAmount(e.target.value)}
+                        min="0"
+                        step="0.01"
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
+                        placeholder="500"
+                        required
+                      />
+                    </div>
+                    <div className="relative" ref={currencyRef}>
                       <button
                         type="button"
-                        onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
-                        className="px-4 py-3 bg-indigo-500 text-white font-medium focus:outline-none hover:bg-indigo-600 transition-colors flex items-center gap-1"
+                        onClick={handleCurrencyToggle}
+                        className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
                         disabled={fetchingRates}
                       >
                         {currency}
-                        <ChevronDown size={16} />
+                        <ChevronDown size={16} className="text-gray-400" />
                       </button>
                       {isCurrencyOpen && (
-                        <div className="absolute top-full right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 w-32 max-h-48 overflow-y-auto">
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-xl z-[60] max-h-48 overflow-y-auto"
+                        >
                           {Object.keys(rates).map((curr) => (
                             <button
                               key={curr}
@@ -341,73 +435,80 @@ const EditBudget: React.FC<EditBudgetProps> = ({
                               onClick={() => {
                                 setCurrency(curr as CurrencyType);
                                 setIsCurrencyOpen(false);
+                                setIsSearchOpen(false);
                               }}
-                              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                              className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
                                 curr === currency ? "bg-indigo-50 text-indigo-700" : ""
                               }`}
                             >
                               {curr}
                             </button>
                           ))}
-                        </div>
+                        </motion.div>
                       )}
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Categories
                   </label>
                   <div className="space-y-3">
-                    <div className="relative">
+                    <div className="relative" ref={searchRef}>
                       <Search
-                        size={16}
-                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        size={14}
+                        className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400"
                       />
                       <input
                         type="text"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         onFocus={handleSearchFocus}
-                        onBlur={handleSearchBlur}
                         placeholder="Search categories..."
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                        className="w-full pl-8 pr-3 py-2 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
                       />
                       {isSearchOpen && (
-                        <div className="absolute z-10 bg-white border border-gray-300 rounded-xl shadow-lg mt-2 w-full max-h-32 overflow-y-auto">
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -10 }}
+                          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-xl z-[60] max-h-28 overflow-y-auto"
+                        >
                           {filteredCategories.length > 0 ? (
                             filteredCategories.map((category) => (
-                              <div
+                              <button
                                 key={category.id}
+                                type="button"
                                 onClick={() => handleAddCategory(category)}
-                                className="px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                                className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
                               >
                                 {category.name}
-                              </div>
+                              </button>
                             ))
                           ) : (
-                            <div className="px-4 py-2 text-gray-500">
+                            <div className="px-3 py-2 text-sm text-gray-500">
                               No categories found
                             </div>
                           )}
-                        </div>
+                        </motion.div>
                       )}
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex flex-wrap gap-1">
                       {selectedCategories.map((category) => (
                         <span
                           key={category.id}
-                          className="flex items-center bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm"
+                          className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-75 bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
                         >
+                          <Tag size={10} />
                           {category.name}
                           <button
                             type="button"
                             onClick={() => handleRemoveCategory(category.id)}
-                            className="ml-2 text-red-500 hover:text-red-700 focus:outline-none"
+                            className="ml-1 hover:text-indigo-900"
                           >
-                            <X size={14} />
+                            <X size={10} />
                           </button>
                         </span>
                       ))}
@@ -416,23 +517,22 @@ const EditBudget: React.FC<EditBudgetProps> = ({
                 </div>
 
                 {currency !== originalCurrency && convertedAmount !== null && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-4 bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 rounded-xl"
-                  >
-                    <p className="font-medium text-indigo-700 mb-3">
-                      Currency Conversion
-                    </p>
+                  <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-xl shadow-sm">
+                    <div className="flex items-center gap-2 mb-2">
+                      <TrendingUp size={14} className="text-indigo-600" />
+                      <p className="font-medium text-indigo-700 text-sm">
+                        Currency Conversion
+                      </p>
+                    </div>
                     <div className="flex items-center justify-between">
-                      <div className="px-3 py-2 bg-white rounded-lg border border-indigo-200 text-indigo-900">
-                        <p className="text-sm font-medium">
+                      <div className="px-2 py-1 bg-white rounded-lg border border-indigo-200 text-indigo-900">
+                        <p className="text-xs font-medium">
                           {originalLimitAmount.toFixed(2)} {originalCurrency}
                         </p>
                       </div>
-                      <div className="px-2">
+                      <div className="px-1">
                         <svg
-                          className="h-4 w-4 text-indigo-500"
+                          className="h-3 w-3 text-indigo-500"
                           fill="none"
                           viewBox="0 0 24 24"
                           stroke="currentColor"
@@ -445,14 +545,14 @@ const EditBudget: React.FC<EditBudgetProps> = ({
                           />
                         </svg>
                       </div>
-                      <div className="px-3 py-2 bg-indigo-500 text-white rounded-lg">
-                        <p className="text-sm font-medium">
+                      <div className="px-2 py-1 bg-indigo-500 text-white rounded-lg">
+                        <p className="text-xs font-medium">
                           {convertedAmount.toFixed(2)} {currency}
                         </p>
                       </div>
                     </div>
-                    <div className="text-xs mt-2 text-indigo-600">
-                      Exchange rate: 1 {originalCurrency} ={" "}
+                    <div className="text-xs mt-1 text-indigo-600 text-center">
+                      Rate: 1 {originalCurrency} ={" "}
                       {getExchangeRate(
                         originalCurrency,
                         currency,
@@ -460,31 +560,43 @@ const EditBudget: React.FC<EditBudgetProps> = ({
                       ).toFixed(4)}{" "}
                       {currency}
                     </div>
-                  </motion.div>
+                  </div>
                 )}
-
-                <div className="flex gap-3 pt-4">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="button"
-                    onClick={onClose}
-                    className="flex-1 py-3 px-4 border border-gray-300 rounded-xl text-gray-700 font-medium bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-all"
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </motion.button>
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    type="submit"
-                    className="flex-1 py-3 px-4 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Updating..." : "Save Changes"}
-                  </motion.button>
-                </div>
               </form>
+            </div>
+
+            {/* Footer */}
+            <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsSearchOpen(false);
+                  setIsCurrencyOpen(false);
+                  onClose();
+                }}
+                className="flex-1 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={isSubmitting}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Edit size={16} />
+                    Save Changes
+                  </>
+                )}
+              </button>
             </div>
           </motion.div>
         </motion.div>

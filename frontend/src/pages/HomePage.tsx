@@ -9,6 +9,7 @@ import { getUserAllTransactions } from "../services/transactionService";
 import { getAllBudgets } from "../services/budgetService";
 import { getAllPaymentsUser } from "../services/paymentService";
 import IncomeExpenseChart from "../components/home/IncomeExpenseChart";
+import AIInsightsComponent from "../components/home/AIInsightsComponent";
 import UpcomingPaymentsSection from "../components/home/UpcomingPaymentsSection";
 import BudgetSavingsTabSection from "../components/home/BudgetSavingsTabSection";
 
@@ -28,10 +29,22 @@ const HomePage: React.FC = () => {
   const [displayCurrency, setDisplayCurrency] = useState("RON");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
 
   // Handle accounts update from chart component
   const handleAccountsUpdate = useCallback((accountsData: Account[]) => {
     setAccounts(accountsData);
+  }, []);
+
+  // Check for mobile view
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 1280); // xl breakpoint
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
   useEffect(() => {
@@ -163,40 +176,64 @@ const HomePage: React.FC = () => {
     );
   }
 
-  if (!user?.id) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-gray-600">Please log in to view your dashboard.</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-[1920px] w-full mx-auto">
-        {/* Welcome Header */}
-        <div className="mb-6 px-2">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user.firstName || user.email}
-          </h1>
-          <p className="text-gray-600">Here's your financial overview</p>
-        </div>
+        {/* Chart and AI Insights Section */}
+        <div className="px-0 sm:px-2 mb-8">
+          {isMobileView ? (
+            // Mobile: Stack vertically
+            <div className="space-y-4">
+              <IncomeExpenseChart
+                transactions={transactions}
+                futureOutgoingPayments={futureOutgoingPayments}
+                futureIncomingPayments={futureIncomingPayments}
+                displayCurrency={displayCurrency}
+                onAccountsUpdate={handleAccountsUpdate}
+                isSmallScreen={true}
+              />
+              <AIInsightsComponent
+                accounts={accounts}
+                transactions={transactions}
+                futureOutgoingPayments={futureOutgoingPayments}
+                futureIncomingPayments={futureIncomingPayments}
+                budgets={budgets}
+                isSmallScreen={true}
+              />
+            </div>
+          ) : (
+            // Desktop: Side by side
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              {/* Chart takes 1/2 of the width */}
+              <div className="xl:col-span-1">
+                <IncomeExpenseChart
+                  transactions={transactions}
+                  futureOutgoingPayments={futureOutgoingPayments}
+                  futureIncomingPayments={futureIncomingPayments}
+                  displayCurrency={displayCurrency}
+                  onAccountsUpdate={handleAccountsUpdate}
+                  isSmallScreen={false}
+                />
+              </div>
 
-        {/* Income vs Expense Chart */}
-        <div className="px-0 sm:px-2">
-          <IncomeExpenseChart
-            transactions={transactions}
-            futureOutgoingPayments={futureOutgoingPayments}
-            futureIncomingPayments={futureIncomingPayments}
-            displayCurrency={displayCurrency}
-            onAccountsUpdate={handleAccountsUpdate}
-          />
+              {/* AI Insights takes 1/2 of the width */}
+              <div className="xl:col-span-1">
+                <AIInsightsComponent
+                  accounts={accounts}
+                  transactions={transactions}
+                  futureOutgoingPayments={futureOutgoingPayments}
+                  futureIncomingPayments={futureIncomingPayments}
+                  budgets={budgets}
+                  isSmallScreen={false}
+                />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Two Column Layout for Sections */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8 px-2">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8  ">
           {/* Left Column - Upcoming Payments */}
           <div className="space-y-8">
             <UpcomingPaymentsSection

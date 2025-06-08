@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
 import { createDefaultAccount } from "../../services/accountService";
@@ -6,6 +7,7 @@ import {
   fetchExchangeRates,
   ExchangeRates,
 } from "../../services/exchangeRateService";
+import { X, CreditCard, FileText, ChevronDown, Plus, AlertCircle } from "lucide-react";
 
 interface CreateDefaultAccountPopupProps {
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -17,6 +19,7 @@ const CreateDefaultAccountPopup = ({
   onAccountCreated,
 }: CreateDefaultAccountPopupProps) => {
   const { user } = useAuth();
+  const [isMobileView, setIsMobileView] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -28,6 +31,34 @@ const CreateDefaultAccountPopup = ({
   const [error, setError] = useState<string | null>(null);
   const [rates, setRates] = useState<ExchangeRates>({});
   const [fetchingRates, setFetchingRates] = useState(false);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+
+  const currencyRef = useRef<HTMLDivElement>(null);
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        currencyRef.current &&
+        !currencyRef.current.contains(event.target as Node)
+      ) {
+        setIsCurrencyOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const loadExchangeRates = async () => {
@@ -55,6 +86,7 @@ const CreateDefaultAccountPopup = ({
       ...formData,
       [name]: value,
     });
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -65,6 +97,10 @@ const CreateDefaultAccountPopup = ({
     try {
       if (!user?.id) {
         throw new Error("User not found. Please log in again.");
+      }
+
+      if (!formData.name.trim()) {
+        throw new Error("Account name is required");
       }
 
       const data = await createDefaultAccount({
@@ -92,130 +128,260 @@ const CreateDefaultAccountPopup = ({
     }
   };
 
+  const canSubmit = () => {
+    return formData.name.trim() && !fetchingRates;
+  };
+
   return (
-    <div>
-      {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-          <h2 className="text-xl font-semibold mb-4">Create New Account</h2>
-          {error && (
-            <div className="mb-4 p-2 bg-red-100 border border-red-400 text-red-700 rounded">
-              {error}
-            </div>
-          )}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Name Field */}
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Account Name<span className="text-blue-600">*</span>
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="e.g., Primary Account"
-                required
-              />
-            </div>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 flex items-center justify-center z-50 p-4"
+        onClick={() => setIsModalOpen(false)}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
+            isMobileView
+              ? "max-w-sm w-full max-h-[95vh]"
+              : "max-w-md w-full max-h-[90vh]"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Enhanced Header */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+            {/* Mobile-optimized background elements */}
+            <div
+              className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                isMobileView
+                  ? "w-12 h-12 -translate-y-6 translate-x-6"
+                  : "w-16 h-16 -translate-y-8 translate-x-8"
+              }`}
+            ></div>
+            <div
+              className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                isMobileView
+                  ? "w-8 h-8 translate-y-4 -translate-x-4"
+                  : "w-12 h-12 translate-y-6 -translate-x-6"
+              }`}
+            ></div>
+            <div
+              className={`absolute bg-white/15 rounded-full ${
+                isMobileView
+                  ? "top-2 left-16 w-6 h-6"
+                  : "top-2 left-16 w-8 h-8"
+              }`}
+            ></div>
+            <div
+              className={`absolute bg-white/10 rounded-full ${
+                isMobileView
+                  ? "bottom-2 right-12 w-4 h-4"
+                  : "bottom-2 right-12 w-6 h-6"
+              }`}
+            ></div>
 
-            {/* Description Field - Updated to match AddFundsPopup */}
-            <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Description (Optional)
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                placeholder="Add details about this account"
-                rows={3}
-              />
+            <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`bg-white text-blue-600 rounded-full shadow-lg ${
+                      isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"
+                    } flex items-center justify-center`}
+                  >
+                    <Plus size={isMobileView ? 14 : 18} />
+                  </div>
+                  <div>
+                    <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                      Create Account
+                    </h2>
+                    <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                      Add a new financial account
+                    </p>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={() => setIsModalOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  <X size={isMobileView ? 20 : 20} />
+                </motion.button>
+              </div>
             </div>
+          </div>
 
-            {/* Currency Field */}
-            <div>
-              <label
-                htmlFor="currency"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Currency
-              </label>
-              <select
-                id="currency"
-                name="currency"
-                value={formData.currency}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                disabled={isLoading || fetchingRates}
-                required
-              >
-                {Object.keys(rates).map((curr) => (
-                  <option key={curr} value={curr}>
-                    {curr}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Content */}
+          <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
 
-            {/* Form Actions */}
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-200 focus:outline-none focus:border-blue-500 focus:ring-0"
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-800 to-black text-white rounded-lg hover:from-blue-700 hover:to-gray-900 hover:shadow-lg focus:outline-none focus:border-blue-500 focus:ring-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Name *
+                </label>
+                <div className="relative">
+                  <CreditCard
+                    size={16}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                    placeholder="e.g., Primary Account"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <div className="relative">
+                  <FileText
+                    size={16}
+                    className="absolute left-3 top-3 text-gray-400"
+                  />
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                    placeholder="Add details about this account"
+                    rows={3}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Currency *
+                </label>
+                <div className="relative" ref={currencyRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
+                    disabled={fetchingRates}
+                  >
+                    <span>{formData.currency}</span>
+                    <ChevronDown size={16} className="text-gray-400" />
+                  </button>
+
+                  {isCurrencyOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 max-h-40 overflow-y-auto"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Creating...
-                  </>
-                ) : (
-                  "Create Account"
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+                      {fetchingRates ? (
+                        <div className="p-3 text-center text-gray-500">
+                          Loading currencies...
+                        </div>
+                      ) : (
+                        Object.keys(rates).map((curr) => (
+                          <button
+                            key={curr}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, currency: curr as CurrencyType });
+                              setIsCurrencyOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                              formData.currency === curr
+                                ? "bg-blue-50 text-blue-700"
+                                : ""
+                            }`}
+                          >
+                            {curr}
+                          </button>
+                        ))
+                      )}
+                    </motion.div>
+                  )}
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard size={14} className="text-blue-600" />
+                  <span className="text-sm font-medium text-blue-800">
+                    Account Preview
+                  </span>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-blue-100">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-blue-900">
+                        {formData.name || "Account Name"}
+                      </p>
+                      <p className="text-xs text-blue-700">
+                        {formData.description || "No description"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-blue-700">
+                      <CreditCard size={12} />
+                      <span className="text-xs">{formData.currency}</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 pt-2 border-t border-blue-100">
+                    <span className="text-sm font-medium text-blue-900">
+                      0.00 {formData.currency}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="flex-1 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={!canSubmit() || isLoading}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  Creating...
+                </>
+              ) : fetchingRates ? (
+                "Loading Rates..."
+              ) : (
+                <>
+                  <Plus size={16} />
+                  Create Account
+                </>
+              )}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import { Calculator } from "lucide-react";
 import {
   DashboardOutlined,
   WalletOutlined,
@@ -10,6 +11,7 @@ import {
   SettingOutlined,
   TransactionOutlined,
   PieChartOutlined,
+  CalculatorOutlined
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
 
@@ -67,11 +69,11 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
   const handleLogout = () => {
     logout();
     navigate("/login");
-    if (onItemClick) onItemClick(); // Close sidebar when logging out
+    if (onItemClick) onItemClick(); 
   };
 
   const handleMenuClick = (e: { key: string }) => {
-    // Always close the sidebar when a menu item is clicked
+    
     if (onItemClick) onItemClick();
 
     if (e.key === "logout") {
@@ -116,7 +118,7 @@ const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {
     },
     {
       key: "budget",
-      icon: <PieChartOutlined />,
+      icon: <CalculatorOutlined />,
       label: "Budget",
     },
     {

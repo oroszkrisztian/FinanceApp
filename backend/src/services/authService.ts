@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import { sign } from "jsonwebtoken";
+import 'dotenv/config';
 
 import { LoginCredentials, RegisterData, User } from "../types/user";
 import { UserRepository } from "../repositories/userRepository";
@@ -78,6 +79,7 @@ export class AuthService {
   }
 
   private generateToken(user: User) {
+    console.log("genereating tojen with " + process.env.JWT_SECRET)
     return sign(
       { userId: user.id, username: user.username },
       process.env.JWT_SECRET || "your-secret-key",

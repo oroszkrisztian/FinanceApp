@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { TransactionType } from "../../interfaces/enums";
-import { Budget } from "../../interfaces/Budget";
 import {
   convertAmount,
   getExchangeRate,
@@ -28,7 +27,6 @@ interface CreateExpensePopupProps {
   onClose: () => void;
   isOpen: boolean;
   accounts: Account[];
-  budgets: Budget[];
   accountsLoading: boolean;
   onSuccess: () => void;
   categories?: { id: number; name: string }[];
@@ -111,7 +109,7 @@ const SearchWithSuggestions: React.FC<{
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full pl-8 pr-3 py-3 text-sm border border-red-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors shadow-sm bg-red-50/50"
+          className="w-full pl-8 pr-3 py-2.5 text-sm border border-red-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-colors shadow-sm bg-red-50/50"
         />
       </div>
 
@@ -120,7 +118,7 @@ const SearchWithSuggestions: React.FC<{
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
@@ -163,20 +161,18 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   onClose,
   isOpen,
   accounts,
-  budgets,
   accountsLoading,
   onSuccess,
   categories = [],
 }) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
-  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<{
     name: string;
     description: string;
     selectedAccount: string;
-    selectedBudget: string;
     amount: number;
     currency: string;
     type: TransactionType;
@@ -185,7 +181,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     name: "",
     description: "",
     selectedAccount: "",
-    selectedBudget: "",
     amount: 0,
     currency: "RON",
     type: TransactionType.EXPENSE,
@@ -198,11 +193,9 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   // Search states
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
-  const [budgetSearchTerm, setBudgetSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
 
   // Selected items for display
-  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   // Currency and conversion
@@ -225,9 +218,18 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     error: null,
   });
 
-  const [activeTab, setActiveTab] = useState<"budget" | "categories">("budget");
+  const steps = ["Basic Info", "Categories", "Account & Review"];
 
-  const steps = ["Basic Info", "Budget & Categories", "Account & Review"];
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
 
   // Load exchange rates
   useEffect(() => {
@@ -249,16 +251,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       loadExchangeRates();
     }
   }, [isOpen]);
-
-  // Mobile screen detection
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobileScreen(window.innerWidth <= 768);
-    };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, []);
 
   // Currency dropdown click outside
   useEffect(() => {
@@ -322,17 +314,14 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       name: "",
       description: "",
       selectedAccount: "",
-      selectedBudget: "",
       amount: 0,
       currency: "RON",
       type: TransactionType.EXPENSE,
       selectedCategories: [],
     });
     setAmountString("");
-    setSelectedBudget(null);
     setSelectedAccount(null);
     setAccountSearchTerm("");
-    setBudgetSearchTerm("");
     setCategorySearchTerm("");
     setConversionDetails({
       originalAmount: 0,
@@ -370,16 +359,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     }
   };
 
-  // Budget selection
-  const handleBudgetSelect = (budgetName: string) => {
-    const budget = budgets.find((b) => b.name === budgetName);
-    if (budget) {
-      setSelectedBudget(budget);
-      setFormData((prev) => ({ ...prev, selectedBudget: String(budget.id) }));
-      setBudgetSearchTerm("");
-    }
-  };
-
   // Category selection
   const handleCategorySelect = (categoryName: string) => {
     const category = categories.find((cat) => cat.name === categoryName);
@@ -401,24 +380,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     setAccountSearchTerm("");
   };
 
-  const clearBudgetSelection = () => {
-    setSelectedBudget(null);
-    setFormData((prev) => ({ ...prev, selectedBudget: "" }));
-    setBudgetSearchTerm("");
-  };
-
   // Get suggestions
   const accountSuggestions = accounts
     .filter((acc) =>
       acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
     )
     .map((acc) => acc.name);
-
-  const budgetSuggestions = budgets
-    .filter((budget) =>
-      budget.name.toLowerCase().includes(budgetSearchTerm.toLowerCase())
-    )
-    .map((budget) => budget.name);
 
   const categorySuggestions = categories
     .filter((cat) =>
@@ -480,7 +447,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 1:
         return formData.name && formData.amount > 0;
       case 2:
-        return true; 
+        return true;
       case 3:
         return formData.selectedAccount;
       default:
@@ -556,7 +523,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         formData.amount,
         formData.currency,
         parseInt(formData.selectedAccount),
-        formData.selectedBudget ? parseInt(formData.selectedBudget) : null,
+        null, // No budget
         formData.description || null,
         formData.selectedCategories.length > 0
           ? formData.selectedCategories
@@ -589,10 +556,10 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Name Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
                 <span className="text-red-500 mr-1">🏷️</span>
                 Expense Name<span className="text-red-500">*</span>
               </label>
@@ -600,27 +567,27 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm"
+                className="w-full px-3 py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm text-sm"
                 placeholder="Enter expense name"
                 required
               />
             </div>
 
             {/* Amount and Currency */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+                <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
                   <span className="text-red-500 mr-1">💰</span>
                   Amount<span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <DollarSign
-                    size={16}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-red-400"
+                    size={14}
+                    className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-red-400"
                   />
                   <input
                     type="text"
-                    className="w-full pl-10 pr-3 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm font-medium"
+                    className="w-full pl-8 pr-3 py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm font-medium text-sm"
                     placeholder="0.00"
                     value={amountString}
                     onChange={(e) => {
@@ -645,7 +612,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-xs font-medium text-gray-700 mb-1">
                   Currency
                 </label>
                 <div className="relative" ref={currencyRef}>
@@ -653,19 +620,19 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     type="button"
                     onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
                     disabled={fetchingRates}
-                    className="w-full p-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between bg-red-50/50 shadow-sm transition-all disabled:opacity-50"
+                    className="w-full p-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between bg-red-50/50 shadow-sm transition-all disabled:opacity-50 text-sm"
                   >
                     <span>
                       {fetchingRates ? "Loading..." : formData.currency}
                     </span>
-                    <ChevronDown size={16} className="text-red-400" />
+                    <ChevronDown size={14} className="text-red-400" />
                   </button>
 
                   {isCurrencyOpen && !fetchingRates && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
                     >
                       {availableCurrencies.map((currency) => (
                         <button
@@ -675,7 +642,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                             handleInputChange("currency", currency);
                             setIsCurrencyOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 hover:bg-red-50 transition-colors ${
+                          className={`w-full text-left px-3 py-2 hover:bg-red-50 transition-colors text-sm ${
                             formData.currency === currency
                               ? "bg-red-50 text-red-700"
                               : ""
@@ -692,7 +659,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
             {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
                 <span className="text-red-500 mr-1">📝</span>
                 Description (Optional)
               </label>
@@ -701,8 +668,8 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
-                rows={3}
-                className="w-full px-4 py-3 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm"
+                rows={2}
+                className="w-full px-3 py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm text-sm"
                 placeholder="Add expense details"
               />
             </div>
@@ -712,116 +679,42 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 2:
         return (
           <div className="space-y-4">
-            {/* Tab Navigation */}
-            <div className="flex border-b border-gray-200">
-              <button
-                type="button"
-                onClick={() => setActiveTab("budget")}
-                className={`py-2 px-4 text-sm font-medium transition-colors ${
-                  activeTab === "budget"
-                    ? "text-red-600 border-b-2 border-red-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Budget
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("categories")}
-                className={`py-2 px-4 text-sm font-medium transition-colors ${
-                  activeTab === "categories"
-                    ? "text-red-600 border-b-2 border-red-600"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Categories
-              </button>
+            <div>
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
+                <span className="text-red-500 mr-1">🏷️</span>
+                Categories (Optional)
+              </label>
+              {categories.length === 0 ? (
+                <div className="p-3 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                  No categories available.
+                </div>
+              ) : (
+                <SearchWithSuggestions
+                  placeholder="Search and select categories..."
+                  onSearch={setCategorySearchTerm}
+                  suggestions={categorySuggestions}
+                  onSelect={handleCategorySelect}
+                  selectedItems={selectedCategoryNames}
+                  multiSelect={true}
+                />
+              )}
             </div>
-
-            {activeTab === "budget" ? (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <span className="text-red-500 mr-1">📊</span>
-                  Budget (Optional)
-                </label>
-                {budgets.length === 0 ? (
-                  <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
-                    No budgets available.
-                  </div>
-                ) : (
-                  <>
-                    <SearchWithSuggestions
-                      placeholder="Search and select budget..."
-                      onSearch={setBudgetSearchTerm}
-                      suggestions={budgetSuggestions}
-                      onSelect={handleBudgetSelect}
-                      value={selectedBudget?.name || budgetSearchTerm}
-                    />
-                    {selectedBudget && (
-                      <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl shadow-sm">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <div className="font-medium text-red-800">
-                              {selectedBudget.name}
-                            </div>
-                            <div className="text-sm text-red-600">
-                              Spent:{" "}
-                              {selectedBudget.currentSpent?.toFixed(2) ||
-                                "0.00"}{" "}
-                              {selectedBudget.currency}
-                            </div>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={clearBudgetSelection}
-                            className="text-red-500 hover:text-red-700 transition-colors"
-                          >
-                            <X size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
-                  <span className="text-red-500 mr-1">🏷️</span>
-                  Categories (Optional)
-                </label>
-                {categories.length === 0 ? (
-                  <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
-                    No categories available.
-                  </div>
-                ) : (
-                  <SearchWithSuggestions
-                    placeholder="Search and select categories..."
-                    onSearch={setCategorySearchTerm}
-                    suggestions={categorySuggestions}
-                    onSelect={handleCategorySelect}
-                    selectedItems={selectedCategoryNames}
-                    multiSelect={true}
-                  />
-                )}
-              </div>
-            )}
           </div>
         );
 
       case 3:
         return (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {/* Account Selection */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
                 <span className="text-red-500 mr-1">💳</span>
                 Select Account<span className="text-red-500">*</span>
               </label>
               {accountsLoading ? (
                 <div className="animate-pulse h-11 bg-gray-200 rounded-xl"></div>
               ) : accounts.length === 0 ? (
-                <div className="p-3 text-sm text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                <div className="p-3 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
                   No accounts available. Please create one first.
                 </div>
               ) : (
@@ -834,13 +727,13 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     value={selectedAccount?.name || accountSearchTerm}
                   />
                   {selectedAccount && (
-                    <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl shadow-sm">
                       <div className="flex items-center justify-between">
                         <div>
-                          <div className="font-medium text-red-800">
+                          <div className="font-medium text-red-800 text-sm">
                             {selectedAccount.name}
                           </div>
-                          <div className="text-sm text-red-600">
+                          <div className="text-xs text-red-600">
                             Balance: {selectedAccount.amount.toFixed(2)}{" "}
                             {selectedAccount.currency}
                           </div>
@@ -850,7 +743,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                           onClick={clearAccountSelection}
                           className="text-red-500 hover:text-red-700 transition-colors"
                         >
-                          <X size={16} />
+                          <X size={14} />
                         </button>
                       </div>
                     </div>
@@ -861,14 +754,14 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
             {/* Preview Section */}
             {selectedAccount && (
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {/* Expense Summary */}
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl shadow-sm">
-                  <h3 className="font-semibold text-lg mb-3 text-red-800">
+                <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-xl shadow-sm">
+                  <h3 className="font-semibold text-base mb-2 text-red-800">
                     {formData.name}
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="grid grid-cols-2 gap-2 text-xs">
                     <div>
                       <span className="text-gray-600">Amount:</span>
                       <span className="ml-2 font-medium">
@@ -881,14 +774,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                         {selectedAccount?.name}
                       </span>
                     </div>
-                    {selectedBudget && (
-                      <div>
-                        <span className="text-gray-600">Budget:</span>
-                        <span className="ml-2 font-medium">
-                          {selectedBudget.name}
-                        </span>
-                      </div>
-                    )}
                     {formData.selectedCategories.length > 0 && (
                       <div className="col-span-2">
                         <span className="text-gray-600">Categories: </span>
@@ -900,7 +785,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                             .map((category) => (
                               <span
                                 key={category.id}
-                                className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full"
+                                className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full"
                               >
                                 {category.name}
                               </span>
@@ -911,9 +796,11 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                   </div>
 
                   {formData.description && (
-                    <div className="mt-3 pt-3 border-t border-red-200">
-                      <span className="text-gray-600 text-sm">Description: </span>
-                      <span className="text-sm text-gray-800">
+                    <div className="mt-2 pt-2 border-t border-red-200">
+                      <span className="text-gray-600 text-xs">
+                        Description:{" "}
+                      </span>
+                      <span className="text-xs text-gray-800">
                         {formData.description}
                       </span>
                     </div>
@@ -922,20 +809,20 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
                 {/* Transaction Summary */}
                 {formData.amount > 0 && (
-                  <div className="p-4 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm">
-                    <h3 className="font-bold text-red-700 mb-3 flex items-center">
+                  <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm">
+                    <h3 className="font-bold text-red-700 mb-2 flex items-center text-sm">
                       <span className="mr-1">💰</span>
                       Transaction Summary
                     </h3>
 
                     {balanceInfo && !balanceInfo.isValid ? (
-                      <div className="p-3 bg-red-100 rounded-lg border border-red-200">
-                        <div className="flex items-center text-red-600 font-medium mb-2">
-                          <AlertCircle size={16} className="mr-2" />
+                      <div className="p-2 bg-red-100 rounded-lg border border-red-200">
+                        <div className="flex items-center text-red-600 font-medium mb-1">
+                          <AlertCircle size={14} className="mr-2" />
                           Insufficient funds
                         </div>
                         <div className="bg-white p-2 rounded-lg border border-red-100">
-                          <p className="text-sm text-gray-700">
+                          <p className="text-xs text-gray-700">
                             Amount exceeded by:
                             <span className="ml-2 font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
                               {Math.abs(balanceInfo.newBalance).toFixed(2)}{" "}
@@ -947,29 +834,29 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     ) : balanceInfo ? (
                       <div className="bg-white rounded-lg border border-red-100 shadow-sm overflow-hidden">
                         <div className="grid grid-cols-1 divide-y divide-red-50">
-                          <div className="p-3 flex justify-between items-center">
-                            <span className="text-sm text-gray-600">
+                          <div className="p-2 flex justify-between items-center">
+                            <span className="text-xs text-gray-600">
                               Current Balance:
                             </span>
-                            <span className="font-medium">
+                            <span className="font-medium text-sm">
                               {balanceInfo.currentBalance.toFixed(2)}{" "}
                               {selectedAccount.currency}
                             </span>
                           </div>
-                          <div className="p-3 flex justify-between items-center">
-                            <span className="text-sm text-gray-600">
+                          <div className="p-2 flex justify-between items-center">
+                            <span className="text-xs text-gray-600">
                               Transaction:
                             </span>
-                            <span className="text-red-500 font-medium">
+                            <span className="text-red-500 font-medium text-sm">
                               -{balanceInfo.transactionAmount.toFixed(2)}{" "}
                               {selectedAccount.currency}
                             </span>
                           </div>
-                          <div className="p-3 flex justify-between items-center bg-red-50/50">
-                            <span className="text-sm font-medium text-gray-700">
+                          <div className="p-2 flex justify-between items-center bg-red-50/50">
+                            <span className="text-xs font-medium text-gray-700">
                               New Balance:
                             </span>
-                            <span className="font-bold">
+                            <span className="font-bold text-sm">
                               {balanceInfo.newBalance.toFixed(2)}{" "}
                               {selectedAccount.currency}
                             </span>
@@ -982,32 +869,34 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     {formData.currency !== selectedAccount.currency &&
                       !conversionDetails.error &&
                       !fetchingRates && (
-                        <div className="mt-3 text-sm">
-                          <div className="flex items-center text-red-700 mb-2">
-                            <Info size={14} className="mr-1" />
-                            <span className="font-medium">Currency Conversion</span>
+                        <div className="mt-2 text-xs">
+                          <div className="flex items-center text-red-700 mb-1">
+                            <Info size={12} className="mr-1" />
+                            <span className="font-medium">
+                              Currency Conversion
+                            </span>
                           </div>
 
                           <div className="flex items-center justify-between">
-                            <div className="px-3 py-2 bg-white rounded-lg border border-red-200 text-red-900">
-                              <p className="text-sm font-medium">
+                            <div className="px-2 py-1 bg-white rounded-lg border border-red-200 text-red-900">
+                              <p className="text-xs font-medium">
                                 {formData.amount.toFixed(2)} {formData.currency}
                               </p>
                             </div>
 
-                            <div className="flex items-center justify-center px-2">
-                              <ArrowRight size={16} className="text-red-500" />
+                            <div className="flex items-center justify-center px-1">
+                              <ArrowRight size={12} className="text-red-500" />
                             </div>
 
-                            <div className="px-3 py-2 bg-red-500 text-white rounded-lg shadow-md">
-                              <p className="text-sm font-medium">
+                            <div className="px-2 py-1 bg-red-500 text-white rounded-lg shadow-md">
+                              <p className="text-xs font-medium">
                                 {conversionDetails.convertedAmount.toFixed(2)}{" "}
                                 {selectedAccount.currency}
                               </p>
                             </div>
                           </div>
 
-                          <div className="text-xs mt-2 text-red-600 border-t border-red-100 pt-2">
+                          <div className="text-xs mt-1 text-red-600 border-t border-red-100 pt-1">
                             <p className="flex items-center">
                               <span className="mr-1">💱</span>
                               Exchange rate: 1 {formData.currency} ={" "}
@@ -1034,11 +923,11 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+      <div
+        className="absolute inset-0 "
         onClick={handleClose}
       />
-      
+
       {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
@@ -1046,40 +935,74 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         transition={{ duration: 0.2 }}
         className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10"
         style={{
-          minWidth: isMobileScreen ? "100%" : "36rem",
-          height: isMobileScreen ? "70vh" : "60vh",
+          width: isMobileView ? "90%" : "28rem",
+          //height: isMobileView ? "85vh" : "75vh",
+          minHeight: "50vh",
           maxHeight: "90vh",
         }}
       >
-        {/* Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-800 py-4 relative z-10">
-          <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
-          <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
-          <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
+        {/* Enhanced Header */}
+        <div className="bg-gradient-to-r from-red-600 to-red-800 relative overflow-hidden">
+          {/* Mobile-optimized background elements */}
+          <div
+            className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+              isMobileView
+                ? "w-10 h-10 -translate-y-5 translate-x-5"
+                : "w-12 h-12 -translate-y-6 translate-x-6"
+            }`}
+          ></div>
+          <div
+            className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+              isMobileView
+                ? "w-6 h-6 translate-y-3 -translate-x-3"
+                : "w-8 h-8 translate-y-4 -translate-x-4"
+            }`}
+          ></div>
+          <div
+            className={`absolute bg-white/15 rounded-full ${
+              isMobileView ? "top-1 left-12 w-4 h-4" : "top-1 left-14 w-6 h-6"
+            }`}
+          ></div>
 
-          <div className="px-6 flex items-center justify-between relative z-10 mb-3">
+          <div
+            className={`${isMobileView ? "px-4 py-3" : "px-4 py-3"} flex items-center justify-between relative z-10 mb-2`}
+          >
             <div className="flex items-center">
-              <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
-                <span className="text-2xl">💸</span>
+              <div
+                className={`bg-white rounded-full flex items-center justify-center mr-3 shadow-lg ${isMobileView ? "w-8 h-8" : "w-10 h-10"}`}
+              >
+                <span className={isMobileView ? "text-base" : "text-lg"}>
+                  💸
+                </span>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">Add an Expense</h2>
-                <p className="text-sm text-white/90">
+                <h2
+                  className={`font-bold text-white ${isMobileView ? "text-base" : "text-lg"}`}
+                >
+                  Add an Expense
+                </h2>
+                <p
+                  className={`text-white/90 ${isMobileView ? "text-xs" : "text-sm"}`}
+                >
                   {steps[currentStep - 1]}
                 </p>
               </div>
             </div>
 
-            <button
+            <motion.button
               onClick={handleClose}
               className="text-white/80 hover:text-white transition-colors"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <X size={20} />
-            </button>
+              <X size={isMobileView ? 18 : 20} />
+            </motion.button>
           </div>
 
           {/* Progress */}
-          <div className="px-6 relative z-10">
+          <div
+            className={`${isMobileView ? "px-4 pb-3" : "px-4 pb-3"} relative z-10`}
+          >
             <div className="flex gap-1">
               {steps.map((_, index) => (
                 <div
@@ -1094,14 +1017,16 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div
+          className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"}`}
+        >
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm flex items-center gap-2 shadow-sm"
+              className="mb-3 p-2 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2 shadow-sm"
             >
-              <AlertCircle size={16} />
+              <AlertCircle size={14} />
               {error}
             </motion.div>
           )}
@@ -1110,40 +1035,51 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t bg-gray-50/50 flex justify-between">
-          <button
+        <div
+          className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 backdrop-blur-sm flex justify-between`}
+        >
+          <motion.button
             onClick={prevStep}
             disabled={currentStep === 1}
-            className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            whileHover={{ scale: currentStep === 1 ? 1 : 1.02 }}
+            whileTap={{ scale: 0.98 }}
           >
-            <ArrowLeft size={16} />
+            <ArrowLeft size={14} />
             Back
-          </button>
+          </motion.button>
 
           {currentStep < 3 ? (
-            <button
+            <motion.button
               onClick={nextStep}
               disabled={!canProceed()}
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+              className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-sm"
+              whileHover={{ scale: !canProceed() ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
               Continue
-              <ArrowRight size={16} />
-            </button>
+              <ArrowRight size={14} />
+            </motion.button>
           ) : (
-            <button
+            <motion.button
               onClick={handleSubmit}
               disabled={
                 isLoading || (balanceInfo ? !balanceInfo.isValid : false)
               }
-              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+              className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-sm"
+              whileHover={{
+                scale:
+                  isLoading || (balanceInfo && !balanceInfo.isValid) ? 1 : 1.02,
+              }}
+              whileTap={{ scale: 0.98 }}
             >
               {isLoading ? (
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
               ) : (
                 "💸"
               )}
               Create Expense
-            </button>
+            </motion.button>
           )}
         </div>
       </motion.div>

@@ -322,7 +322,6 @@ const Transactions: React.FC = () => {
           onClose={() => setIsCreateExpenseModalOpen(false)}
           accounts={defaultAccounts}
           categories={categories}
-          budgets={budgets}
           accountsLoading={accountsLoading}
           onSuccess={handleSuccess}
         />
@@ -466,7 +465,6 @@ const Transactions: React.FC = () => {
         onClose={() => setIsCreateExpenseModalOpen(false)}
         accounts={defaultAccounts}
         categories={categories}
-        budgets={budgets}
         accountsLoading={accountsLoading}
         onSuccess={handleSuccess}
       />

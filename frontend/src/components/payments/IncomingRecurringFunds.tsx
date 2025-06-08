@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Calendar,
-  ArrowUp,
   Tag,
   ChevronRight,
   RefreshCw,
@@ -10,6 +9,7 @@ import {
   Filter,
   Plus,
   DollarSign,
+  CreditCard,
 } from "lucide-react";
 import {
   ExchangeRates,
@@ -56,10 +56,20 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
   const [nameSearchTerm, setNameSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
+
+  // Auto-set to current month
+  const getCurrentMonthRange = () => {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return { start, end };
+  };
+
   const [dateRange, setDateRange] = useState<{
     start: Date | null;
     end: Date | null;
-  }>({ start: null, end: null });
+  }>(getCurrentMonthRange());
+
   const [isDateFilterOpen, setIsDateFilterOpen] = useState(false);
   const [isFilterExpanded, setIsFilterExpanded] = useState(false);
   const [isCreatePopupOpen, setIsCreatePopupOpen] = useState(false);
@@ -69,6 +79,18 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [incomeToExecute, setIncomeToExecute] = useState<any>(null);
   const dateFilterButtonRef = useRef<HTMLButtonElement>(null);
   const [editingPayment, setEditingPayment] = useState<any>(null);
+  const [isMobileView, setIsMobileView] = useState(false);
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
 
   const handleEditPayment = (paymentId: number) => {
     const paymentToEdit = filteredFunds.find((fund) => fund.id === paymentId);
@@ -79,7 +101,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
     }
   };
 
- 
   const handleCloseCreatePopup = () => {
     setIsCreatePopupOpen(false);
     setEditingPayment(null);
@@ -265,6 +286,21 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
     };
 
     if (dateRange.start && dateRange.end) {
+      // Check if it's current month
+      const now = new Date();
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      const currentMonthEnd = new Date(
+        now.getFullYear(),
+        now.getMonth() + 1,
+        0
+      );
+
+      if (
+        dateRange.start.getTime() === currentMonthStart.getTime() &&
+        dateRange.end.getTime() === currentMonthEnd.getTime()
+      ) {
+        return `Current Month (${formatDateShort(dateRange.start)} - ${formatDateShort(dateRange.end)})`;
+      }
       return `${formatDateShort(dateRange.start)} - ${formatDateShort(dateRange.end)}`;
     } else if (dateRange.start) {
       return `From ${formatDateShort(dateRange.start)}`;
@@ -282,11 +318,10 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setCategorySearchTerm("");
-    setDateRange({ start: null, end: null });
+    setDateRange(getCurrentMonthRange()); // Reset to current month instead of null
   };
 
   const handleFundClick = (fund: any, event: React.MouseEvent) => {
-    
     if ((event.target as HTMLElement).closest(".get-income-button")) {
       return;
     }
@@ -307,7 +342,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const handleConfirmGetIncome = async () => {
     if (incomeToExecute && user?.id) {
       try {
-      
         const account = accounts.find(
           (acc) => acc.name === incomeToExecute.account
         );
@@ -316,7 +350,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           return;
         }
 
-       
         await executeRecurringIncome(
           user.id,
           incomeToExecute.id,
@@ -328,12 +361,9 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         );
 
         console.log("Income executed successfully:", incomeToExecute);
-
-        
         onPaymentCreated();
       } catch (error) {
         console.error("Failed to execute income:", error);
-      
       }
     }
     setIsGetIncomeDialogOpen(false);
@@ -369,573 +399,639 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   }, 0);
 
   const hasActiveFilters =
-    nameSearchTerm !== "" ||
-    categorySearchTerm !== "" ||
-    dateRange.start !== null ||
-    dateRange.end !== null;
+    nameSearchTerm !== "" || categorySearchTerm !== "" || !isCurrentMonth();
+
+  function isCurrentMonth() {
+    if (!dateRange.start || !dateRange.end) return false;
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const currentMonthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return (
+      dateRange.start.getTime() === currentMonthStart.getTime() &&
+      dateRange.end.getTime() === currentMonthEnd.getTime()
+    );
+  }
 
   return (
     <>
       <div
-        className="flex flex-col rounded-lg overflow-hidden shadow-lg relative"
+        className={`bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden ${
+          isMobileView ? "p-2.5 mb-4 mx-2" : "p-4 mb-8"
+        }`}
         style={{
-          height: isSmallScreen ? "calc(100vh - 180px)" : "calc(100vh - 100px)",
+          height: isMobileView ? "calc(100vh - 160px)" : "calc(100vh - 80px)",
         }}
       >
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-green-600 to-green-500 text-white p-4">
-          <div className="flex justify-between items-center mb-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-white text-green-600 rounded-full p-1.5 shadow-md">
-                <ArrowUp size={20} />
-              </div>
-              <h2 className="text-lg font-semibold">Incoming Funds</h2>
-            </div>
-            <div
-              className={`${isSmallScreen ? "py-1.5 px-3 bg-green-700/30 rounded-lg shadow-inner" : ""}`}
-            >
-              {fetchingRates ? (
-                <span className="flex items-center text-green-100">
-                  <RefreshCw size={14} className="animate-spin mr-1" />
-                  Loading...
-                </span>
-              ) : (
-                <span
-                  className={`font-semibold ${isSmallScreen ? "text-base" : ""}`}
-                >
-                  {formatAmount(totalMonthly)} {displayCurrency}
-                </span>
-              )}
-            </div>
-          </div>
+        {/* Mobile-optimized background elements */}
+        <div
+          className={`absolute top-0 right-0 bg-gradient-to-br from-green-300 to-emerald-500 rounded-full opacity-20 ${
+            isMobileView
+              ? "w-12 h-12 -translate-y-6 translate-x-6"
+              : "w-28 h-28 -translate-y-14 translate-x-14"
+          }`}
+        ></div>
+        <div
+          className={`absolute bottom-0 left-0 bg-gradient-to-tr from-emerald-300 to-teal-500 rounded-full opacity-15 ${
+            isMobileView
+              ? "w-8 h-8 translate-y-4 -translate-x-4"
+              : "w-20 h-20 translate-y-10 -translate-x-10"
+          }`}
+        ></div>
+        <div
+          className={`absolute bg-gradient-to-br from-green-200 to-emerald-300 rounded-full opacity-10 ${
+            isMobileView ? "top-3 left-16 w-6 h-6" : "top-8 left-32 w-16 h-16"
+          }`}
+        ></div>
+        <div
+          className={`absolute bg-gradient-to-br from-teal-300 to-green-400 rounded-full opacity-10 ${
+            isMobileView
+              ? "bottom-3 right-12 w-6 h-6"
+              : "bottom-12 right-20 w-12 h-12"
+          }`}
+        ></div>
 
-          <div className="flex justify-between items-center mb-3">
-            <div className="relative currency-dropdown">
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-green-700 hover:bg-green-800 text-white p-2 px-3 rounded-full transition-colors flex items-center"
-                onClick={() => setIsCurrencyMenuOpen(!isCurrencyMenuOpen)}
-                title="Select currency"
-                disabled={fetchingRates}
-              >
-                {displayCurrency}
-                {!fetchingRates && <ChevronDown size={16} className="ml-1" />}
-                {fetchingRates && (
-                  <RefreshCw size={14} className="animate-spin ml-1" />
-                )}
-              </motion.button>
-
-              {isCurrencyMenuOpen && availableCurrencies.length > 0 && (
+        <div className="relative z-10 h-full flex flex-col">
+          {/* Enhanced Header */}
+          <div className={`flex-shrink-0 ${isMobileView ? "mb-2" : "mb-4"}`}>
+            <div className="flex justify-between items-center mb-2">
+              <div className="flex items-center gap-2">
                 <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute top-full left-0 mt-2 w-36 bg-white rounded-lg shadow-lg z-50 overflow-hidden"
+                  className={`bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-md ${
+                    isMobileView ? "w-7 h-7" : "w-10 h-10"
+                  }`}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <div className="max-h-48 overflow-y-auto">
-                    {availableCurrencies.map((curr) => (
-                      <button
-                        key={curr}
-                        className={`w-full text-left px-3 py-2 text-sm ${
-                          curr === displayCurrency
-                            ? "bg-green-100 text-green-700 font-medium"
-                            : "text-gray-700 hover:bg-green-50"
-                        } transition-colors`}
-                        onClick={() =>
-                          handleCurrencyChange(curr as CurrencyType)
-                        }
-                      >
-                        {curr}
-                      </button>
-                    ))}
-                  </div>
+                  <span className={`${isMobileView ? "text-xs" : "text-lg"}`}>
+                    💰
+                  </span>
                 </motion.div>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <motion.button
-                ref={dateFilterButtonRef}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="bg-white text-green-600 p-2 rounded-full hover:bg-green-50 transition-colors shadow-sm flex items-center justify-center"
-                onClick={() => setIsDateFilterOpen(true)}
-                title="Date Filter"
+                <div>
+                  <h2
+                    className={`font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent ${
+                      isMobileView ? "text-base" : "text-lg"
+                    }`}
+                  >
+                    Incoming Funds
+                  </h2>
+                  <p
+                    className={`text-gray-500 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
+                  >
+                    {filteredFunds.length} payment
+                    {filteredFunds.length !== 1 ? "s" : ""} this period
+                  </p>
+                </div>
+              </div>
+              <div
+                className={`${isMobileView ? "py-1.5 px-3 bg-green-100/80 backdrop-blur-sm rounded-lg shadow-inner border border-green-200/50" : "bg-green-50/80 backdrop-blur-sm rounded-xl px-4 py-2 border border-green-200/50"}`}
               >
-                <Calendar size={20} />
-                {(dateRange.start || dateRange.end) && (
-                  <span className="absolute -top-1 -right-1 bg-green-700 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
-                    !
+                {fetchingRates ? (
+                  <span className="flex items-center text-green-700">
+                    <RefreshCw size={14} className="animate-spin mr-1" />
+                    Loading...
+                  </span>
+                ) : (
+                  <span
+                    className={`font-semibold text-green-700 ${isMobileView ? "text-base" : "text-lg"}`}
+                  >
+                    {formatAmount(totalMonthly)} {displayCurrency}
                   </span>
                 )}
-              </motion.button>
+              </div>
+            </div>
 
-              {isSmallScreen && (
+            <div className="flex justify-between items-center mb-2">
+              <div className="relative currency-dropdown">
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="bg-white text-green-600 p-2 rounded-full hover:bg-green-50 transition-colors shadow-sm flex items-center justify-center"
-                  onClick={() => setIsFilterExpanded(!isFilterExpanded)}
-                  title={isFilterExpanded ? "Hide Filters" : "Show Filters"}
+                  className={`bg-gradient-to-r from-green-600 to-emerald-700 hover:from-green-700 hover:to-emerald-800 text-white shadow-md flex items-center transition-all ${
+                    isMobileView
+                      ? "p-2 px-3 rounded-full text-sm"
+                      : "p-2 px-3 rounded-full"
+                  }`}
+                  onClick={() => setIsCurrencyMenuOpen(!isCurrencyMenuOpen)}
+                  title="Select currency"
+                  disabled={fetchingRates}
                 >
-                  <Filter size={20} />
-                  {hasActiveFilters && (
-                    <span className="absolute -top-1 -right-1 bg-green-700 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  {displayCurrency}
+                  {!fetchingRates && <ChevronDown size={16} className="ml-1" />}
+                  {fetchingRates && (
+                    <RefreshCw size={14} className="animate-spin ml-1" />
+                  )}
+                </motion.button>
+
+                {isCurrencyMenuOpen && availableCurrencies.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="absolute top-full left-0 mt-2 w-36 bg-white/95 backdrop-blur-md rounded-xl shadow-xl border border-green-200/50 z-50 overflow-hidden"
+                  >
+                    <div className="max-h-48 overflow-y-auto">
+                      {availableCurrencies.map((curr) => (
+                        <motion.button
+                          key={curr}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                            curr === displayCurrency
+                              ? "bg-green-100 text-green-700 font-medium"
+                              : "text-gray-700 hover:bg-green-50"
+                          }`}
+                          onClick={() =>
+                            handleCurrencyChange(curr as CurrencyType)
+                          }
+                          whileHover={{
+                            backgroundColor:
+                              curr === displayCurrency
+                                ? undefined
+                                : "rgba(16, 185, 129, 0.05)",
+                          }}
+                        >
+                          {curr}
+                        </motion.button>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
+                <motion.button
+                  ref={dateFilterButtonRef}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-white/80 backdrop-blur-sm text-green-600 p-2 rounded-full hover:bg-green-50 transition-all shadow-md border border-green-200/50 flex items-center justify-center relative"
+                  onClick={() => setIsDateFilterOpen(true)}
+                  title="Date Filter"
+                >
+                  <Calendar size={20} />
+                  {!isCurrentMonth() && (
+                    <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
                       !
                     </span>
                   )}
                 </motion.button>
-              )}
 
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className={`${
-                  isSmallScreen
-                    ? "bg-white text-green-600 p-2 rounded-full hover:bg-green-50 transition-colors shadow-sm flex items-center justify-center"
-                    : "bg-white text-green-600 px-3 py-1 rounded hover:bg-green-50 transition-colors text-sm font-medium shadow-sm flex items-center gap-1"
-                }`}
-                onClick={() => setIsCreatePopupOpen(true)}
-                title="Add Income"
-              >
-                <Plus size={isSmallScreen ? 20 : 14} />
-                {!isSmallScreen && <span>Add Income</span>}
-              </motion.button>
+                {isMobileView && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-white/80 backdrop-blur-sm text-green-600 p-2 rounded-full hover:bg-green-50 transition-all shadow-md border border-green-200/50 flex items-center justify-center relative"
+                    onClick={() => setIsFilterExpanded(!isFilterExpanded)}
+                    title={isFilterExpanded ? "Hide Filters" : "Show Filters"}
+                  >
+                    <Filter size={20} />
+                    {hasActiveFilters && !isFilterExpanded && (
+                      <span className="absolute -top-1 -right-1 bg-green-600 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center animate-pulse">
+                        !
+                      </span>
+                    )}
+                  </motion.button>
+                )}
+
+                <button
+                  className={`${
+                    isMobileView
+                      ? "bg-white/80 backdrop-blur-sm text-green-600 p-2 rounded-full hover:bg-green-50 transition-all shadow-md border border-green-200/50 flex items-center justify-center"
+                      : "bg-white/80 backdrop-blur-sm text-green-600 px-3 py-1 rounded hover:bg-green-50 transition-all text-sm font-medium shadow-md border border-green-200/50 flex items-center gap-1"
+                  }`}
+                  onClick={() => setIsCreatePopupOpen(true)}
+                  title="Add Income"
+                >
+                  <Plus size={isMobileView ? 20 : 14} />
+                  {!isMobileView && <span>Add Income</span>}
+                </button>
+              </div>
             </div>
+
+            {(dateRange.start || dateRange.end) && (
+              <div
+                className={`${isMobileView ? "mt-1 p-1 bg-green-100/60 backdrop-blur-sm rounded-md border border-green-200/50" : "mt-1 bg-green-50/60 backdrop-blur-sm rounded-lg px-2 py-1 border border-green-200/50"} text-xs text-green-700 flex items-center gap-1`}
+              >
+                <Calendar size={12} />
+                <span className="font-medium">{formatDateRangeDisplay()}</span>
+                {isMobileView && !isCurrentMonth() && (
+                  <motion.button
+                    className="ml-auto text-green-600 hover:text-green-800 p-1 rounded-full hover:bg-green-200/50 transition-colors"
+                    onClick={() => setDateRange(getCurrentMonthRange())}
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X size={14} />
+                  </motion.button>
+                )}
+              </div>
+            )}
+
+            {(!isMobileView || isFilterExpanded) && (
+              <motion.div
+                initial={isMobileView ? { height: 0, opacity: 0 } : false}
+                animate={isMobileView ? { height: "auto", opacity: 1 } : {}}
+                exit={isMobileView ? { height: 0, opacity: 0 } : {}}
+                className={`${isMobileView ? "mt-2" : "mt-2"} grid grid-cols-1 ${isMobileView ? "" : "md:grid-cols-2"} gap-2 overflow-visible`}
+              >
+                <div className="relative z-30">
+                  <SearchWithSuggestions
+                    placeholder="Search by name..."
+                    onSearch={setNameSearchTerm}
+                    suggestions={fundNames}
+                    variant="incoming"
+                  />
+                </div>
+                <div className="relative z-20">
+                  <SearchWithSuggestions
+                    placeholder="Search by category..."
+                    onSearch={setCategorySearchTerm}
+                    suggestions={fundCategories}
+                    variant="incoming"
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {isMobileView && hasActiveFilters && !isFilterExpanded && (
+              <motion.div
+                className="flex justify-between items-center mt-2 text-xs text-green-700 bg-green-100/60 backdrop-blur-sm rounded-md px-2 py-1 border border-green-200/50"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <span className="flex items-center gap-1 font-medium">
+                  <Filter size={12} />
+                  {nameSearchTerm || categorySearchTerm
+                    ? "Filters applied"
+                    : "Custom date range"}
+                </span>
+                <motion.button
+                  className="text-green-600 hover:text-green-800 px-2 py-0.5 bg-green-200/50 rounded font-medium transition-colors"
+                  onClick={clearAllFilters}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Reset
+                </motion.button>
+              </motion.div>
+            )}
           </div>
 
-          {(dateRange.start || dateRange.end) && (
-            <div
-              className={`${isSmallScreen ? "mt-1 p-1.5 bg-green-700/20 rounded-md" : "mt-1"} text-xs text-green-100 flex items-center gap-1`}
-            >
-              <Calendar size={12} />
-              <span>{formatDateRangeDisplay()}</span>
-              {isSmallScreen && (
-                <button
-                  className="ml-auto text-green-100 hover:text-white"
-                  onClick={() => setDateRange({ start: null, end: null })}
-                >
-                  <X size={14} />
-                </button>
-              )}
-            </div>
-          )}
+          <AnimatePresence>
+            {isDateFilterOpen && (
+              <DateRangeFilter
+                dateRange={dateRange}
+                setDateRange={setDateRange}
+                isSmallScreen={isMobileView}
+                isOpen={isDateFilterOpen}
+                setIsOpen={setIsDateFilterOpen}
+                buttonRef={dateFilterButtonRef}
+                colors={{
+                  gradientFrom: "from-green-600",
+                  gradientTo: "to-green-500",
+                }}
+              />
+            )}
+          </AnimatePresence>
 
-          {(!isSmallScreen || isFilterExpanded) && (
+          {error && (
             <motion.div
-              initial={isSmallScreen ? { height: 0, opacity: 0 } : false}
-              animate={isSmallScreen ? { height: "auto", opacity: 1 } : {}}
-              exit={isSmallScreen ? { height: 0, opacity: 0 } : {}}
-              className={`${isSmallScreen ? "mt-3" : "mt-3"} grid grid-cols-1 ${isSmallScreen ? "" : "md:grid-cols-2"} gap-2 overflow-visible`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="bg-green-50/80 backdrop-blur-sm p-2 text-green-700 text-sm text-center border border-green-200 rounded-lg mb-2"
             >
-              <div className="relative z-30">
-                <SearchWithSuggestions
-                  placeholder="Search by name..."
-                  onSearch={setNameSearchTerm}
-                  suggestions={fundNames}
-                  variant="incoming"
-                />
-              </div>
-              <div className="relative z-20">
-                <SearchWithSuggestions
-                  placeholder="Search by category..."
-                  onSearch={setCategorySearchTerm}
-                  suggestions={fundCategories}
-                  variant="incoming"
-                />
-              </div>
+              {error}
             </motion.div>
           )}
 
-          {isSmallScreen && hasActiveFilters && !isFilterExpanded && (
-            <div className="flex justify-between items-center mt-3 text-xs text-green-100 bg-green-700/20 rounded-md px-2 py-1.5">
-              <span className="flex items-center gap-1">
-                <Filter size={12} />
-                {nameSearchTerm || categorySearchTerm ? "Filters applied" : ""}
-              </span>
-              <button
-                className="text-green-100 hover:text-white px-2 py-0.5 bg-green-700/30 rounded"
-                onClick={clearAllFilters}
-              >
-                Clear
-              </button>
-            </div>
-          )}
-        </div>
-
-        <AnimatePresence>
-          {isDateFilterOpen && (
-            <DateRangeFilter
-              dateRange={dateRange}
-              setDateRange={setDateRange}
-              isSmallScreen={isSmallScreen}
-              isOpen={isDateFilterOpen}
-              setIsOpen={setIsDateFilterOpen}
-              buttonRef={dateFilterButtonRef}
-              colors={{
-                gradientFrom: "from-green-600",
-                gradientTo: "to-green-500",
-              }}
-            />
-          )}
-        </AnimatePresence>
-
-        {error && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-green-50 p-2 text-green-700 text-sm text-center border-b border-green-200"
-          >
-            {error}
-          </motion.div>
-        )}
-
-        <div className="bg-white flex-1 overflow-y-auto">
-          {filteredFunds.length > 0 ? (
-            <div className="divide-y divide-gray-100">
-              {filteredFunds.map((fund) => (
-                <motion.div
-                  key={fund.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.3 }}
-                  className={`group p-4 hover:bg-green-50 transition-colors cursor-pointer relative ${
-                    fund.isDue ? "bg-green-50" : ""
-                  }`}
-                  onClick={(e) => handleFundClick(fund, e)}
-                >
-                  {isSmallScreen ? (
-                    <>
-                      <div className="flex justify-between items-start">
-                        <div className="flex flex-col">
-                          <h3 className="font-medium text-gray-800 flex items-center gap-1">
+          <div className="bg-transparent flex-1 overflow-y-auto">
+            {filteredFunds.length > 0 ? (
+              <div className={isMobileView ? "space-y-1.5" : "space-y-1"}>
+                {filteredFunds.map((fund, index) => (
+                  <motion.div
+                    key={fund.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`group rounded-xl border-l-4 shadow-sm active:shadow-md transition-all w-full cursor-pointer backdrop-blur-sm relative ${
+                      fund.isDue
+                        ? "bg-green-100/60 border-l-green-500 hover:bg-green-100/80"
+                        : "bg-white/60 border-l-green-400 hover:bg-green-50/60"
+                    } border border-green-200/30 ${isMobileView ? "p-2.5" : "p-3"}`}
+                    onClick={(e) => handleFundClick(fund, e)}
+                  >
+                    {/* Unified design for both mobile and desktop */}
+                    <div className="flex justify-between items-start gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          <h3
+                            className={`font-semibold text-gray-800 truncate ${isMobileView ? "text-sm" : "text-base"}`}
+                          >
                             {fund.name}
                           </h3>
-                          <div className="text-sm text-gray-500 mt-0.5">
-                            {fund.account}
-                          </div>
-                          <div className="flex items-center mt-2 gap-1.5 flex-wrap">
-                            {(fund.categories && fund.categories.length > 0
-                              ? fund.categories
-                              : [fund.category]
-                            ).map((category, index) => (
-                              <span
-                                key={index}
-                                className="text-xs px-2 py-0.5 rounded-full flex items-center gap-1 bg-gray-100 text-gray-700"
-                              >
-                                <Tag size={12} />
-                                {category}
-                              </span>
-                            ))}
+                          <span
+                            className={`text-green-600 font-bold whitespace-nowrap ml-2 ${isMobileView ? "text-sm" : "text-lg"}`}
+                          >
+                            +{formatAmount(fund.amount)} {fund.currency}
+                            {!isMobileView &&
+                              fund.currency !== displayCurrency && (
+                                <span className="ml-2 text-xs text-gray-500 font-normal">
+                                  (
+                                  {formatAmount(
+                                    convertToDisplayCurrency(
+                                      fund.amount,
+                                      fund.currency
+                                    )
+                                  )}{" "}
+                                  {displayCurrency})
+                                </span>
+                              )}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                          <span className="truncate">{fund.account}</span>
+                          <span className="whitespace-nowrap ml-2">
+                            {fund.frequency.charAt(0) +
+                              fund.frequency.slice(1).toLowerCase()}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="flex items-center gap-1 flex-1 min-w-0">
                             <span
-                              className={`text-sm font-medium px-2 py-1 rounded-lg flex items-center gap-1 ${
+                              className={`text-xs font-medium px-2 py-0.5 rounded-md flex items-center gap-1 whitespace-nowrap ${
                                 fund.isDue
-                                  ? "bg-green-100 text-green-700"
+                                  ? "bg-green-200/80 text-green-800"
                                   : formatDate(fund.nextExecution) === "Today"
-                                    ? "bg-orange-100 text-orange-700"
+                                    ? "bg-orange-100/80 text-orange-700"
                                     : formatDate(fund.nextExecution) ===
                                         "Tomorrow"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-blue-100 text-blue-700"
+                                      ? "bg-yellow-100/80 text-yellow-700"
+                                      : "bg-blue-100/80 text-blue-700"
                               }`}
                             >
-                              <Calendar size={12} />
+                              <Calendar size={10} />
                               {formatDate(fund.nextExecution)}
                             </span>
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-green-600 font-semibold flex items-center">
-                            +{formatAmount(fund.amount)} {fund.currency}
-                          </span>
-                          {fund.currency !== displayCurrency && (
-                            <span className="text-xs text-gray-500">
-                              (
-                              {formatAmount(
-                                convertToDisplayCurrency(
-                                  fund.amount,
-                                  fund.currency
-                                )
-                              )}{" "}
-                              {displayCurrency})
-                            </span>
-                          )}
-                          <span className="text-xs text-gray-500 mt-0.5">
-                            {fund.frequency.charAt(0) +
-                              fund.frequency.slice(1).toLowerCase()}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex justify-between items-center mt-3">
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          className="get-income-button flex items-center gap-2 px-3 py-1.5 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors text-sm font-medium"
-                          onClick={(e) => handleGetIncomeClick(fund, e)}
-                        >
-                          <DollarSign size={14} />
-                          Get Income Now
-                        </motion.button>
-                        <div className="flex items-center gap-1">
-                          <span className="text-xs text-gray-500">
-                            View Details
-                          </span>
-                          <ChevronRight size={16} className="text-gray-400" />
-                        </div>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="flex justify-between items-center">
-                        <div>
-                          <h3 className="font-medium text-gray-800 flex items-center gap-1">
-                            {fund.name}
-                          </h3>
-                          <div className="text-sm text-gray-500 mt-0.5">
-                            {fund.account}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                          <span className="text-green-600 font-semibold flex items-center">
-                            +{formatAmount(fund.amount)} {fund.currency}
-                            {fund.currency !== displayCurrency && (
-                              <span className="ml-1 text-xs text-gray-500">
-                                (
-                                {formatAmount(
-                                  convertToDisplayCurrency(
-                                    fund.amount,
-                                    fund.currency
-                                  )
-                                )}{" "}
-                                {displayCurrency})
-                              </span>
-                            )}
-                          </span>
-                          <span className="text-xs text-gray-500 mt-0.5">
-                            {fund.frequency.charAt(0) +
-                              fund.frequency.slice(1).toLowerCase()}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-1 flex-wrap">
-                            <Tag size={14} />
-                            <div className="flex flex-wrap gap-1">
-                              {(fund.categories && fund.categories.length > 0
-                                ? fund.categories
-                                : [fund.category]
-                              ).map((category, index) => (
-                                <span
-                                  key={index}
-                                  className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700"
-                                >
-                                  {category}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span
-                              className={`font-medium px-3 py-1 rounded-lg flex items-center gap-1 ${
-                                fund.isDue
-                                  ? "bg-green-100 text-green-700"
-                                  : formatDate(fund.nextExecution) === "Today"
-                                    ? "bg-orange-100 text-orange-700"
-                                    : formatDate(fund.nextExecution) ===
-                                        "Tomorrow"
-                                      ? "bg-yellow-100 text-yellow-700"
-                                      : "bg-blue-100 text-blue-700"
-                              }`}
-                            >
-                              <Calendar size={14} />
-                              Next: {formatDate(fund.nextExecution)}
+                            <span className="text-xs px-2 py-0.5 rounded-md bg-green-100/80 text-green-700 truncate flex items-center gap-1">
+                              <Tag size={10} />
+                              {fund.categories && fund.categories.length > 0
+                                ? fund.categories.join(", ")
+                                : fund.category}
                             </span>
                           </div>
-                        </div>
 
-                        <div className="flex items-center gap-3">
-                          <motion.button
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="get-income-button opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-md hover:bg-green-700 text-xs font-medium"
+                          <button
+                            className={`get-income-button flex items-center gap-1 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-md hover:from-green-700 hover:to-emerald-800 transition-all font-medium shadow-md whitespace-nowrap ${
+                              isMobileView
+                                ? "px-2 py-1 text-xs"
+                                : "px-3 py-1.5 text-sm"
+                            }`}
                             onClick={(e) => handleGetIncomeClick(fund, e)}
                           >
-                            <DollarSign size={12} />
-                            Get Income Now
-                          </motion.button>
-                          <div className="flex items-center gap-1">
-                            <span className="opacity-0 group-hover:opacity-100 transition-opacity text-xs text-gray-500">
-                              View Details
-                            </span>
-                            <ChevronRight size={16} className="text-gray-400" />
-                          </div>
+                            <DollarSign size={isMobileView ? 10 : 12} />
+                            {isMobileView ? "Get Now" : "Get Income"}
+                          </button>
                         </div>
                       </div>
-                    </>
-                  )}
+                    </div>
 
-                  {fund.isDue && (
-                    <div className="absolute top-3 right-3 rounded-full w-2 h-2 bg-green-500 animate-pulse"></div>
-                  )}
-                </motion.div>
-              ))}
-            </div>
-          ) : (
-            <div className="p-8 text-center text-gray-500 flex flex-col items-center gap-3">
-              {hasActiveFilters ? (
-                <>
-                  <p>No income matching your search criteria found</p>
-                  <button
-                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    onClick={clearAllFilters}
-                  >
-                    Clear All Filters
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="bg-green-100 p-4 rounded-full">
-                    <ArrowUp size={32} className="text-green-600" />
-                  </div>
-                  <p>No recurring income configured yet</p>
-                  <button
-                    className="mt-2 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
-                    onClick={() => setIsCreatePopupOpen(true)}
-                  >
-                    Add Your First Income
-                  </button>
-                </>
-              )}
-            </div>
-          )}
+                    {fund.isDue && (
+                      <div
+                        className={`absolute rounded-full bg-green-500 animate-pulse ${
+                          isMobileView
+                            ? "top-2 right-2 w-2 h-2"
+                            : "top-2.5 right-2.5 w-2 h-2"
+                        }`}
+                      ></div>
+                    )}
+                  </motion.div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-gray-500 flex flex-col items-center gap-3">
+                {hasActiveFilters ? (
+                  <>
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-green-100/80 backdrop-blur-sm p-4 rounded-full border border-green-200/50 text-4xl"
+                    >
+                      💰
+                    </motion.div>
+                    <p>No income matching your search criteria found</p>
+                    <motion.button
+                      className="mt-2 px-4  py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-md hover:from-green-700 hover:to-emerald-800 transition-all shadow-md"
+                      onClick={clearAllFilters}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Reset to Current Month
+                    </motion.button>
+                  </>
+                ) : (
+                  <>
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="bg-green-100/80 backdrop-blur-sm p-4 rounded-full border border-green-200/50 text-4xl"
+                    >
+                      💰
+                    </motion.div>
+                    <p>No recurring income configured yet</p>
+                    <motion.button
+                      className="mt-2 px-4 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-md hover:from-green-700 hover:to-emerald-800 transition-all shadow-md"
+                      onClick={() => setIsCreatePopupOpen(true)}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                    >
+                      Add Your First Income
+                    </motion.button>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Get Income Now Confirmation Dialog */}
+      {/* Enhanced Get Income Now Confirmation Dialog */}
       <AnimatePresence>
         {isGetIncomeDialogOpen && incomeToExecute && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-            onClick={() => setIsGetIncomeDialogOpen(false)}
+            className="fixed inset-0 flex items-center justify-center z-50 p-4 pointer-events-none"
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-lg p-6 max-w-md w-full shadow-xl"
+              initial={{ scale: 0.9, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: 20 }}
+              className="bg-white rounded-2xl max-w-md w-full shadow-2xl flex flex-col overflow-hidden pointer-events-auto border border-gray-200"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-green-100 p-2 rounded-full">
-                  <DollarSign className="text-green-600" size={24} />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Confirm Income
-                </h3>
-              </div>
-
-              <div className="mb-6">
-                <p className="text-gray-600 mb-4">
-                  Are you sure you want to get this income now?
-                </p>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <div className="flex justify-between items-center mb-2">
-                    <span className="font-medium text-gray-800">
-                      {incomeToExecute.name}
-                    </span>
-                    <span className="text-green-600 font-semibold">
-                      +{formatAmount(incomeToExecute.amount)}{" "}
-                      {incomeToExecute.currency}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600 mb-3">
-                    To: {incomeToExecute.account}
-                  </div>
-                  <div className="text-sm text-gray-600 mb-3">
-                    Category: {incomeToExecute.category}
-                  </div>
-
-                  {/* Account Balance Change Section */}
-                  <div className="border-t border-green-200 pt-3 mt-3">
-                    <div className="text-sm text-gray-700 mb-2 font-medium">
-                      Account Balance Change:
+              {/* Simplified Header */}
+              <div className="p-3 bg-gradient-to-r from-green-600 to-green-800 text-white relative flex-shrink-0 rounded-t-2xl">
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-white rounded-full p-1.5 shadow-lg text-green-600">
+                      <span className="text-lg">💰</span>
                     </div>
-                    {(() => {
-                      const account = accounts.find(
-                        (acc) => acc.name === incomeToExecute.account
-                      );
-                      const accountBalance = account?.amount || 0;
-                      const accountCurrency =
-                        account?.currency || incomeToExecute.currency;
-
-                     
-                      const incomeInAccountCurrency =
-                        incomeToExecute.currency === accountCurrency
-                          ? incomeToExecute.amount
-                          : convertCurrency(
-                              incomeToExecute.amount,
-                              incomeToExecute.currency,
-                              accountCurrency
-                            );
-
-                      const newBalance =
-                        accountBalance + incomeInAccountCurrency;
-
-                      return (
-                        <>
-                          <div className="flex justify-between items-center bg-white p-2 rounded">
-                            <span className="text-sm text-gray-600">
-                              Current Balance:
-                            </span>
-                            <span className="text-sm font-medium">
-                              {formatAmount(accountBalance)} {accountCurrency}
-                            </span>
-                          </div>
-                          {incomeToExecute.currency !== accountCurrency && (
-                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded mt-1 text-xs">
-                              <span className="text-gray-500">
-                                Income ({formatAmount(incomeToExecute.amount)}{" "}
-                                {incomeToExecute.currency}):
-                              </span>
-                              <span className="text-gray-700">
-                                +{formatAmount(incomeInAccountCurrency)}{" "}
-                                {accountCurrency}
-                              </span>
-                            </div>
-                          )}
-                          <div className="flex justify-between items-center bg-white p-2 rounded mt-1">
-                            <span className="text-sm text-gray-600">
-                              After Income:
-                            </span>
-                            <span className="text-sm font-semibold text-green-600">
-                              {formatAmount(newBalance)} {accountCurrency}
-                            </span>
-                          </div>
-                        </>
-                      );
-                    })()}
+                    <div>
+                      <h2 className="text-lg font-bold">Confirm Income</h2>
+                      <p className="text-white/80 text-xs">
+                        {incomeToExecute.name}
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    onClick={() => setIsGetIncomeDialogOpen(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                  >
+                    <X size={20} />
+                  </button>
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              {/* Simplified Content */}
+              <div className="p-3 space-y-4">
+                {/* Income Amount */}
+                <div className="text-center py-2">
+                  <div className="text-xl font-bold text-green-600 mb-1">
+                    +{formatAmount(incomeToExecute.amount)}{" "}
+                    {incomeToExecute.currency}
+                  </div>
+                  {incomeToExecute.currency !== displayCurrency && (
+                    <div className="text-xs text-gray-500">
+                      ≈{" "}
+                      {formatAmount(
+                        convertToDisplayCurrency(
+                          incomeToExecute.amount,
+                          incomeToExecute.currency
+                        )
+                      )}{" "}
+                      {displayCurrency}
+                    </div>
+                  )}
+                </div>
+
+                {/* Account & Categories - Simplified */}
+                <div className="bg-gray-50 rounded-lg p-2 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Account:</span>
+                    <span className="text-sm font-medium">
+                      {incomeToExecute.account}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Categories:</span>
+                    <div className="text-right">
+                      {incomeToExecute.categories &&
+                      incomeToExecute.categories.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 justify-end">
+                          {incomeToExecute.categories.map(
+                            (category: string, index: number) => (
+                              <span
+                                key={index}
+                                className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-xs rounded"
+                              >
+                                {category}
+                              </span>
+                            )
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-500 text-xs">
+                          {incomeToExecute.category || "Uncategorized"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Balance Change with Arrows */}
+                {/* Minimal Balance Impact */}
+                {(() => {
+                  const account = accounts.find(
+                    (acc) => acc.name === incomeToExecute.account
+                  );
+                  const accountBalance = account?.amount || 0;
+                  const accountCurrency =
+                    account?.currency || incomeToExecute.currency;
+                  const incomeInAccountCurrency =
+                    incomeToExecute.currency === accountCurrency
+                      ? incomeToExecute.amount
+                      : convertCurrency(
+                          incomeToExecute.amount,
+                          incomeToExecute.currency,
+                          accountCurrency
+                        );
+                  const newBalance = accountBalance + incomeInAccountCurrency;
+
+                  return (
+                    <div className="bg-green-50 rounded-lg border border-green-100 p-3">
+                      <h4 className="text-xs font-medium text-gray-700 mb-2 text-center">
+                        Balance Impact
+                      </h4>
+
+                      <div className="bg-white rounded-lg border border-green-100 p-3">
+                        <div className="flex items-center justify-between text-sm">
+                          {/* Account Current Balance */}
+                          <div className="text-left">
+                            <div className="text-gray-600 text-xs">
+                              {incomeToExecute.account}
+                            </div>
+                            <div className="font-bold text-gray-800">
+                              {formatAmount(accountBalance)} {accountCurrency}
+                            </div>
+                          </div>
+
+                          {/* Income Amount */}
+                          <div className="text-center px-4">
+                            <div className="h-px bg-green-300 w-full mb-1"></div>
+                            <div className="text-green-700 font-medium text-xs">
+                              +{formatAmount(incomeToExecute.amount)}{" "}
+                              {incomeToExecute.currency}
+                              {incomeToExecute.currency !== accountCurrency && (
+                                <div className="text-gray-500 mt-0.5">
+                                  (+{formatAmount(incomeInAccountCurrency)}{" "}
+                                  {accountCurrency})
+                                </div>
+                              )}
+                            </div>
+                            <div className="h-px bg-green-300 w-full mt-1"></div>
+                          </div>
+
+                          {/* New Balance */}
+                          <div className="text-right">
+                            <div className="text-gray-600 text-xs">
+                              New Balance
+                            </div>
+                            <div className="font-bold text-green-700">
+                              {formatAmount(newBalance)} {accountCurrency}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Simplified Footer */}
+              <div className="p-3 bg-gray-50/50 border-t flex gap-2 flex-shrink-0 rounded-b-2xl">
                 <button
-                  className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-all shadow-md text-sm"
                   onClick={() => setIsGetIncomeDialogOpen(false)}
                 >
+                  <X size={14} />
                   Cancel
                 </button>
                 <button
-                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors font-medium"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-800 transition-all shadow-md text-sm"
                   onClick={handleConfirmGetIncome}
                 >
-                  Get Income Now
+                  <DollarSign size={14} />
+                  Get Now
                 </button>
               </div>
             </motion.div>

@@ -15,7 +15,6 @@ import HomePage from "./pages/HomePage";
 import Savings from "./pages/Savings";
 import Transactions from "./pages/Transactions";
 import Accounts from "./pages/Payments";
-import Settings from "./pages/Settings";
 import Profile from "./pages/ProfilePage";
 import Budget from "./pages/Budget";
 import SideBar from "./components/SideBar";
@@ -42,7 +41,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     localStorage.setItem("sidebar-collapsed", JSON.stringify(newState));
   };
 
- 
   const closeSidebar = () => {
     setCollapsed(true);
     localStorage.setItem("sidebar-collapsed", JSON.stringify(true));
@@ -207,14 +205,7 @@ const App: React.FC = () => {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
+
           <Route
             path="/profile"
             element={

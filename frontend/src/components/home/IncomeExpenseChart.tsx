@@ -241,7 +241,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   };
 
   const generateAccountColors = (numAccounts: number): string[] => {
-    const usedColors = ["#10b981", "#ef4444", "#7c3aed", "#f59e0b"];
     const availableColors = [
       "#3b82f6",
       "#8b5cf6",
@@ -1064,13 +1063,11 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     return (
       <div
         className={`bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden ${
-          isMobileView 
-            ? "p-3 mb-4 mx-2" 
-            : "p-6 mb-8"
+          isMobileView ? "p-3 mb-4 mx-2" : "p-6 mb-8"
         }`}
-        style={{ 
+        style={{
           height: isMobileView ? "350px" : "400px",
-          overflowX: "hidden"
+          overflowX: "hidden",
         }}
       >
         {/* Mobile-optimized background elements */}
@@ -1102,14 +1099,12 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   return (
     <div
       className={`bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden ${
-        isMobileView 
-          ? "p-3 mb-4 mx-2" 
-          : "p-6 mb-8"
+        isMobileView ? "p-3 mb-4 mx-2" : "p-6 mb-8"
       }`}
-      style={{ 
+      style={{
         height: isMobileView ? "auto" : "500px",
         minHeight: isMobileView ? "500px" : "500px",
-        overflowX: "hidden"
+        overflowX: "hidden",
       }}
     >
       {/* Mobile-optimized background elements */}
@@ -1134,14 +1129,18 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
       ></div>
       <div
         className={`absolute bg-gradient-to-br from-amber-300 to-orange-400 rounded-full opacity-10 ${
-          isMobileView ? "bottom-3 right-12 w-6 h-6" : "bottom-12 right-20 w-12 h-12"
+          isMobileView
+            ? "bottom-3 right-12 w-6 h-6"
+            : "bottom-12 right-20 w-12 h-12"
         }`}
       ></div>
 
       <div className="relative z-10 h-full flex flex-col">
         {/* Enhanced Header */}
         <div className={`flex-shrink-0 ${isMobileView ? "mb-2" : "mb-4"}`}>
-          <div className={`flex ${isMobileView ? "flex-col space-y-3" : "justify-between items-center"}`}>
+          <div
+            className={`flex ${isMobileView ? "flex-col space-y-3" : "justify-between items-center"}`}
+          >
             {/* Title Section */}
             <div className="flex items-center space-x-3">
               <motion.div
@@ -1172,7 +1171,9 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             </div>
 
             {/* Controls */}
-            <div className={`flex ${isMobileView ? "justify-between w-full" : "items-center space-x-3"}`}>
+            <div
+              className={`flex ${isMobileView ? "justify-between w-full" : "items-center space-x-3"}`}
+            >
               {/* Date Range Selector */}
               <div className="relative" ref={dateDropdownRef}>
                 <motion.button
@@ -1193,8 +1194,9 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                           : selectedRange === "last_6_months"
                             ? "6M"
                             : "Year"
-                      : dateRangeOptions.find((option) => option.key === selectedRange)?.label
-                    }
+                      : dateRangeOptions.find(
+                          (option) => option.key === selectedRange
+                        )?.label}
                   </span>
                   <ChevronDown size={isMobileView ? 12 : 14} className="ml-1" />
                 </motion.button>
@@ -1219,7 +1221,11 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                                 ? "bg-blue-100 text-blue-700 font-medium"
                                 : "text-gray-700 hover:bg-blue-50 active:bg-blue-100"
                             }`}
-                            onClick={() => handleDateRangeChange(option.key as DateRangeOption)}
+                            onClick={() =>
+                              handleDateRangeChange(
+                                option.key as DateRangeOption
+                              )
+                            }
                           >
                             {option.label}
                           </motion.button>
@@ -1247,7 +1253,10 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                       className="animate-spin mr-1"
                     />
                   ) : (
-                    <DollarSign size={isMobileView ? 12 : 14} className="mr-1" />
+                    <DollarSign
+                      size={isMobileView ? 12 : 14}
+                      className="mr-1"
+                    />
                   )}
                   <span>{displayCurrency}</span>
                   <ChevronDown size={isMobileView ? 12 : 14} className="ml-1" />
@@ -1307,7 +1316,9 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         </div>
 
         {/* Chart */}
-        <div className={`${isMobileView ? "h-64 mb-3" : "flex-1 h-64 mb-4 min-h-0"}`}>
+        <div
+          className={`${isMobileView ? "h-64 mb-3" : "flex-1 h-64 mb-4 min-h-0"}`}
+        >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
               key={`chart-${selectedRange}-${includeUpcoming}`}
@@ -1343,9 +1354,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                 width={isMobileView ? 35 : 45}
               />
               <Tooltip content={<CustomTooltip />} />
-              {!isMobileView && (
-                <Legend wrapperStyle={{ fontSize: "12px" }} />
-              )}
+              {!isMobileView && <Legend wrapperStyle={{ fontSize: "12px" }} />}
 
               {includeUpcoming &&
                 chartData.todayDay <= chartData.dataPoints.length && (
@@ -1409,12 +1418,18 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         </div>
 
         {/* Enhanced Summary Cards */}
-        <div className={`flex-shrink-0 grid gap-2 ${isMobileView ? "grid-cols-3" : "grid-cols-3"}`}>
+        <div
+          className={`flex-shrink-0 grid gap-2 ${isMobileView ? "grid-cols-3" : "grid-cols-3"}`}
+        >
           <motion.div
             className={`bg-gradient-to-br from-emerald-400 via-green-500 to-emerald-600 rounded-xl shadow-lg cursor-pointer relative overflow-hidden ${
               isMobileView ? "p-2" : "p-4"
             }`}
-            whileHover={{ y: -2, scale: 1.02, boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)" }}
+            whileHover={{
+              y: -2,
+              scale: 1.02,
+              boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)",
+            }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={() => handleOpenModal("income")}
@@ -1422,11 +1437,15 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-6 h-6 bg-white/20 rounded-full -translate-y-3 translate-x-3"></div>
             <div className="absolute bottom-0 left-0 w-4 h-4 bg-white/10 rounded-full translate-y-2 -translate-x-2"></div>
-            
+
             <div className="relative z-10">
-              <div className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}>
+              <div
+                className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}
+              >
                 <div className="bg-white/20 rounded-lg p-1 shadow-sm backdrop-blur-sm">
-                  <TrendingUp className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`} />
+                  <TrendingUp
+                    className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
+                  />
                 </div>
                 {!isMobileView && (
                   <p className="text-white font-medium text-sm">
@@ -1436,15 +1455,24 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
               </div>
               <div className={`${isMobileView ? "mt-1" : "mt-2"}`}>
                 {isMobileView && (
-                  <p className="text-white/90 font-medium text-xs text-center mb-1">Income</p>
+                  <p className="text-white/90 font-medium text-xs text-center mb-1">
+                    Income
+                  </p>
                 )}
-                <p className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}>
-                  +{(includeUpcoming
+                <p
+                  className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}
+                >
+                  +
+                  {(includeUpcoming
                     ? summaryStats.actualIncome + summaryStats.upcomingIncome
                     : summaryStats.actualIncome
                   ).toFixed(isMobileView ? 0 : 2)}
-                  {isMobileView && <span className="text-xs block">{displayCurrency}</span>}
-                  {!isMobileView && <span className="ml-1">{displayCurrency}</span>}
+                  {isMobileView && (
+                    <span className="text-xs block">{displayCurrency}</span>
+                  )}
+                  {!isMobileView && (
+                    <span className="ml-1">{displayCurrency}</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -1454,7 +1482,11 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             className={`bg-gradient-to-br from-red-500 via-red-600 to-rose-600 rounded-xl shadow-lg cursor-pointer relative overflow-hidden ${
               isMobileView ? "p-2" : "p-4"
             }`}
-            whileHover={{ y: -2, scale: 1.02, boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)" }}
+            whileHover={{
+              y: -2,
+              scale: 1.02,
+              boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)",
+            }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={() => handleOpenModal("expense")}
@@ -1462,11 +1494,15 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-6 h-6 bg-white/20 rounded-full -translate-y-3 translate-x-3"></div>
             <div className="absolute bottom-0 left-0 w-4 h-4 bg-white/10 rounded-full translate-y-2 -translate-x-2"></div>
-            
+
             <div className="relative z-10">
-              <div className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}>
+              <div
+                className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}
+              >
                 <div className="bg-white/20 rounded-lg p-1 shadow-sm backdrop-blur-sm">
-                  <TrendingDown className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`} />
+                  <TrendingDown
+                    className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
+                  />
                 </div>
                 {!isMobileView && (
                   <p className="text-white font-medium text-sm">
@@ -1476,15 +1512,25 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
               </div>
               <div className={`${isMobileView ? "mt-1" : "mt-2"}`}>
                 {isMobileView && (
-                  <p className="text-white/90 font-medium text-xs text-center mb-1">Expenses</p>
+                  <p className="text-white/90 font-medium text-xs text-center mb-1">
+                    Expenses
+                  </p>
                 )}
-                <p className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}>
-                  -{(includeUpcoming
-                    ? summaryStats.actualExpenses + summaryStats.upcomingExpenses
+                <p
+                  className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}
+                >
+                  -
+                  {(includeUpcoming
+                    ? summaryStats.actualExpenses +
+                      summaryStats.upcomingExpenses
                     : summaryStats.actualExpenses
                   ).toFixed(isMobileView ? 0 : 2)}
-                  {isMobileView && <span className="text-xs block">{displayCurrency}</span>}
-                  {!isMobileView && <span className="ml-1">{displayCurrency}</span>}
+                  {isMobileView && (
+                    <span className="text-xs block">{displayCurrency}</span>
+                  )}
+                  {!isMobileView && (
+                    <span className="ml-1">{displayCurrency}</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -1494,7 +1540,11 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             className={`bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 rounded-xl shadow-lg cursor-pointer relative overflow-hidden ${
               isMobileView ? "p-2" : "p-4"
             }`}
-            whileHover={{ y: -2, scale: 1.02, boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)" }}
+            whileHover={{
+              y: -2,
+              scale: 1.02,
+              boxShadow: "0 15px 25px -5px rgba(0, 0, 0, 0.15)",
+            }}
             whileTap={{ scale: 0.98 }}
             transition={{ duration: 0.2 }}
             onClick={() => handleOpenModal("transfer")}
@@ -1502,29 +1552,44 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             {/* Decorative elements */}
             <div className="absolute top-0 right-0 w-6 h-6 bg-white/20 rounded-full -translate-y-3 translate-x-3"></div>
             <div className="absolute bottom-0 left-0 w-4 h-4 bg-white/10 rounded-full translate-y-2 -translate-x-2"></div>
-            
+
             <div className="relative z-10">
-              <div className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}>
+              <div
+                className={`flex ${isMobileView ? "flex-col items-center space-y-1" : "items-center space-x-2"}`}
+              >
                 <div className="bg-white/20 rounded-lg p-1 shadow-sm backdrop-blur-sm">
-                  <ArrowRightLeft className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`} />
+                  <ArrowRightLeft
+                    className={`text-white ${isMobileView ? "w-3 h-3" : "w-4 h-4"}`}
+                  />
                 </div>
                 {!isMobileView && (
                   <p className="text-white font-medium text-sm">
-                    {includeUpcoming ? "Projected Transfers" : "Total Transfers"}
+                    {includeUpcoming
+                      ? "Projected Transfers"
+                      : "Total Transfers"}
                   </p>
                 )}
               </div>
               <div className={`${isMobileView ? "mt-1" : "mt-2"}`}>
                 {isMobileView && (
-                  <p className="text-white/90 font-medium text-xs text-center mb-1">Transfers</p>
+                  <p className="text-white/90 font-medium text-xs text-center mb-1">
+                    Transfers
+                  </p>
                 )}
-                <p className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}>
+                <p
+                  className={`font-bold text-white text-center ${isMobileView ? "text-sm" : "text-xl"}`}
+                >
                   {(includeUpcoming
-                    ? summaryStats.actualTransfers + summaryStats.upcomingTransfers
+                    ? summaryStats.actualTransfers +
+                      summaryStats.upcomingTransfers
                     : summaryStats.actualTransfers
                   ).toFixed(isMobileView ? 0 : 2)}
-                  {isMobileView && <span className="text-xs block">{displayCurrency}</span>}
-                  {!isMobileView && <span className="ml-1">{displayCurrency}</span>}
+                  {isMobileView && (
+                    <span className="text-xs block">{displayCurrency}</span>
+                  )}
+                  {!isMobileView && (
+                    <span className="ml-1">{displayCurrency}</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -1535,28 +1600,35 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         {isMobileView && (
           <div className="flex-shrink-0 mt-2 bg-gray-50 rounded-lg p-1.5">
             <div className="flex justify-center space-x-2 text-xs flex-wrap gap-1">
-              {defaultAccounts.slice(0, 2).map((account: any, index: number) => (
-                <div key={`legend-account-${account.id}`} className="flex items-center space-x-1">
-                  <div className="flex space-x-0.5">
-                    <div
-                      className="w-1.5 h-0.5 rounded"
-                      style={{ backgroundColor: accountColors[index] || "#6b7280" }}
-                    ></div>
-                    {includeUpcoming && (
+              {defaultAccounts
+                .slice(0, 2)
+                .map((account: any, index: number) => (
+                  <div
+                    key={`legend-account-${account.id}`}
+                    className="flex items-center space-x-1"
+                  >
+                    <div className="flex space-x-0.5">
                       <div
-                        className="w-1.5 h-0.5 rounded border-t border-dashed"
+                        className="w-1.5 h-0.5 rounded"
                         style={{
-                          backgroundColor: "transparent",
-                          borderColor: accountColors[index] || "#6b7280",
+                          backgroundColor: accountColors[index] || "#6b7280",
                         }}
                       ></div>
-                    )}
+                      {includeUpcoming && (
+                        <div
+                          className="w-1.5 h-0.5 rounded border-t border-dashed"
+                          style={{
+                            backgroundColor: "transparent",
+                            borderColor: accountColors[index] || "#6b7280",
+                          }}
+                        ></div>
+                      )}
+                    </div>
+                    <span className="text-gray-600 truncate max-w-10">
+                      {account.name || `Acc ${index + 1}`}
+                    </span>
                   </div>
-                  <span className="text-gray-600 truncate max-w-10">
-                    {account.name || `Acc ${index + 1}`}
-                  </span>
-                </div>
-              ))}
+                ))}
             </div>
             {includeUpcoming && (
               <div className="text-center text-xs text-gray-500 mt-0.5">
@@ -1567,19 +1639,56 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         )}
       </div>
 
-      <TransactionDetailsModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        transactions={transactions}
-        futureIncomingPayments={futureIncomingPayments}
-        futureOutgoingPayments={futureOutgoingPayments}
-        displayCurrency={displayCurrency}
-        includeUpcoming={includeUpcoming}
-        monthName={getDateRangeText()}
-        convertToDisplayCurrency={convertToDisplayCurrency}
-        filterType={modalType === "net" ? "all" : modalType}
-        accounts={accounts}
-      />
+      <AnimatePresence>
+        {isModalOpen && (
+          <>
+            {isMobileView ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50 p-4"
+              >
+                <TransactionDetailsModal
+                  isOpen={isModalOpen}
+                  onClose={handleCloseModal}
+                  transactions={transactions}
+                  futureIncomingPayments={futureIncomingPayments}
+                  futureOutgoingPayments={futureOutgoingPayments}
+                  displayCurrency={displayCurrency}
+                  includeUpcoming={includeUpcoming}
+                  monthName={getDateRangeText()}
+                  convertToDisplayCurrency={convertToDisplayCurrency}
+                  filterType={modalType === "net" ? "all" : modalType}
+                  accounts={accounts}
+                />
+              </motion.div>
+            ) : (
+              
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 backdrop-blur-sm bg-black/20 flex items-center justify-center z-50 p-4"
+              >
+                <TransactionDetailsModal
+                  isOpen={isModalOpen}
+                  onClose={handleCloseModal}
+                  transactions={transactions}
+                  futureIncomingPayments={futureIncomingPayments}
+                  futureOutgoingPayments={futureOutgoingPayments}
+                  displayCurrency={displayCurrency}
+                  includeUpcoming={includeUpcoming}
+                  monthName={getDateRangeText()}
+                  convertToDisplayCurrency={convertToDisplayCurrency}
+                  filterType={modalType === "net" ? "all" : modalType}
+                  accounts={accounts}
+                />
+              </motion.div>
+            )}
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

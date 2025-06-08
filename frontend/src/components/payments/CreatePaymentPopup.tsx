@@ -147,7 +147,7 @@ const SearchWithSuggestions: React.FC<{
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
@@ -203,6 +203,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   editPayment = null,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isMobileView, setIsMobileView] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     amount: "",
@@ -222,7 +223,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
 
- 
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
@@ -240,6 +240,17 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const [isNotificationDayOpen, setIsNotificationDayOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
 
   const getThemeColors = () => {
     if (defaultType === PaymentType.EXPENSE) {
@@ -286,7 +297,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               .filter((cat) => cat.name === editPayment.category)
               .map((cat) => cat.id);
 
-      
       setOriginalCurrency(editPayment.currency);
 
       setFormData({
@@ -299,7 +309,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         notificationDay: 0,
         automaticPayment: editPayment.automaticPayment || false,
         type: editPayment.type || defaultType,
-        currency: editPayment.currency as CurrencyType, 
+        currency: editPayment.currency as CurrencyType,
         categoriesId: categoryIds,
         startDate:
           editPayment.nextExecution || new Date().toISOString().split("T")[0],
@@ -320,7 +330,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       return amount;
     }
     try {
-      
       if (
         !Object.values(CurrencyType).includes(fromCurrency as CurrencyType) ||
         !Object.values(CurrencyType).includes(toCurrency as CurrencyType)
@@ -369,7 +378,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     }
   }, [accounts]);
 
- 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -469,7 +477,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     }
   };
 
-  
   const filteredAccounts = accounts.filter((acc) =>
     acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
   );
@@ -477,7 +484,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const filteredCategories = categories.filter((cat) =>
     cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
   );
-
 
   const accountSuggestions = filteredAccounts.map((acc) => acc.name);
   const categorySuggestions = filteredCategories.map((cat) => cat.name);
@@ -644,7 +650,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                           key={currency}
                           type="button"
                           onClick={() => {
-                           
                             if (
                               isEditMode &&
                               currency !== formData.currency &&
@@ -740,35 +745,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
             {formData.amount && formData.startDate && (
               <div className="space-y-3">
-                <div
-                  className={`p-3 rounded-xl shadow-sm ${
-                    defaultType === PaymentType.EXPENSE
-                      ? "bg-red-50 border border-red-200"
-                      : "bg-green-50 border border-green-200"
-                  }`}
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <Info
-                      size={14}
-                      className={
-                        defaultType === PaymentType.EXPENSE
-                          ? "text-red-600"
-                          : "text-green-600"
-                      }
-                    />
-                    <span
-                      className={`text-sm font-medium ${defaultType === PaymentType.EXPENSE ? "text-red-800" : "text-green-800"}`}
-                    >
-                      Monthly Impact
-                    </span>
-                  </div>
-                  <p
-                    className={`text-sm ${defaultType === PaymentType.EXPENSE ? "text-red-700" : "text-green-700"}`}
-                  >
-                    {calculateMonthlyImpact().toFixed(2)} {formData.currency}{" "}
-                    per month
-                  </p>
-                </div>
+               
 
                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
@@ -1034,19 +1011,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
-            <div
-              className={`p-3 rounded-xl shadow-sm ${defaultType === PaymentType.EXPENSE ? "bg-red-50" : "bg-green-50"}`}
-            >
-              <p
-                className={`text-sm ${defaultType === PaymentType.EXPENSE ? "text-red-700" : "text-green-700"}`}
-              >
-                Monthly Impact:{" "}
-                <span className="font-semibold">
-                  {defaultType === PaymentType.EXPENSE ? "-" : "+"}
-                  {calculateMonthlyImpact().toFixed(2)} {formData.currency}
-                </span>
-              </p>
-            </div>
+           
           </div>
         );
 
@@ -1062,63 +1027,106 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0  flex items-center justify-center z-50 p-4"
           onClick={onClose}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl max-w-md w-full max-h-[90vh] overflow-hidden shadow-2xl"
+            className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
+              isMobileView
+                ? "max-w-sm w-full max-h-[95vh]"
+                : "max-w-md w-full max-h-[90vh]"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
-            <div className={`p-4 ${theme.gradient} text-white relative`}>
-              {/* Decorative circles */}
-              <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
-              <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
-              <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
-              
-              <div className="flex justify-between items-center mb-3 relative z-10">
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`bg-white rounded-full p-1.5 shadow-lg ${defaultType === PaymentType.EXPENSE ? "text-red-600" : "text-green-600"}`}
-                  >
-                    {defaultType === PaymentType.EXPENSE ? "💸" : "💰"}
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-semibold">
-                      {isEditMode ? "Edit" : "Create"}{" "}
-                      {defaultType === PaymentType.EXPENSE ? "Bill" : "Income"}
-                    </h2>
-                    <p className="text-sm opacity-90">
-                      {steps[currentStep - 1]}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={onClose}
-                  className="text-white/80 hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
+            {/* Enhanced Header */}
+            <div
+              className={`relative overflow-hidden ${theme.gradient} text-white`}
+            >
+              {/* Mobile-optimized background elements */}
+              <div
+                className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                  isMobileView
+                    ? "w-12 h-12 -translate-y-6 translate-x-6"
+                    : "w-16 h-16 -translate-y-8 translate-x-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "w-8 h-8 translate-y-4 -translate-x-4"
+                    : "w-12 h-12 translate-y-6 -translate-x-6"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/15 rounded-full ${
+                  isMobileView
+                    ? "top-2 left-16 w-6 h-6"
+                    : "top-2 left-16 w-8 h-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "bottom-2 right-12 w-4 h-4"
+                    : "bottom-2 right-12 w-6 h-6"
+                }`}
+              ></div>
 
-              {/* Progress */}
-              <div className="flex gap-1 relative z-10">
-                {steps.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-1 flex-1 rounded ${
-                      index < currentStep ? "bg-white" : "bg-white/30"
-                    }`}
-                  />
-                ))}
+              <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`bg-white rounded-full shadow-lg ${
+                        isMobileView ? "p-1.5" : "p-1.5"
+                      } ${defaultType === PaymentType.EXPENSE ? "text-red-600" : "text-green-600"}`}
+                    >
+                      {defaultType === PaymentType.EXPENSE ? "💸" : "💰"}
+                    </div>
+                    <div>
+                      <h2
+                        className={`font-semibold ${isMobileView ? "text-lg" : "text-lg"}`}
+                      >
+                        {isEditMode ? "Edit" : "Create"}{" "}
+                        {defaultType === PaymentType.EXPENSE
+                          ? "Bill"
+                          : "Income"}
+                      </h2>
+                      <p
+                        className={`opacity-90 ${isMobileView ? "text-sm" : "text-sm"}`}
+                      >
+                        {steps[currentStep - 1]}
+                      </p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={onClose}
+                    className="text-white/80 hover:text-white transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X size={isMobileView ? 20 : 20} />
+                  </motion.button>
+                </div>
+
+                {/* Progress */}
+                <div className="flex gap-1">
+                  {steps.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 flex-1 rounded ${
+                        index < currentStep ? "bg-white" : "bg-white/30"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-4 min-h-[300px]">
+            <div className={`${isMobileView ? "p-3" : "p-4"} min-h-[300px]`}>
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
                   <AlertCircle size={16} />
@@ -1130,32 +1138,47 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-4 border-t bg-gray-50/50 flex justify-between">
-              <button
+            <div
+              className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex justify-between`}
+            >
+              <motion.button
                 onClick={prevStep}
                 disabled={currentStep === 1}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                whileHover={{ scale: currentStep === 1 ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <ArrowLeft size={16} />
                 Back
-              </button>
+              </motion.button>
 
               {currentStep < 5 ? (
-                <button
+                <motion.button
                   onClick={nextStep}
                   disabled={!canProceed()}
                   className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+                  whileHover={{ scale: !canProceed() ? 1 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Continue
                   <ArrowRight size={16} />
-                </button>
+                </motion.button>
               ) : (
-                <button
+                <motion.button
                   onClick={handleSubmit}
                   disabled={loading}
                   className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all shadow-md disabled:opacity-50 ${
-                    isEditMode ? theme.editButtonBg + " focus:ring-blue-500" : theme.createButtonBg + " focus:ring-" + (defaultType === PaymentType.EXPENSE ? "red" : "green") + "-500"
+                    isEditMode
+                      ? theme.editButtonBg + " focus:ring-blue-500"
+                      : theme.createButtonBg +
+                        " focus:ring-" +
+                        (defaultType === PaymentType.EXPENSE
+                          ? "red"
+                          : "green") +
+                        "-500"
                   }`}
+                  whileHover={{ scale: loading ? 1 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {loading ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
@@ -1163,7 +1186,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     <Edit size={16} />
                   )}
                   {isEditMode ? "Update" : "Create"}
-                </button>
+                </motion.button>
               )}
             </div>
           </motion.div>

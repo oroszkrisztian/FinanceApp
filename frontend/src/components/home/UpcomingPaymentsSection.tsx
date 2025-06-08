@@ -36,6 +36,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
   const [availableCurrencies, setAvailableCurrencies] = useState<string[]>([]);
   const [isCurrencyMenuOpen, setIsCurrencyMenuOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
+  const [previewItem, setPreviewItem] = useState<any>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
 
   // Enhanced mobile detection with more breakpoints
@@ -108,6 +109,15 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
     setIsCurrencyMenuOpen(false);
   };
 
+  const openPreview = (payment: any) => {
+    setPreviewItem(payment);
+  };
+
+  const closePreview = () => {
+    setPreviewItem(null);
+  };
+
+  // Process payments data (NO dependency on rates for base calculations)
   const allPayments = useMemo(() => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
@@ -133,7 +143,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
         const dateB = new Date(b.nextExecution).getTime();
         return dateA - dateB;
       });
-  }, [futureOutgoingPayments, futureIncomingPayments]);
+  }, [futureOutgoingPayments, futureIncomingPayments]); // NO rates dependency
 
   const sortedPayments = useMemo(() => {
     let filtered = allPayments;
@@ -144,7 +154,6 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
       filtered = allPayments.filter(payment => !payment.isIncome);
     }
     
-    // Show all payments and let the scroll container handle the overflow
     return filtered;
   }, [allPayments, activeTab]);
 
@@ -155,6 +164,15 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
     return new Date(dateString).toLocaleDateString("en-GB", {
       day: "numeric",
       month: "short",
+    });
+  };
+
+  const formatFullDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("en-GB", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
     });
   };
 
@@ -241,8 +259,8 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
             <div className="text-center">
               <motion.div 
                 className="text-gray-400 mb-3"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
                 transition={{ duration: 0.3 }}
               >
                 <Calendar
@@ -472,18 +490,18 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: 20 }}
-                transition={{ duration: 0.2 }}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }} // Simplified animation
                 className="space-y-2 overflow-x-hidden"
               >
                 {sortedPayments.length === 0 ? (
                   <div className="text-center py-6">
                     <motion.div 
                       className="text-gray-400 mb-3"
-                      initial={{ scale: 0.8, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                       transition={{ duration: 0.3 }}
                     >
                       <Calendar className={`${isMobileView ? "w-8 h-8" : "w-12 h-12"} mx-auto`} />
@@ -508,22 +526,23 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                       return (
                         <motion.div
                           key={payment.id || index}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.2 }} // Simplified animation
                           whileTap={{ scale: 0.98 }}
-                          className={`p-3 rounded-xl border-l-4 shadow-sm active:shadow-md transition-shadow w-full ${
+                          onClick={() => openPreview(payment)}
+                          className={`p-3 rounded-xl border-l-4 shadow-sm hover:shadow-md active:shadow-lg transition-all cursor-pointer w-full ${
                             payment.isIncome
                               ? urgency === 'urgent'
-                                ? 'bg-gradient-to-r from-emerald-50 to-green-100 border-l-emerald-500'
+                                ? 'bg-gradient-to-r from-emerald-50 to-green-100 border-l-emerald-500 hover:from-emerald-100 hover:to-green-150'
                                 : urgency === 'soon'
-                                ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-l-emerald-400'
-                                : 'bg-gradient-to-r from-green-50 to-emerald-50 border-l-green-400'
+                                ? 'bg-gradient-to-r from-emerald-50 to-teal-50 border-l-emerald-400 hover:from-emerald-100 hover:to-teal-100'
+                                : 'bg-gradient-to-r from-green-50 to-emerald-50 border-l-green-400 hover:from-green-100 hover:to-emerald-100'
                               : urgency === 'urgent'
-                                ? 'bg-gradient-to-r from-red-50 to-red-100 border-l-red-500'
+                                ? 'bg-gradient-to-r from-red-50 to-red-100 border-l-red-500 hover:from-red-100 hover:to-red-150'
                                 : urgency === 'soon'
-                                ? 'bg-gradient-to-r from-red-50 to-red-100 border-l-red-400'
-                                : 'bg-gradient-to-r from-red-50 to-red-100 border-l-red-400'
+                                ? 'bg-gradient-to-r from-red-50 to-red-100 border-l-red-400 hover:from-red-100 hover:to-red-150'
+                                : 'bg-gradient-to-r from-red-50 to-red-100 border-l-red-400 hover:from-red-100 hover:to-red-150'
                           }`}
                         >
                           <div className="flex items-start justify-between">
@@ -622,6 +641,201 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Preview Popup */}
+      <AnimatePresence>
+        {previewItem && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className={`backdrop-blur-sm bg-black/20 flex items-center justify-center z-50 p-4 ${
+              isMobileView 
+                ? "fixed inset-0" 
+                : "absolute inset-0"
+            }`}
+            onClick={closePreview}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0, y: isMobileView ? 20 : 0 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.9, opacity: 0, y: isMobileView ? 20 : 0 }}
+              className={`bg-white rounded-2xl shadow-2xl relative overflow-hidden ${
+                isMobileView 
+                  ? "w-full max-w-sm mx-4 max-h-[90vh] overflow-y-auto" 
+                  : "w-full max-w-md"
+              }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div
+                className={`bg-gradient-to-r ${
+                  previewItem.isIncome
+                    ? "from-emerald-500 to-teal-600"
+                    : "from-red-500 to-red-600"
+                } p-4`}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+                      {previewItem.isIncome ? (
+                        <ArrowDown className="w-5 h-5 text-white" />
+                      ) : (
+                        <ArrowUp className="w-5 h-5 text-white" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold text-lg">
+                        {previewItem.description || previewItem.name || "Payment"}
+                      </h3>
+                      <p className="text-white/80 text-sm">
+                        {previewItem.isIncome ? "Incoming Payment" : "Outgoing Payment"}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={closePreview}
+                    className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Content */}
+              <div className="p-6 space-y-4">
+                {/* Payment Amount */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-500 font-medium">
+                      Amount
+                    </p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {(previewItem.amount || 0).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      {previewItem.currency || displayCurrency}
+                    </p>
+                    {previewItem.currency !== displayCurrency && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        ≈{" "}
+                        {convertToDisplayCurrency(
+                          previewItem.amount || 0,
+                          previewItem.currency || displayCurrency
+                        ).toLocaleString(undefined, {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        {displayCurrency}
+                      </p>
+                    )}
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-xs text-gray-500 font-medium">
+                      Days Until
+                    </p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {(() => {
+                        const days = getDaysUntil(previewItem.nextExecution);
+                        return days === 0 ? 'Today' : 
+                               days === 1 ? 'Tomorrow' : 
+                               `${days} days`;
+                      })()}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Payment Date */}
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-sm font-medium text-gray-700">
+                      Payment Date
+                    </span>
+                  </div>
+                  <div className="bg-gray-50 rounded-xl p-3">
+                    <p className="text-sm font-semibold text-gray-900">
+                      {formatFullDate(previewItem.nextExecution)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Additional Info */}
+                <div className="grid grid-cols-1 gap-4 pt-2">
+                  {previewItem.frequency && (
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Frequency</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {previewItem.frequency}
+                      </p>
+                    </div>
+                  )}
+                  
+                  {previewItem.category && (
+                    <div className="text-center">
+                      <p className="text-xs text-gray-500">Category</p>
+                      <span className="inline-block px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm font-medium">
+                        {previewItem.category}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Urgency Status */}
+                <div className="text-center">
+                  {(() => {
+                    const days = getDaysUntil(previewItem.nextExecution);
+                    const urgency = getPaymentUrgency(days);
+                    
+                    if (urgency === 'urgent') {
+                      return (
+                        <div className={`flex items-center justify-center space-x-1 ${
+                          previewItem.isIncome ? 'text-emerald-600' : 'text-red-600'
+                        }`}>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.98-.833-2.75 0L4.064 16.5c-.77.833.192 2.5 1.732 2.5z"
+                            />
+                          </svg>
+                          <span className="text-sm font-medium">
+                            {days === 0 ? 'Due Today!' : 'Due Tomorrow!'}
+                          </span>
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div className="text-sm text-gray-600">
+                          {previewItem.isIncome ? 'Incoming' : 'Outgoing'} in {days} days
+                        </div>
+                      );
+                    }
+                  })()}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

@@ -339,7 +339,9 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
               className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl pointer-events-auto"
-              style={{ minWidth: isMobileScreen ? "auto" : "400px" }}
+              style={{ maxWidth: isMobileScreen ? "auto" : "auto" ,
+                        minWidth: isMobileScreen ? "auto" : "400px"
+              }}
             >
               {/* Header with fixed position */}
               <div className="bg-indigo-500 h-20 relative sticky top-0 z-10">

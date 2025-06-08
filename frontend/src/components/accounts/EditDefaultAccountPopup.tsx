@@ -1,8 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
 import { useAuth } from "../../context/AuthContext";
 import { editDefaultAccount } from "../../services/accountService";
 import { Account } from "../../interfaces/Account";
+import { X, CreditCard, FileText, ChevronDown, Edit, AlertCircle, TrendingUp, DollarSign } from "lucide-react";
 
 interface EditDefaultAccountPopupProps {
   setIsEditModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -20,6 +22,7 @@ const EditDefaultAccountPopup = ({
   account,
 }: EditDefaultAccountPopupProps) => {
   const { user } = useAuth();
+  const [isMobileView, setIsMobileView] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -32,10 +35,37 @@ const EditDefaultAccountPopup = ({
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
   const [rates, setRates] = useState<ExchangeRates>({});
   const [fetchingRates, setFetchingRates] = useState<boolean>(true);
   const [convertedBalance, setConvertedBalance] = useState<number | null>(null);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+
+  const currencyRef = useRef<HTMLDivElement>(null);
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        currencyRef.current &&
+        !currencyRef.current.contains(event.target as Node)
+      ) {
+        setIsCurrencyOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -43,18 +73,11 @@ const EditDefaultAccountPopup = ({
     >
   ) => {
     const { name, value } = e.target;
-
-    if (name === "targetAmount") {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-      }));
-    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+    setError(null);
   };
 
   useEffect(() => {
@@ -141,16 +164,6 @@ const EditDefaultAccountPopup = ({
     setConvertedBalance(convertedValue);
   }, [formData.currency, originalCurrency, account, rates]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -159,6 +172,10 @@ const EditDefaultAccountPopup = ({
     try {
       if (!user?.id) {
         throw new Error("User not found. Please log in again.");
+      }
+
+      if (!formData.name.trim()) {
+        throw new Error("Account name is required");
       }
 
       const updatedAmount =
@@ -178,7 +195,6 @@ const EditDefaultAccountPopup = ({
         description: formData.description,
         currency: formData.currency,
         accountType: formData.accountType,
-
         ...(updatedAmount !== undefined && { amount: updatedAmount }),
       };
 
@@ -201,238 +217,305 @@ const EditDefaultAccountPopup = ({
     }
   };
 
+  const canSubmit = () => {
+    return formData.name.trim() && !fetchingRates;
+  };
+
   const currentAmount = account ? account.amount : 0;
 
   return (
-    <div className="min-w-30">
-      {/* Modal */}
-      <div className=" fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-        <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-black">
-              Edit Account {account.name}
-            </h2>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 flex items-center justify-center z-50 p-4"
+        onClick={() => setIsEditModalOpen(false)}
+      >
+        <motion.div
+          initial={{ scale: 0.9, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.9, opacity: 0 }}
+          className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
+            isMobileView
+              ? "max-w-sm w-full max-h-[95vh]"
+              : "max-w-md w-full max-h-[90vh]"
+          }`}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Enhanced Header */}
+          <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+            {/* Mobile-optimized background elements */}
+            <div
+              className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                isMobileView
+                  ? "w-12 h-12 -translate-y-6 translate-x-6"
+                  : "w-16 h-16 -translate-y-8 translate-x-8"
+              }`}
+            ></div>
+            <div
+              className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                isMobileView
+                  ? "w-8 h-8 translate-y-4 -translate-x-4"
+                  : "w-12 h-12 translate-y-6 -translate-x-6"
+              }`}
+            ></div>
+            <div
+              className={`absolute bg-white/15 rounded-full ${
+                isMobileView
+                  ? "top-2 left-16 w-6 h-6"
+                  : "top-2 left-16 w-8 h-8"
+              }`}
+            ></div>
+            <div
+              className={`absolute bg-white/10 rounded-full ${
+                isMobileView
+                  ? "bottom-2 right-12 w-4 h-4"
+                  : "bottom-2 right-12 w-6 h-6"
+              }`}
+            ></div>
 
-            <button
-              onClick={() => setIsEditModalOpen(false)}
-              className="text-gray-400 hover:text-black transition-colors"
-              aria-label="Close"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-6 w-6"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          {error && (
-            <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
-              <div className="flex">
-                <svg
-                  className="h-5 w-5 mr-2"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
+            <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`bg-white text-indigo-600 rounded-full shadow-lg ${
+                      isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"
+                    } flex items-center justify-center`}
+                  >
+                    <Edit size={isMobileView ? 14 : 18} />
+                  </div>
+                  <div>
+                    <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                      Edit Account
+                    </h2>
+                    <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                      {account.name}
+                    </p>
+                  </div>
+                </div>
+                <motion.button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="text-white/80 hover:text-white transition-colors"
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.95 }}
                 >
-                  <path
-                    fillRule="evenodd"
-                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <span>{error}</span>
+                  <X size={isMobileView ? 20 : 20} />
+                </motion.button>
               </div>
             </div>
-          )}
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Name Field */}
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Account Name<span className="text-blue-600">*</span>
-              </label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                required
-              />
-            </div>
+          {/* Content */}
+          <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
+                <AlertCircle size={16} />
+                {error}
+              </div>
+            )}
 
-            {/* Description Field */}
-            <div>
-              <label
-                htmlFor="description"
-                className="block text-sm font-medium text-black mb-1"
-              >
-                Description (Optional)
-              </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={2}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-              />
-            </div>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Account Name *
+                </label>
+                <div className="relative">
+                  <CreditCard
+                    size={16}
+                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  />
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
+                    required
+                  />
+                </div>
+              </div>
 
-            {/* Currency Field */}
-            <div>
-              <label
-                htmlFor="currency"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Currency<span className="text-blue-600">*</span>
-              </label>
-              <select
-                id="currency"
-                name="currency"
-                value={formData.currency}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-                required
-              >
-                {Object.keys(rates).map((currency) => (
-                  <option key={currency} value={currency}>
-                    {currency}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description
+                </label>
+                <div className="relative">
+                  <FileText
+                    size={16}
+                    className="absolute left-3 top-3 text-gray-400"
+                  />
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleChange}
+                    rows={3}
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
+                    placeholder="Add details about this account"
+                  />
+                </div>
+              </div>
 
-            {/* Amount Conversion Information */}
-            {formData.currency !== originalCurrency &&
-              currentAmount !== undefined && (
-                <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                  {fetchingRates ? (
-                    <div className="flex items-center text-blue-700">
-                      <svg
-                        className="animate-spin mr-3 h-4 w-4"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                      </svg>
-                      Calculating amount conversion...
-                    </div>
-                  ) : convertedBalance !== null ? (
-                    <div>
-                      <p className="font-semibold text-blue-700 mb-2">
-                        Amount After Conversion:
-                      </p>
-                      <p className="text-blue-900 text-lg font-medium">
-                        {currentAmount.toFixed(2)} {originalCurrency} ={" "}
-                        {convertedBalance.toFixed(2)} {formData.currency}
-                      </p>
-                      <div className="text-xs mt-2 text-blue-600 border-t border-blue-100 pt-2">
-                        <p>
-                          Conversion path: {originalCurrency} →{" "}
-                          {formData.currency}
-                        </p>
-                        {rates[originalCurrency] &&
-                          rates[formData.currency] && (
-                            <p>
-                              1 {originalCurrency} ={" "}
-                              {(
-                                rates[originalCurrency] /
-                                rates[formData.currency]
-                              ).toFixed(4)}{" "}
-                              {formData.currency}
-                            </p>
-                          )}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-blue-700">
-                      Unable to convert currencies. Please select a different
-                      currency.
-                    </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Currency *
+                </label>
+                <div className="relative" ref={currencyRef}>
+                  <button
+                    type="button"
+                    onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
+                    disabled={fetchingRates}
+                  >
+                    <span>{formData.currency}</span>
+                    <ChevronDown size={16} className="text-gray-400" />
+                  </button>
+
+                  {isCurrencyOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
+                    >
+                      {fetchingRates ? (
+                        <div className="p-3 text-center text-gray-500">
+                          Loading currencies...
+                        </div>
+                      ) : (
+                        Object.keys(rates).map((currency) => (
+                          <button
+                            key={currency}
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, currency: currency as CurrencyType });
+                              setIsCurrencyOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                              formData.currency === currency
+                                ? "bg-indigo-50 text-indigo-700"
+                                : ""
+                            }`}
+                          >
+                            {currency}
+                          </button>
+                        ))
+                      )}
+                    </motion.div>
                   )}
                 </div>
-              )}
+              </div>
 
-            {/* Form Actions */}
-            <div className="flex justify-end space-x-4 pt-4">
-              <button
-                type="button"
-                onClick={() => setIsEditModalOpen(false)}
-                className="px-5 py-3 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-5 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[120px]"
-                disabled={
-                  isLoading ||
-                  (formData.currency !== originalCurrency && fetchingRates)
-                }
-              >
-                {isLoading ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Saving...
-                  </>
-                ) : fetchingRates && formData.currency !== originalCurrency ? (
-                  "Loading Rates..."
-                ) : (
-                  "Save Changes"
+              {/* Current Balance Display */}
+              <div className="bg-gray-50 border border-gray-200 p-3 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign size={14} className="text-gray-600" />
+                  <span className="text-sm font-medium text-gray-800">
+                    Current Balance
+                  </span>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <span className="text-lg font-semibold text-gray-900">
+                    {currentAmount.toFixed(2)} {originalCurrency}
+                  </span>
+                </div>
+              </div>
+
+              {/* Currency Conversion Display */}
+              {formData.currency !== originalCurrency &&
+                currentAmount !== undefined && (
+                  <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-xl shadow-sm">
+                    {fetchingRates ? (
+                      <div className="flex items-center text-indigo-700">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-indigo-600 border-t-transparent mr-2" />
+                        Calculating conversion...
+                      </div>
+                    ) : convertedBalance !== null ? (
+                      <div>
+                        <div className="flex items-center gap-2 mb-2">
+                          <TrendingUp size={14} className="text-indigo-600" />
+                          <span className="text-sm font-medium text-indigo-800">
+                            Currency Conversion
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="px-2 py-1 bg-white rounded-lg border border-indigo-200 text-indigo-900">
+                            <p className="text-xs font-medium">
+                              {currentAmount.toFixed(2)} {originalCurrency}
+                            </p>
+                          </div>
+                          <div className="px-1">
+                            <svg
+                              className="h-3 w-3 text-indigo-500"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M14 5l7 7m0 0l-7 7m7-7H3"
+                              />
+                            </svg>
+                          </div>
+                          <div className="px-2 py-1 bg-indigo-500 text-white rounded-lg">
+                            <p className="text-xs font-medium">
+                              {convertedBalance.toFixed(2)} {formData.currency}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-xs mt-1 text-indigo-600 text-center">
+                          Exchange rate: 1 {originalCurrency} ={" "}
+                          {rates[originalCurrency] && rates[formData.currency]
+                            ? (rates[originalCurrency] / rates[formData.currency]).toFixed(4)
+                            : "N/A"}{" "}
+                          {formData.currency}
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-indigo-700 text-sm">
+                        Unable to convert currencies. Please select a different currency.
+                      </p>
+                    )}
+                  </div>
                 )}
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+            </form>
+          </div>
+
+          {/* Footer */}
+          <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(false)}
+              className="flex-1 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              disabled={isLoading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              onClick={handleSubmit}
+              disabled={!canSubmit() || isLoading || (formData.currency !== originalCurrency && fetchingRates)}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  Saving...
+                </>
+              ) : fetchingRates && formData.currency !== originalCurrency ? (
+                "Loading Rates..."
+              ) : (
+                <>
+                  <Edit size={16} />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 

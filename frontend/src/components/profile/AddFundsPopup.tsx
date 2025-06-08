@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, DollarSign, FileText, Plus, ChevronDown, TrendingUp, Wallet, AlertCircle } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { TransactionType, CurrencyType } from "../../interfaces/enums";
 import { Account } from "../../interfaces/Account";
@@ -21,6 +22,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   onFundsAdded,
 }) => {
   const { user } = useAuth();
+  const [isMobileView, setIsMobileView] = useState(false);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
   const [amount, setAmount] = useState<string>("");
@@ -30,6 +32,34 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   const [rates, setRates] = useState<ExchangeRates>({});
   const [fetchingRates, setFetchingRates] = useState<boolean>(true);
   const [convertedAmount, setConvertedAmount] = useState<number | null>(null);
+  const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
+
+  const currencyRef = useRef<HTMLDivElement>(null);
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        currencyRef.current &&
+        !currencyRef.current.contains(event.target as Node)
+      ) {
+        setIsCurrencyOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const parseNumberInput = (value: string) => {
     if (!value) return NaN;
@@ -76,7 +106,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
           ratesObj[account.currency] = 1;
         }
 
-        console.log("Available currencies:", Object.keys(ratesObj));
         setRates(ratesObj);
       } catch (err) {
         console.error("Error fetching exchange rates:", err);
@@ -189,241 +218,316 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
     }
   };
 
+  const canSubmit = () => {
+    return (
+      name.trim() &&
+      amount.trim() &&
+      !isNaN(parseNumberInput(amount)) &&
+      parseNumberInput(amount) > 0
+    );
+  };
+
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-        className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md"
-      >
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-black">
-            Add Funds to {account.name}
-          </h2>
-          <button
-            onClick={() => setIsAddFundsModalOpen(false)}
-            className="text-gray-400 hover:text-black transition-colors"
-            aria-label="Close"
+    <AnimatePresence>
+      {true && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          onClick={() => setIsAddFundsModalOpen(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.9, opacity: 0 }}
+            className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
+              isMobileView
+                ? "max-w-sm w-full max-h-[95vh]"
+                : "max-w-md w-full max-h-[90vh]"
+            }`}
+            onClick={(e) => e.stopPropagation()}
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-6 w-6"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
-          </button>
-        </div>
+            {/* Enhanced Header */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+              {/* Mobile-optimized background elements */}
+              <div
+                className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                  isMobileView
+                    ? "w-12 h-12 -translate-y-6 translate-x-6"
+                    : "w-16 h-16 -translate-y-8 translate-x-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "w-8 h-8 translate-y-4 -translate-x-4"
+                    : "w-12 h-12 translate-y-6 -translate-x-6"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/15 rounded-full ${
+                  isMobileView
+                    ? "top-2 left-16 w-6 h-6"
+                    : "top-2 left-16 w-8 h-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "bottom-2 right-12 w-4 h-4"
+                    : "bottom-2 right-12 w-6 h-6"
+                }`}
+              ></div>
 
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 border-l-4 border-red-500 text-red-700 rounded-md">
-            <div className="flex">
-              <svg
-                className="h-5 w-5 mr-2"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{error}</span>
-            </div>
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label
-              htmlFor="name"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Deposit Name<span className="text-blue-600">*</span>
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="e.g., Salary Deposit"
-              required
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Description (Optional)
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
-              placeholder="Add details about this transaction"
-              rows={3}
-            />
-          </div>
-
-          <div>
-            <label
-              htmlFor="amount"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Amount<span className="text-blue-600">*</span>
-            </label>
-            <div className="flex border border-gray-200 rounded-lg focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
-              <input
-                type="text"
-                id="amount"
-                value={amount}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  const regex = /^[0-9]*([.,][0-9]*)?$/;
-                  if (value === "" || regex.test(value)) {
-                    setAmount(value);
-                  }
-                }}
-                className="flex-1 px-4 py-3 focus:outline-none rounded-l-lg"
-                placeholder="0,00"
-                required
-              />
-              <select
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="px-3 py-3 bg-gray-50 text-gray-700 focus:outline-none rounded-r-lg"
-              >
-                {Object.keys(rates).map((curr) => (
-                  <option key={curr} value={curr}>
-                    {curr}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {currency !== account.currency &&
-            amount &&
-            !isNaN(parseFloat(amount)) && (
-              <div className="p-4 bg-blue-50 border border-blue-100 rounded-lg">
-                {fetchingRates ? (
-                  <div className="flex items-center text-blue-700">
-                    <svg
-                      className="animate-spin mr-3 h-4 w-4"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+              <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`bg-white text-green-600 rounded-full shadow-lg ${
+                        isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"
+                      } flex items-center justify-center`}
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Calculating conversion...
-                  </div>
-                ) : convertedAmount !== null ? (
-                  <div>
-                    <p className="font-semibold text-blue-700 mb-2">
-                      Currency Conversion:
-                    </p>
-                    <p className="text-blue-900 text-lg font-medium">
-                      {parseNumberInput(amount).toFixed(2)} {currency} ={" "}
-                      {convertedAmount.toFixed(2)} {account.currency}
-                    </p>
-                    <div className="text-xs mt-2 text-blue-600 border-t border-blue-100 pt-2">
-                      <p>
-                        Conversion path: {currency} → {account.currency}
+                      <Plus size={isMobileView ? 14 : 18} />
+                    </div>
+                    <div>
+                      <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                        Add Funds
+                      </h2>
+                      <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                        {account.name}
                       </p>
-                      {rates[currency] && rates[account.currency] && (
-                        <p>
-                          1 {currency} ={" "}
-                          {(rates[currency] / rates[account.currency]).toFixed(
-                            4
-                          )}{" "}
-                          {account.currency}
-                        </p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={() => setIsAddFundsModalOpen(false)}
+                    className="text-white/80 hover:text-white transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X size={isMobileView ? 20 : 20} />
+                  </motion.button>
+                </div>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
+                  <AlertCircle size={16} />
+                  {error}
+                </div>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Deposit Name *
+                  </label>
+                  <div className="relative">
+                    <FileText
+                      size={16}
+                      className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    />
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
+                      placeholder="e.g., Salary Deposit"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
+                    placeholder="Add details about this transaction"
+                    rows={3}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount *
+                    </label>
+                    <div className="relative">
+                      <DollarSign
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
+                      <input
+                        type="text"
+                        value={amount}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          const regex = /^[0-9]*([.,][0-9]*)?$/;
+                          if (value === "" || regex.test(value)) {
+                            setAmount(value);
+                          }
+                        }}
+                        className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent shadow-sm"
+                        placeholder="0.00"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Currency
+                    </label>
+                    <div className="relative" ref={currencyRef}>
+                      <button
+                        type="button"
+                        onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
+                        className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
+                        disabled={fetchingRates}
+                      >
+                        <span>{currency}</span>
+                        <ChevronDown size={16} className="text-gray-400" />
+                      </button>
+
+                      {isCurrencyOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+                        >
+                          {fetchingRates ? (
+                            <div className="p-3 text-center text-gray-500">
+                              Loading currencies...
+                            </div>
+                          ) : (
+                            Object.keys(rates).map((curr) => (
+                              <button
+                                key={curr}
+                                type="button"
+                                onClick={() => {
+                                  setCurrency(curr);
+                                  setIsCurrencyOpen(false);
+                                }}
+                                className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                                  currency === curr
+                                    ? "bg-green-50 text-green-700"
+                                    : ""
+                                }`}
+                              >
+                                {curr}
+                              </button>
+                            ))
+                          )}
+                        </motion.div>
                       )}
                     </div>
                   </div>
-                ) : (
-                  <p className="text-blue-700">
-                    Unable to convert currencies. Please select a different
-                    currency.
-                  </p>
-                )}
-              </div>
-            )}
+                </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setIsAddFundsModalOpen(false)}
-              className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-black bg-white hover:bg-gray-200 focus:outline-none focus:border-blue-500 focus:ring-0 "
-              disabled={loading}
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-2 px-4 bg-gradient-to-r from-blue-800 to-black text-white rounded-lg hover:from-blue-700 hover:to-gray-900 hover:shadow-lg focus:outline-none focus:border-blue-500 focus:ring-0 transition-all duration-200 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center min-w-[120px]"
-              disabled={loading || fetchingRates}
-            >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Processing...
-                </>
-              ) : fetchingRates ? (
-                "Loading Rates..."
-              ) : (
-                "Add Funds"
-              )}
-            </button>
-          </div>
-        </form>
-      </motion.div>
-    </div>
+                {currency !== account.currency &&
+                  amount &&
+                  !isNaN(parseFloat(amount)) && (
+                    <div className="bg-green-50 border border-green-200 p-3 rounded-xl shadow-sm">
+                      {fetchingRates ? (
+                        <div className="flex items-center text-green-700">
+                          <div className="animate-spin rounded-full h-4 w-4 border-2 border-green-600 border-t-transparent mr-2" />
+                          Calculating conversion...
+                        </div>
+                      ) : convertedAmount !== null ? (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <TrendingUp size={14} className="text-green-600" />
+                            <span className="text-sm font-medium text-green-800">
+                              Currency Conversion
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="px-2 py-1 bg-white rounded-lg border border-green-200 text-green-900">
+                              <p className="text-xs font-medium">
+                                {parseNumberInput(amount).toFixed(2)} {currency}
+                              </p>
+                            </div>
+                            <div className="px-1">
+                              <svg
+                                className="h-3 w-3 text-green-500"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M14 5l7 7m0 0l-7 7m7-7H3"
+                                />
+                              </svg>
+                            </div>
+                            <div className="px-2 py-1 bg-green-500 text-white rounded-lg">
+                              <p className="text-xs font-medium">
+                                {convertedAmount.toFixed(2)} {account.currency}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-xs mt-1 text-green-600 text-center">
+                            Exchange rate: 1 {currency} ={" "}
+                            {rates[currency] && rates[account.currency]
+                              ? (rates[currency] / rates[account.currency]).toFixed(4)
+                              : "N/A"}{" "}
+                            {account.currency}
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-green-700 text-sm">
+                          Unable to convert currencies. Please select a different currency.
+                        </p>
+                      )}
+                    </div>
+                  )}
+              </form>
+            </div>
+
+            {/* Footer */}
+            <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+              <button
+                type="button"
+                onClick={() => setIsAddFundsModalOpen(false)}
+                className="flex-1 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                onClick={handleSubmit}
+                disabled={!canSubmit() || loading || fetchingRates}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
+              >
+                {loading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                    Processing...
+                  </>
+                ) : fetchingRates ? (
+                  "Loading Rates..."
+                ) : (
+                  <>
+                    <Plus size={16} />
+                    Add Funds
+                  </>
+                )}
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 };
 

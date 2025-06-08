@@ -30,15 +30,17 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
   onClose,
   isOpen,
 }) => {
-  const [isMobileScreen, setIsMobileScreen] = useState<boolean>(false);
+  const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
+  // Enhanced mobile detection
   useEffect(() => {
-    const handleResize = () => {
-      setIsMobileScreen(window.innerWidth <= 768);
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
     };
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
   if (!transaction || !isOpen) return null;
@@ -68,32 +70,32 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
         return {
           gradient: "bg-gradient-to-r from-green-600 to-green-800",
           textColor: "text-green-600",
-          bgLight: "bg-green-50/50",
-          border: "border-green-200",
+          bgLight: "bg-green-50/80",
+          border: "border-green-200/50",
           buttonBg: "bg-gradient-to-r from-green-600 to-green-700",
         };
       case TransactionType.EXPENSE:
         return {
           gradient: "bg-gradient-to-r from-red-600 to-red-800",
           textColor: "text-red-600",
-          bgLight: "bg-red-50/50",
-          border: "border-red-200",
+          bgLight: "bg-red-50/80",
+          border: "border-red-200/50",
           buttonBg: "bg-gradient-to-r from-red-600 to-red-700",
         };
       case TransactionType.TRANSFER:
         return {
           gradient: "bg-gradient-to-r from-blue-600 to-blue-800",
           textColor: "text-blue-600",
-          bgLight: "bg-blue-50/50",
-          border: "border-blue-200",
+          bgLight: "bg-blue-50/80",
+          border: "border-blue-200/50",
           buttonBg: "bg-gradient-to-r from-blue-600 to-blue-700",
         };
       default:
         return {
           gradient: "bg-gradient-to-r from-gray-600 to-gray-800",
           textColor: "text-gray-600",
-          bgLight: "bg-gray-50/50",
-          border: "border-gray-200",
+          bgLight: "bg-gray-50/80",
+          border: "border-gray-200/50",
           buttonBg: "bg-gradient-to-r from-gray-600 to-gray-700",
         };
     }
@@ -139,66 +141,101 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl w-full max-h-[90vh] shadow-2xl flex flex-col"
+            className="bg-white rounded-2xl w-full max-h-[85vh] shadow-2xl flex flex-col overflow-hidden"
             style={{
-              maxWidth: isMobileScreen ? "100%" : "32rem",
-              minWidth: isMobileScreen ? "auto" : "28rem",
+              maxWidth: isMobileView ? "100%" : "28rem",
+              minWidth: isMobileView ? "auto" : "24rem",
             }}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Fixed Header */}
-            <div className={`p-4 ${theme.gradient} text-white relative rounded-t-2xl flex-shrink-0`}>
-              {/* Decorative circles */}
-              <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
-              <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
-              <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
+            {/* Enhanced Header */}
+            <div className={`${theme.gradient} text-white relative overflow-hidden`}>
+              {/* Mobile-optimized background elements */}
+              <div
+                className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                  isMobileView
+                    ? "w-12 h-12 -translate-y-6 translate-x-6"
+                    : "w-16 h-16 -translate-y-8 translate-x-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "w-8 h-8 translate-y-4 -translate-x-4"
+                    : "w-12 h-12 translate-y-6 -translate-x-6"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/15 rounded-full ${
+                  isMobileView
+                    ? "top-2 left-16 w-6 h-6"
+                    : "top-2 left-16 w-8 h-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "bottom-2 right-12 w-4 h-4"
+                    : "bottom-2 right-12 w-6 h-6"
+                }`}
+              ></div>
               
-              <div className="flex justify-between items-start relative z-10">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white rounded-full p-2 shadow-lg">
-                    <span className="text-2xl">
-                      {getTransactionIcon(transaction.type)}
-                    </span>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold">{getTransactionTitle()}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-2xl font-bold">
-                        {getAmountPrefix()}{formatAmount(transaction.amount)} {transaction.currency}
+              <div className={`relative z-10 ${isMobileView ? "p-2.5" : "p-3"}`}>
+                <div className="flex justify-between items-start">
+                  <div className="flex items-center gap-2">
+                    <div className="bg-white rounded-full shadow-lg flex items-center justify-center"
+                         style={{ 
+                           width: isMobileView ? "2rem" : "2.5rem", 
+                           height: isMobileView ? "2rem" : "2.5rem" 
+                         }}>
+                      <span className={isMobileView ? "text-base" : "text-lg"}>
+                        {getTransactionIcon(transaction.type)}
                       </span>
                     </div>
+                    <div>
+                      <h2 className={`font-bold ${isMobileView ? "text-base" : "text-lg"}`}>
+                        {getTransactionTitle()}
+                      </h2>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className={`font-bold ${isMobileView ? "text-base" : "text-xl"}`}>
+                          {getAmountPrefix()}{formatAmount(transaction.amount)} {transaction.currency}
+                        </span>
+                      </div>
+                    </div>
                   </div>
+                  <motion.button
+                    onClick={onClose}
+                    className="text-white/80 hover:text-white transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X size={isMobileView ? 20 : 24} />
+                  </motion.button>
                 </div>
-                <button
-                  onClick={onClose}
-                  className="text-white/80 hover:text-white transition-colors"
-                >
-                  <X size={24} />
-                </button>
               </div>
             </div>
 
             {/* Scrollable Content */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <div className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"} space-y-3`}>
               {/* Basic Info Grid */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className={`grid ${isMobileView ? "grid-cols-1" : "grid-cols-2"} gap-2`}>
                 {/* Date */}
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                  <Calendar className={theme.textColor} size={20} />
+                <div className={`flex items-center gap-2 p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm`}>
+                  <Calendar className={theme.textColor} size={isMobileView ? 14 : 16} />
                   <div>
-                    <p className="text-sm text-gray-600">Date</p>
-                    <p className="font-medium">
+                    <p className="text-xs text-gray-600">Date</p>
+                    <p className="text-sm font-medium">
                       {formatDate(transaction.date)}
                     </p>
                   </div>
                 </div>
 
                 {/* Time */}
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                  <Clock className="text-indigo-600" size={20} />
+                <div className={`flex items-center gap-2 p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm`}>
+                  <Clock className="text-indigo-600" size={isMobileView ? 14 : 16} />
                   <div>
-                    <p className="text-sm text-gray-600">Time</p>
-                    <p className="font-medium">
+                    <p className="text-xs text-gray-600">Time</p>
+                    <p className="text-sm font-medium">
                       {new Date(transaction.date).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -208,13 +245,13 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
                 </div>
 
                 {/* Transaction Type */}
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                  <Tag className="text-purple-600" size={20} />
+                <div className={`flex items-center gap-2 p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm ${isMobileView ? "" : "col-span-1"}`}>
+                  <Tag className="text-purple-600" size={isMobileView ? 14 : 16} />
                   <div>
-                    <p className="text-sm text-gray-600">Type</p>
-                    <div className="flex items-center gap-2">
-                      <span>{getTransactionIcon(transaction.type)}</span>
-                      <span className="font-medium capitalize">
+                    <p className="text-xs text-gray-600">Type</p>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm">{getTransactionIcon(transaction.type)}</span>
+                      <span className="text-sm font-medium capitalize">
                         {transaction.type.toLowerCase()}
                       </span>
                     </div>
@@ -222,11 +259,13 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
                 </div>
 
                 {/* Currency */}
-                <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                  <DollarSign className="text-green-600" size={20} />
+                <div className={`flex items-center gap-2 p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm`}>
+                  <DollarSign className="text-green-600" size={isMobileView ? 14 : 16} />
                   <div>
-                    <p className="text-sm text-gray-600">Currency</p>
-                    <p className="font-medium">{transaction.currency}</p>
+                    <p className="text-xs text-gray-600">Currency</p>
+                    <p className="text-sm font-medium">
+                      {transaction.currency}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -234,43 +273,51 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
               {/* Name (for Income/Expense) */}
               {(transaction.type === TransactionType.EXPENSE ||
                 transaction.type === TransactionType.INCOME) && transaction.name && (
-                <div className={`p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Tag className="text-purple-600" size={16} />
-                    <p className="text-sm font-medium text-gray-700">Name</p>
+                <div className={`p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm`}>
+                  <div className="flex items-center gap-1 mb-1">
+                    <Tag className="text-purple-600" size={12} />
+                    <p className="text-xs font-medium text-gray-700">Name</p>
                   </div>
-                  <p className="font-medium text-gray-800">{transaction.name}</p>
+                  <p className="text-sm font-medium text-gray-800">
+                    {transaction.name}
+                  </p>
                 </div>
               )}
 
-              {/* Account Information Grid */}
+              {/* Account Information */}
               {(transaction.fromAccountId || transaction.toAccountId) && (
-                <div className="space-y-3">
-                  <h3 className="font-semibold text-gray-800">Account Information</h3>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-gray-800">
+                    Account Information
+                  </h3>
                   
-                  <div className="grid grid-cols-1 gap-3">
+                  <div className="grid grid-cols-1 gap-2">
                     {/* From Account */}
                     {transaction.fromAccountId && (
-                      <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                        <CreditCard className="text-indigo-600" size={20} />
+                      <div className={`flex items-center gap-2 p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm`}>
+                        <CreditCard className="text-indigo-600" size={14} />
                         <div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs text-gray-600">
                             {transaction.type === TransactionType.TRANSFER ? "From Account" : "Account"}
                           </p>
-                          <p className="font-medium">{getAccountName(transaction.fromAccountId)}</p>
+                          <p className="text-sm font-medium">
+                            {getAccountName(transaction.fromAccountId)}
+                          </p>
                         </div>
                       </div>
                     )}
 
                     {/* To Account */}
                     {transaction.toAccountId && (
-                      <div className={`flex items-center gap-3 p-3 ${theme.bgLight} border ${theme.border} rounded-xl shadow-sm`}>
-                        <CreditCard className="text-indigo-600" size={20} />
+                      <div className={`flex items-center gap-2 p-2 ${theme.bgLight} backdrop-blur-sm border ${theme.border} rounded-xl shadow-sm`}>
+                        <CreditCard className="text-indigo-600" size={14} />
                         <div>
-                          <p className="text-sm text-gray-600">
+                          <p className="text-xs text-gray-600">
                             {transaction.type === TransactionType.TRANSFER ? "To Account" : "Account"}
                           </p>
-                          <p className="font-medium">{getAccountName(transaction.toAccountId)}</p>
+                          <p className="text-sm font-medium">
+                            {getAccountName(transaction.toAccountId)}
+                          </p>
                         </div>
                       </div>
                     )}
@@ -280,25 +327,31 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
 
               {/* Description */}
               {transaction.description && (
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <FileText className="text-blue-600" size={16} />
-                    <p className="text-sm font-medium text-blue-800">Description</p>
+                <div className="p-2 bg-blue-50/80 backdrop-blur-sm border border-blue-200/50 rounded-xl shadow-sm">
+                  <div className="flex items-center gap-1 mb-1">
+                    <FileText className="text-blue-600" size={12} />
+                    <p className="text-xs font-medium text-blue-800">
+                      Description
+                    </p>
                   </div>
-                  <p className="text-blue-700">{transaction.description}</p>
+                  <p className="text-sm text-blue-700">
+                    {transaction.description}
+                  </p>
                 </div>
               )}
             </div>
 
-            {/* Fixed Footer */}
-            <div className="p-4 border-t bg-gray-50/50 flex-shrink-0 rounded-b-2xl">
-              <button
+            {/* Enhanced Footer */}
+            <div className={`${isMobileView ? "p-2.5" : "p-3"} border-t bg-gray-50/50 backdrop-blur-sm flex-shrink-0 rounded-b-2xl`}>
+              <motion.button
                 onClick={onClose}
-                className={`w-full flex items-center justify-center gap-2 px-4 py-3 ${theme.buttonBg} text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all shadow-md`}
+                className={`w-full flex items-center justify-center gap-2 ${isMobileView ? "px-3 py-2" : "px-4 py-2.5"} ${theme.buttonBg} text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all shadow-md text-sm`}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                <X size={16} />
+                <X size={14} />
                 Close
-              </button>
+              </motion.button>
             </div>
           </motion.div>
         </motion.div>

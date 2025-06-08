@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Search,
   Wallet,
+  CheckCircle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { CustomCategory } from "../../interfaces/CustomCategory";
@@ -96,8 +97,8 @@ const SearchWithSuggestions: React.FC<{
     <div className="relative" ref={dropdownRef}>
       <div className="relative">
         <Search
-          size={16}
-          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+          size={14}
+          className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-indigo-400"
         />
         <input
           ref={inputRef}
@@ -106,7 +107,7 @@ const SearchWithSuggestions: React.FC<{
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+          className="w-full pl-8 pr-3 py-2 text-sm border border-indigo-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors shadow-sm bg-indigo-50/50"
         />
       </div>
 
@@ -115,14 +116,14 @@ const SearchWithSuggestions: React.FC<{
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleSuggestionClick(suggestion)}
-              className={`w-full text-left px-4 py-3 text-sm hover:bg-gray-50 transition-colors ${
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
                 selectedItems.includes(suggestion)
                   ? "bg-indigo-50 text-indigo-700"
                   : "text-gray-700"
@@ -135,22 +136,18 @@ const SearchWithSuggestions: React.FC<{
       )}
 
       {multiSelect && selectedItems.length > 0 && (
-        <div className="flex flex-wrap gap-2 mt-3">
+        <div className="flex flex-wrap gap-1 mt-2">
           {selectedItems.map((item, index) => (
-            <span
+            <button
               key={index}
-              className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm transition-colors bg-indigo-100 text-indigo-700"
+              type="button"
+              onClick={() => onSelect && onSelect(item)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-75 bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
             >
-              <Tag size={12} />
+              <Tag size={10} />
               {item}
-              <button
-                type="button"
-                onClick={() => onSelect && onSelect(item)}
-                className="ml-1 hover:text-indigo-900"
-              >
-                <X size={12} />
-              </button>
-            </span>
+              <X size={10} className="ml-1" />
+            </button>
           ))}
         </div>
       )}
@@ -166,6 +163,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
 }) => {
   const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isMobileView, setIsMobileView] = useState(false);
   
   const [formData, setFormData] = useState({
     name: "",
@@ -185,6 +183,17 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
   const currencyRef = useRef<HTMLDivElement>(null);
 
   const steps = ["Basic Info", "Categories", "Review"];
+
+  // Enhanced mobile detection
+  useEffect(() => {
+    const checkMobileView = () => {
+      setIsMobileView(window.innerWidth < 768);
+    };
+
+    checkMobileView();
+    window.addEventListener("resize", checkMobileView);
+    return () => window.removeEventListener("resize", checkMobileView);
+  }, []);
 
   useEffect(() => {
     const loadExchangeRates = async () => {
@@ -381,24 +390,24 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Budget Name *
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
                 placeholder="e.g., Monthly Expenses, Groceries"
                 required
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Budget Limit *
                 </label>
                 <div className="relative">
@@ -428,7 +437,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
                         }
                       }
                     }}
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all"
+                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent shadow-sm"
                     placeholder="1000"
                     required
                   />
@@ -436,14 +445,14 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Currency
                 </label>
                 <div className="relative" ref={currencyRef}>
                   <button
                     type="button"
                     onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-left flex items-center justify-between transition-all"
+                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
                     disabled={fetchingRates}
                   >
                     <span>{formData.currency}</span>
@@ -469,7 +478,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
                               handleInputChange("currency", currency);
                               setIsCurrencyOpen(false);
                             }}
-                            className={`w-full text-left px-4 py-3 hover:bg-gray-50 transition-colors ${
+                            className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
                               formData.currency === currency
                                 ? "bg-indigo-50 text-indigo-700"
                                 : ""
@@ -486,9 +495,9 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
             </div>
 
             {formData.limitAmount && (
-              <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-xl">
+              <div className="bg-indigo-50 border border-indigo-200 p-3 rounded-xl shadow-sm">
                 <div className="flex items-center gap-2 mb-2">
-                  <Info size={16} className="text-indigo-600" />
+                  <Info size={14} className="text-indigo-600" />
                   <span className="text-sm font-medium text-indigo-800">
                     Budget Overview
                   </span>
@@ -506,14 +515,14 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
 
       case 2:
         return (
-          <div className="space-y-5">
+          <div className="space-y-4">
             <div>
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex justify-between items-center mb-1">
                 <label className="block text-sm font-medium text-gray-700">
                   Budget Categories *
                 </label>
                 {formData.selectedCategories.length > 0 && (
-                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                  <span className="text-xs text-indigo-600 bg-indigo-100 px-2 py-1 rounded-full">
                     {formData.selectedCategories.length} selected
                   </span>
                 )}
@@ -530,11 +539,13 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
             </div>
 
             {formData.selectedCategories.length === 0 && (
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl">
-                <p className="text-amber-700 text-sm flex items-center">
-                  <AlertCircle size={16} className="mr-2" />
-                  At least one category is required to create a budget
-                </p>
+              <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl shadow-sm">
+                <div className="flex items-center gap-2">
+                  <AlertCircle size={14} className="text-amber-600" />
+                  <p className="text-amber-700 text-sm font-medium">
+                    At least one category is required to create a budget
+                  </p>
+                </div>
               </div>
             )}
           </div>
@@ -542,34 +553,37 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
 
       case 3:
         return (
-          <div className="space-y-5">
-            <div className="bg-indigo-50 border border-indigo-200 p-5 rounded-xl">
-              <h3 className="font-semibold text-lg mb-4 text-indigo-900">
-                {formData.name}
-              </h3>
+          <div className="space-y-4">
+            <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-3">
+                <Wallet size={16} className="text-indigo-600" />
+                <h3 className="font-semibold text-base text-indigo-900">
+                  {formData.name}
+                </h3>
+              </div>
 
-              <div className="grid grid-cols-2 gap-4 text-sm mb-4">
-                <div>
-                  <span className="text-gray-600">Budget Limit:</span>
-                  <span className="ml-2 font-medium text-indigo-700">
+              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+                <div className="bg-white rounded-lg p-2 border border-indigo-100">
+                  <span className="text-gray-600 block text-xs mb-1">Budget Limit:</span>
+                  <span className="font-medium text-indigo-700">
                     {formData.limitAmount} {formData.currency}
                   </span>
                 </div>
-                <div>
-                  <span className="text-gray-600">Categories:</span>
-                  <span className="ml-2 font-medium text-indigo-700">
+                <div className="bg-white rounded-lg p-2 border border-indigo-100">
+                  <span className="text-gray-600 block text-xs mb-1">Categories:</span>
+                  <span className="font-medium text-indigo-700">
                     {formData.selectedCategories.length} selected
                   </span>
                 </div>
               </div>
 
-              <div className="mt-4">
-                <span className="text-gray-600 text-sm">Selected Categories:</span>
-                <div className="flex flex-wrap gap-2 mt-2">
+              <div>
+                <span className="text-gray-600 text-xs block mb-2">Selected Categories:</span>
+                <div className="flex flex-wrap gap-1">
                   {formData.selectedCategories.map((category) => (
                     <span
                       key={category.id}
-                      className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full"
+                      className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full border border-indigo-200"
                     >
                       {category.name}
                     </span>
@@ -578,14 +592,14 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
               </div>
             </div>
 
-            <div className="bg-green-50 border border-green-200 p-4 rounded-xl">
-              <div className="flex items-center gap-2">
-                <Wallet size={16} className="text-green-600" />
+            <div className="bg-green-50 border border-green-200 p-3 rounded-xl shadow-sm">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle size={14} className="text-green-600" />
                 <span className="text-sm font-medium text-green-800">
                   Ready to Create
                 </span>
               </div>
-              <p className="text-sm text-green-700 mt-1">
+              <p className="text-sm text-green-700">
                 Your budget will help you track spending across{" "}
                 {formData.selectedCategories.length} categories with a limit of{" "}
                 {formData.limitAmount} {formData.currency}.
@@ -606,57 +620,99 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
           onClick={handleClose}
         >
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[90vh] overflow-hidden shadow-2xl"
+            className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
+              isMobileView
+                ? "max-w-sm w-full max-h-[95vh]"
+                : "max-w-md w-full max-h-[90vh]"
+            }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header - matching transaction component style */}
-            <div className="p-6 bg-gradient-to-r from-indigo-600 to-indigo-500 text-white">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-white rounded-full p-2 text-indigo-600">
-                    <Wallet size={20} />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-semibold">Create New Budget</h2>
-                    <p className="text-indigo-100 text-sm">
-                      {steps[currentStep - 1]}
-                    </p>
-                  </div>
-                </div>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={handleClose}
-                  className="text-white hover:text-indigo-100 transition-colors p-2 hover:bg-white/10 rounded-lg"
-                >
-                  <X size={20} />
-                </motion.button>
-              </div>
+            {/* Enhanced Header */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+              {/* Mobile-optimized background elements */}
+              <div
+                className={`absolute top-0 right-0 bg-white/20 rounded-full ${
+                  isMobileView
+                    ? "w-12 h-12 -translate-y-6 translate-x-6"
+                    : "w-16 h-16 -translate-y-8 translate-x-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "w-8 h-8 translate-y-4 -translate-x-4"
+                    : "w-12 h-12 translate-y-6 -translate-x-6"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/15 rounded-full ${
+                  isMobileView
+                    ? "top-2 left-16 w-6 h-6"
+                    : "top-2 left-16 w-8 h-8"
+                }`}
+              ></div>
+              <div
+                className={`absolute bg-white/10 rounded-full ${
+                  isMobileView
+                    ? "bottom-2 right-12 w-4 h-4"
+                    : "bottom-2 right-12 w-6 h-6"
+                }`}
+              ></div>
 
-              {/* Progress */}
-              <div className="flex gap-1">
-                {steps.map((_, index) => (
-                  <div
-                    key={index}
-                    className={`h-1 flex-1 rounded ${
-                      index < currentStep ? "bg-white" : "bg-white/30"
-                    }`}
-                  />
-                ))}
+              <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+                <div className="flex justify-between items-center mb-3">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`bg-white rounded-full shadow-lg text-indigo-600 ${
+                        isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"
+                      } flex items-center justify-center`}
+                    >
+                      <Wallet size={isMobileView ? 14 : 18} />
+                    </div>
+                    <div>
+                      <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                        Create New Budget
+                      </h2>
+                      <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                        {steps[currentStep - 1]}
+                      </p>
+                    </div>
+                  </div>
+                  <motion.button
+                    onClick={handleClose}
+                    className="text-white/80 hover:text-white transition-colors"
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <X size={isMobileView ? 20 : 20} />
+                  </motion.button>
+                </div>
+
+                {/* Progress */}
+                <div className="flex gap-1">
+                  {steps.map((_, index) => (
+                    <div
+                      key={index}
+                      className={`h-1 flex-1 rounded ${
+                        index < currentStep ? "bg-white" : "bg-white/30"
+                      }`}
+                    />
+                  ))}
+                </div>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6 min-h-[300px] overflow-y-auto">
+            <div className={`${isMobileView ? "p-3" : "p-4"} min-h-[300px]`}>
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl text-sm flex items-center gap-2 mb-6">
+                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
                   <AlertCircle size={16} />
                   {error}
                 </div>
@@ -666,13 +722,13 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
             </div>
 
             {/* Footer */}
-            <div className="p-6 border-t bg-gray-50 flex justify-between">
+            <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex justify-between`}>
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
                 onClick={prevStep}
                 disabled={currentStep === 1}
                 className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                whileHover={{ scale: currentStep === 1 ? 1 : 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
                 <ArrowLeft size={16} />
                 Back
@@ -680,22 +736,22 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
 
               {currentStep < 3 ? (
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={nextStep}
                   disabled={!canProceed()}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
+                  whileHover={{ scale: !canProceed() ? 1 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   Continue
                   <ArrowRight size={16} />
                 </motion.button>
               ) : (
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all disabled:opacity-50"
+                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-all disabled:opacity-50 shadow-md"
+                  whileHover={{ scale: loading ? 1 : 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
                   {loading ? (
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />

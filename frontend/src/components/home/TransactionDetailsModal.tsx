@@ -13,6 +13,7 @@ import {
   ArrowDown,
   ArrowRightLeft,
 } from "lucide-react";
+import { relative } from "path";
 
 interface Transaction {
   id?: number;
@@ -339,7 +340,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return "bg-gradient-to-r from-red-500 to-red-600";
     if (filterType === "transfer")
       return "bg-gradient-to-r from-blue-500 to-indigo-600";
-    // For 'all' type, use indigo theme
     return "bg-gradient-to-r from-indigo-500 to-purple-600";
   };
 
@@ -362,18 +362,28 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     return "text-indigo-600";
   };
 
-  const getTextColor = () => {
-    if (filterType === "income") return "text-emerald-700";
-    if (filterType === "expense") return "text-red-700";
-    if (filterType === "transfer") return "text-blue-700";
-    return "text-gray-700";
-  };
-
   const getModalTitle = () => {
-    if (filterType === "income") return `${monthName} Income`;
-    if (filterType === "expense") return `${monthName} Expenses`;
-    if (filterType === "transfer") return `${monthName} Account Movements`;
-    return `${monthName} Transactions`;
+    let baseTitle;
+
+    switch (filterType) {
+      case "income":
+        baseTitle = `${monthName} Income`;
+        break;
+      case "expense":
+        baseTitle = `${monthName} Expenses`;
+        break;
+      case "transfer":
+        baseTitle = `${monthName} Account Movements`;
+        break;
+      default:
+        baseTitle = `${monthName} Transactions`;
+    }
+
+    if (includeUpcoming) {
+      baseTitle = baseTitle.replace(monthName, `${monthName} Projected`);
+    }
+
+    return baseTitle;
   };
 
   const getAmountDisplay = () => {
@@ -387,10 +397,23 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   };
 
   const getSubtitle = () => {
-    if (filterType === "income") return "Total Income";
-    if (filterType === "expense") return "Total Expenses";
-    if (filterType === "transfer") return "Total Transfers";
-    return `Net ${isPositive ? "Surplus" : "Deficit"}`;
+    let base;
+
+    switch (filterType) {
+      case "income":
+        base = "Income";
+        break;
+      case "expense":
+        base = "Expenses";
+        break;
+      case "transfer":
+        base = "Transfers";
+        break;
+      default:
+        return `Net ${isPositive ? "Surplus" : "Deficit"}`;
+    }
+
+    return includeUpcoming ? `Projected ${base}` : `Total ${base}`;
   };
 
   const getAccountName = (accountId: number | string | any) => {
@@ -461,16 +484,28 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     }
 
     const getBorderColor = () => {
-      if (isIncome) return actualIsUpcoming ? "border-emerald-300" : "border-emerald-200";
-      if (isExpense) return actualIsUpcoming ? "border-red-300" : "border-red-200";
-      if (isTransfer) return actualIsUpcoming ? "border-blue-300" : "border-blue-200";
+      if (isIncome)
+        return actualIsUpcoming ? "border-emerald-300" : "border-emerald-200";
+      if (isExpense)
+        return actualIsUpcoming ? "border-red-300" : "border-red-200";
+      if (isTransfer)
+        return actualIsUpcoming ? "border-blue-300" : "border-blue-200";
       return "border-gray-200";
     };
 
     const getBackgroundColor = () => {
-      if (isIncome) return actualIsUpcoming ? "bg-gradient-to-r from-emerald-50/70 to-green-50/70" : "bg-gradient-to-r from-emerald-50/50 to-green-50/50";
-      if (isExpense) return actualIsUpcoming ? "bg-gradient-to-r from-red-50/70 to-rose-50/70" : "bg-gradient-to-r from-red-50/50 to-rose-50/50";
-      if (isTransfer) return actualIsUpcoming ? "bg-gradient-to-r from-blue-50/70 to-indigo-50/70" : "bg-gradient-to-r from-blue-50/50 to-indigo-50/50";
+      if (isIncome)
+        return actualIsUpcoming
+          ? "bg-gradient-to-r from-emerald-50/70 to-green-50/70"
+          : "bg-gradient-to-r from-emerald-50/50 to-green-50/50";
+      if (isExpense)
+        return actualIsUpcoming
+          ? "bg-gradient-to-r from-red-50/70 to-rose-50/70"
+          : "bg-gradient-to-r from-red-50/50 to-rose-50/50";
+      if (isTransfer)
+        return actualIsUpcoming
+          ? "bg-gradient-to-r from-blue-50/70 to-indigo-50/70"
+          : "bg-gradient-to-r from-blue-50/50 to-indigo-50/50";
       return "bg-gray-50/50";
     };
 
@@ -479,13 +514,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       if (isExpense) return "bg-red-100 text-red-600";
       if (isTransfer) return "bg-blue-100 text-blue-600";
       return "bg-gray-100 text-gray-600";
-    };
-
-    const getTextColor = () => {
-      if (isIncome) return "text-emerald-700";
-      if (isExpense) return "text-red-700";
-      if (isTransfer) return "text-blue-700";
-      return "text-gray-700";
     };
 
     const getCategoryColor = () => {
@@ -860,7 +888,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 flex items-center justify-center z-50 p-2 md:p-4 bg-black/20 backdrop-blur-sm"
+          className="fixed inset-0 flex items-center justify-center z-50 p-2 md:p-4 backdrop-blur-sm"
           onClick={onClose}
         >
           <motion.div
@@ -869,7 +897,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className={`bg-white rounded-2xl w-full shadow-2xl flex flex-col overflow-hidden relative ${
-              isMobileView ? "max-w-sm max-h-[95vh]" : "max-w-md max-h-[90vh]"
+              isMobileView ? "max-w-sm max-h-[95vh]" : "max-w-md max-h-[45vh]"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
@@ -922,274 +950,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                 >
                   <X size={isMobileView ? 20 : 24} />
                 </motion.button>
-              </div>
-            </div>
-
-            {/* Enhanced Summary Stats */}
-            <div
-              className={`${isMobileView ? "p-3" : "p-4"} bg-gradient-to-r from-gray-50 to-gray-100 border-b relative overflow-hidden`}
-            >
-              {/* Subtle background decoration */}
-              <div className="absolute top-0 right-0 w-8 h-8 bg-white/30 rounded-full -translate-y-4 translate-x-4"></div>
-              <div className="absolute bottom-0 left-0 w-6 h-6 bg-white/20 rounded-full translate-y-3 -translate-x-3"></div>
-
-              <div className="relative z-10">
-                {showSimplifiedView ? (
-                  // Simplified view with just 2 cards for actual and projected
-                  <div
-                    className={`grid gap-${isMobileView ? "2" : "4"} grid-cols-2`}
-                  >
-                    <motion.div
-                      className={`${
-                        processedData.actualNet >= 0
-                          ? "bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200"
-                          : "bg-gradient-to-br from-red-50 to-red-100 border-red-200"
-                      } border rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <DollarSign
-                          className={`${
-                            processedData.actualNet >= 0
-                              ? "text-emerald-600"
-                              : "text-red-600"
-                          }`}
-                          size={isMobileView ? 14 : 16}
-                        />
-                        <span
-                          className={`${
-                            processedData.actualNet >= 0
-                              ? "text-emerald-700"
-                              : "text-red-700"
-                          } font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                        >
-                          {isMobileView ? "Actual" : "Actual Net"}
-                        </span>
-                      </div>
-                      <p
-                        className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                      >
-                        {processedData.actualNet.toFixed(2)} {displayCurrency}
-                      </p>
-                      <p
-                        className={`text-xs ${parseFloat(getAmountDisplay()) >= 0 ? "text-emerald-600" : "text-red-600"}`}
-                      >
-                        {processedData.incomeTransactions.length +
-                          processedData.expenseTransactions.length +
-                          processedData.transferTransactions.length}{" "}
-                        transactions
-                      </p>
-                    </motion.div>
-
-                    <motion.div
-                      className={`${
-                        parseFloat(getAmountDisplay()) >= 0
-                          ? "bg-gradient-to-br from-emerald-50 to-green-100 border-emerald-200"
-                          : "bg-gradient-to-br from-red-50 to-red-100 border-red-200"
-                      } border border-dashed rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <div className="flex items-center gap-2 mb-1">
-                        <Calendar
-                          className={`${
-                            parseFloat(getAmountDisplay()) >= 0
-                              ? "text-emerald-600"
-                              : "text-red-600"
-                          }`}
-                          size={isMobileView ? 14 : 16}
-                        />
-                        <span
-                          className={`${
-                            parseFloat(getAmountDisplay()) >= 0
-                              ? "text-emerald-700"
-                              : "text-red-700"
-                          } font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                        >
-                          {isMobileView ? "Projected" : "Projected Net"}
-                        </span>
-                      </div>
-                      <p
-                        className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                      >
-                        {Math.abs(processedData.totalUpcomingExpenses).toFixed(2)}{" "}
-                        {displayCurrency}
-                      </p>
-                      <p
-                        className={`text-xs ${parseFloat(getAmountDisplay()) >= 0 ? "text-emerald-600" : "text-red-600"}`}
-                      >
-                        {processedData.upcomingIncome.length +
-                          processedData.upcomingExpenses.length}{" "}
-                        payments
-                      </p>
-                    </motion.div>
-                  </div>
-                ) : (
-                  // Original detailed view with enhanced design
-                  <div
-                    className={`grid gap-${isMobileView ? "2" : "4"} ${
-                      filterType === "all"
-                        ? isMobileView
-                          ? "grid-cols-2"
-                          : includeUpcoming
-                            ? "grid-cols-6"
-                            : "grid-cols-3"
-                        : includeUpcoming
-                          ? "grid-cols-2"
-                          : "grid-cols-1"
-                    }`}
-                  >
-                    {(filterType === "income" || filterType === "all") && (
-                      <motion.div
-                        className={`bg-gradient-to-br from-emerald-50 to-green-100 border border-emerald-200 rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <TrendingUp
-                            className="text-emerald-600"
-                            size={isMobileView ? 14 : 16}
-                          />
-                          <span
-                            className={`text-emerald-700 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                          >
-                            {isMobileView ? "Income" : "Actual Income"}
-                          </span>
-                        </div>
-                        <p
-                          className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                        >
-                          {processedData.totalActualIncome.toFixed(2)}{" "}
-                          {displayCurrency}
-                        </p>
-                        <p className="text-xs text-emerald-600">
-                          {processedData.incomeTransactions.length} transactions
-                        </p>
-                      </motion.div>
-                    )}
-
-                    {(filterType === "expense" || filterType === "all") && (
-                      <motion.div
-                        className={`bg-gradient-to-br from-red-50 to-red-100 border border-red-200 rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <TrendingDown
-                            className="text-red-600"
-                            size={isMobileView ? 14 : 16}
-                          />
-                          <span
-                            className={`text-red-700 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                          >
-                            {isMobileView ? "Expenses" : "Actual Expenses"}
-                          </span>
-                        </div>
-                        <p
-                          className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                        >
-                          {processedData.totalActualExpenses.toFixed(2)}{" "}
-                          {displayCurrency}
-                        </p>
-                        <p className="text-xs text-red-600">
-                          {processedData.expenseTransactions.length} transactions
-                        </p>
-                      </motion.div>
-                    )}
-
-                    {(filterType === "transfer" || filterType === "all") && (
-                      <motion.div
-                        className={`bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          <ArrowRightLeft
-                            className="text-blue-600"
-                            size={isMobileView ? 14 : 16}
-                          />
-                          <span
-                            className={`text-blue-700 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                          >
-                            {isMobileView ? "Movements" : "Account Movements"}
-                          </span>
-                        </div>
-                        <p
-                          className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                        >
-                          {processedData.totalActualTransfers.toFixed(2)}{" "}
-                          {displayCurrency}
-                        </p>
-                        <p className="text-xs text-blue-600">
-                          {processedData.transferTransactions.length} transactions
-                        </p>
-                      </motion.div>
-                    )}
-
-                    {includeUpcoming &&
-                      (filterType === "income" || filterType === "all") && (
-                        <motion.div
-                          className={`bg-gradient-to-br from-emerald-50 to-green-100 border border-emerald-200 border-dashed rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Calendar
-                              className="text-emerald-600"
-                              size={isMobileView ? 14 : 16}
-                            />
-                            <span
-                              className={`text-emerald-700 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                            >
-                              {isMobileView ? "Future+" : "Upcoming Income"}
-                            </span>
-                          </div>
-                          <p
-                            className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                          >
-                            {processedData.totalUpcomingIncome.toFixed(2)}{" "}
-                            {displayCurrency}
-                          </p>
-                          <p className="text-xs text-emerald-600">
-                            {processedData.upcomingIncome.length} payments
-                          </p>
-                        </motion.div>
-                      )}
-
-                    {includeUpcoming &&
-                      (filterType === "expense" || filterType === "all") && (
-                        <motion.div
-                          className={`bg-gradient-to-br from-red-50 to-red-100 border border-red-200 border-dashed rounded-xl shadow-sm ${isMobileView ? "p-2" : "p-3"}`}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <div className="flex items-center gap-2 mb-1">
-                            <Calendar
-                              className="text-red-600"
-                              size={isMobileView ? 14 : 16}
-                            />
-                            <span
-                              className={`text-red-700 font-medium ${isMobileView ? "text-xs" : "text-sm"}`}
-                            >
-                              {isMobileView ? "Future-" : "Upcoming Expenses"}
-                            </span>
-                          </div>
-                          <p
-                            className={`font-bold text-black ${isMobileView ? "text-base" : "text-lg"}`}
-                          >
-                            {Math.abs(
-                              processedData.totalUpcomingExpenses
-                            ).toFixed(2)}{" "}
-                            {displayCurrency}
-                          </p>
-                          <p className="text-xs text-red-600">
-                            {processedData.upcomingExpenses.length} payments
-                          </p>
-                        </motion.div>
-                      )}
-                  </div>
-                )}
               </div>
             </div>
 

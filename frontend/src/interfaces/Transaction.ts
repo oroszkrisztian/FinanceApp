@@ -1,7 +1,5 @@
 import { CurrencyType, TransactionType } from "./enums";
 
-
-
 export interface Transaction {
   id: number;
   amount: number;
@@ -12,8 +10,14 @@ export interface Transaction {
   currency: CurrencyType;
   fromAccountId?: number;
   toAccountId?: number;
-  userId: number,
+  userId: number;
   createdAt: Date;
   updatedAt: Date;
-  deletedAt?: Date;  
+  deletedAt?: Date;
+  transactionCategories?: {
+    customCategoryId: number;
+    customCategory?: {
+      name: string;
+    };
+  }[];
 }
