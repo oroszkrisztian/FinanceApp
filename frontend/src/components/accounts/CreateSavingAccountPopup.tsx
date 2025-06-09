@@ -38,7 +38,7 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
     targetDate: "",
   });
 
-  // Add useEffect for fetching exchange rates
+ 
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -115,9 +115,9 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
   };
 
   useEffect(() => {
-    // Calculate progress based on required fields
+   
     let progress = 0;
-    const totalRequiredFields = 3; // name, targetAmount, targetDate
+    const totalRequiredFields = 3;
 
     if (formData.name.trim() !== "") {
       progress += 1;
@@ -131,11 +131,11 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
       progress += 1;
     }
 
-    // Calculate percentage
+   
     const percentage = (progress / totalRequiredFields) * 100;
     setProgressPercentage(percentage);
 
-    // Set hasChanges if all required fields are filled
+  
     setHasChanges(percentage === 100);
   }, [formData]);
 
@@ -174,14 +174,14 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
               }}
               className="bg-white rounded-2xl shadow-2xl overflow-hidden max-w-md w-full pointer-events-auto"
             >
-              {/* Header with fixed height that won't overlap content */}
+              {/* Header*/}
               <div className="bg-indigo-500 h-20 relative">
                 {/* Decorative circles */}
                 <div className="absolute top-4 left-6 bg-white/20 h-16 w-16 rounded-full"></div>
                 <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
                 <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
 
-                {/* Title is now part of the header, not overlapping */}
+                {/* Title*/}
                 <div className="absolute bottom-0 left-0 w-full px-6 pb-3 flex items-center">
                   <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
                     <motion.svg

@@ -15,7 +15,7 @@ import {
 
 import { Account } from "../interfaces/Account";
 import { fetchAllAccounts } from "../services/accountService";
-import { getAllSystemCategories } from "../services/categoriesService";
+import { getAllCategoriesForUser } from "../services/categoriesService";
 import { CustomCategory } from "../interfaces/CustomCategory";
 import { getAllBudgets } from "../services/budgetService";
 import CreateExpensePopup from "../components/transactions/CreateExpensePopup";
@@ -106,7 +106,7 @@ const Transactions: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const categoryData = await getAllSystemCategories();
+      const categoryData = await getAllCategoriesForUser(user!.id);
       setCategories(categoryData);
     } catch (error) {
       console.error("Failed to fetch categories:", error);

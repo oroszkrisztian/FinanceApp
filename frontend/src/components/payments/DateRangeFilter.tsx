@@ -30,7 +30,6 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   buttonRef,
   colors = { gradientFrom: "from-green-600", gradientTo: "to-green-500" },
 }) => {
-  // Helper function to format date for input without timezone issues
   const formatDateForInput = (date: Date | null): string => {
     if (!date) return "";
     const year = date.getFullYear();
@@ -39,11 +38,10 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
     return `${year}-${month}-${day}`;
   };
 
-  // Helper function to create date from input string without timezone issues
   const createDateFromInput = (dateString: string): Date | null => {
     if (!dateString) return null;
     const [year, month, day] = dateString.split('-').map(Number);
-    return new Date(year, month - 1, day); // month is 0-indexed
+    return new Date(year, month - 1, day); 
   };
 
   const [tempStartDate, setTempStartDate] = useState<string>(
@@ -55,7 +53,6 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -66,7 +63,6 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  // Update temp dates when dateRange changes
   useEffect(() => {
     setTempStartDate(formatDateForInput(dateRange.start));
     setTempEndDate(formatDateForInput(dateRange.end));
@@ -154,11 +150,11 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         left: `${position.left}px`,
       }}
     >
-      {/* Enhanced Header with decorative elements */}
+      {/* Header  */}
       <div
         className={`bg-gradient-to-r ${colors.gradientFrom} ${colors.gradientTo} relative overflow-hidden`}
       >
-        {/* Mobile-optimized background elements */}
+        {/* Background elements */}
         <div
           className={`absolute top-0 right-0 bg-white/20 rounded-full ${
             isMobileView
@@ -197,7 +193,7 @@ const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
         </div>
       </div>
 
-      {/* Enhanced Content */}
+      {/* Content */}
       <div className={`relative overflow-hidden ${isMobileView ? "p-3" : "p-3"}`}>
         {/* Subtle background decoration */}
         <div className="absolute top-0 right-0 w-6 h-6 bg-gray-100/30 rounded-full -translate-y-3 translate-x-3"></div>

@@ -9,7 +9,6 @@ const UserProfileCard: React.FC = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);

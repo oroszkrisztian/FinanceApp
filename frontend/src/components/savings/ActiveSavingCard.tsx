@@ -10,7 +10,7 @@ interface ActiveSavingCardProps {
   onAddFunds: (accountId: number) => void;
   onTransfer: (accountId: number) => void;
   onEdit: (accountId: number) => void;
-  onDelete: (accountId: number, accountName: string) => void;
+  onDelete: (accountId: number, accountName: string, accountAmount:number) => void;
   updatedSavingId?: number | null;
   isUpdated?: boolean;
 }
@@ -32,12 +32,10 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [animate, setAnimate] = useState(false);
 
-  // Dynamic color styles based on completion percentage
   const completionPercentage = account.savingAccount?.targetAmount
     ? Math.min((account.amount / account.savingAccount.targetAmount) * 100, 100)
     : 0;
 
-  // Colors and styles based on completion percentage
   const colors = {
     primary: completionPercentage >= 75 ? "green" : "indigo",
     accent: completionPercentage >= 75 ? "green" : "indigo",
@@ -58,7 +56,6 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
   const progressBarColor =
     completionPercentage >= 75 ? "bg-green-500" : "bg-indigo-500";
 
-  // Format currency amounts
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -67,7 +64,6 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
     }).format(amount);
   };
 
-  // Animation variants
   const cardVariants = {
     updated: {
       scale: [1, 1.03, 1],
@@ -82,7 +78,6 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
     },
   };
 
-  // Effect to close menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -101,7 +96,6 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
     };
   }, []);
 
-  // Effect to handle the highlight animation when card is updated
   useEffect(() => {
     if (updatedSavingId === account.id) {
       setAnimate(true);
@@ -112,7 +106,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
   useEffect(() => {
     if (isUpdated) {
       setAnimate(true);
-      const timeout = setTimeout(() => setAnimate(false), 1000); // Animation duration
+      const timeout = setTimeout(() => setAnimate(false), 1000); 
       return () => clearTimeout(timeout);
     }
   }, [isUpdated]);
@@ -139,7 +133,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
         className={`absolute top-0 right-0 w-20 h-20 ${colors.accent} opacity-10 rounded-bl-full`}
       ></div>
 
-      {/* Wave background - positioned at the bottom like original */}
+      {/* Wave background*/}
       <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 md:h-24 z-0 overflow-hidden">
         <div
           className={`absolute bottom-0 left-0 w-full h-full ${waveColor} z-0`}
@@ -249,7 +243,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
                     className="flex items-center w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 hover:translate-x-1 mt-1 mb-1"
                     onClick={() => {
                       setOpenMenuId(null);
-                      onDelete(account.id, account.name);
+                      onDelete(account.id, account.name, account.amount);
                     }}
                   >
                     <div className="flex items-center justify-center h-8 w-8 rounded-full bg-red-50 text-red-600 mr-3">
@@ -279,7 +273,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
           </div>
         </div>
 
-        {/* Completion percentage moved under the name */}
+        
         <div className="mb-4">
           <div
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${colors.primary}-100 text-${colors.primary}-800`}

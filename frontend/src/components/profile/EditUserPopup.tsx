@@ -38,7 +38,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   const [isMobileView, setIsMobileView] = useState(false);
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   
-  // Profile form data
   const [formData, setFormData] = useState({
     firstName: user.firstName || "",
     lastName: user.lastName || "",
@@ -46,7 +45,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     email: user.email || "",
   });
 
-  // Password form data
   const [passwordData, setPasswordData] = useState({
     currentPassword: "",
     newPassword: "",
@@ -64,7 +62,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   const [loading, setLoading] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -103,7 +100,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       setPasswordData((prev) => ({ ...prev, [field]: value }));
     }
     setError(null);
-    // Clear field-specific error when user starts typing
     if (fieldErrors[field]) {
       setFieldErrors((prev) => {
         const newErrors = { ...prev };
@@ -116,7 +112,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   const validateProfileForm = async () => {
     const errors: {[key: string]: string} = {};
 
-    // Basic validation
     if (!formData.firstName.trim()) {
       errors.firstName = "First name is required";
     } else if (formData.firstName.trim().length < 2) {
@@ -139,7 +134,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       errors.email = "Please enter a valid email address";
     }
 
-    // Check availability if username or email changed
     if (!errors.username && formData.username !== user.username) {
       try {
         const availabilityResult = await checkAvailability({
@@ -204,7 +198,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     setLoading(true);
 
     try {
-      // Validate form
       const validationErrors = await validateProfileForm();
       if (Object.keys(validationErrors).length > 0) {
         setFieldErrors(validationErrors);
@@ -212,7 +205,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
         return;
       }
 
-      // Prepare data for API call
       const updateData = {
         userId: user.id,
         firstName: formData.firstName.trim(),
@@ -223,19 +215,16 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
 
       console.log("Submitting user update:", updateData);
 
-      // Call the API
       const result = await editUser(updateData);
 
       console.log("User update successful:", result);
 
-      // Call onSuccess with the updated data
       onSuccess({
         ...user,
         ...formData,
         updatedAt: new Date().toISOString(),
       });
 
-      // Close the popup
       onClose();
 
     } catch (err) {
@@ -262,7 +251,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     setLoading(true);
 
     try {
-      // Validate form
       const validationErrors = validatePasswordForm();
       if (Object.keys(validationErrors).length > 0) {
         setFieldErrors(validationErrors);
@@ -270,7 +258,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
         return;
       }
 
-      // Prepare data for API call
       const updateData = {
         userId: user.id,
         currentPassword: passwordData.currentPassword,
@@ -279,19 +266,16 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
 
       console.log("Submitting password change...");
 
-      // Call the API
       const result = await changePassword(updateData);
 
       console.log("Password change successful:", result);
 
-      // Reset password form
       setPasswordData({
         currentPassword: "",
         newPassword: "",
         confirmPassword: "",
       });
 
-      // Show success popup
       setShowSuccessPopup(true);
       
     } catch (err) {
@@ -371,7 +355,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Enhanced Header */}
+            {/* Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
               {/* Background elements */}
               <div className={`absolute top-0 right-0 bg-white/20 rounded-full ${isMobileView ? "w-12 h-12 -translate-y-6 translate-x-6" : "w-16 h-16 -translate-y-8 translate-x-8"}`}></div>

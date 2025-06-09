@@ -45,7 +45,6 @@ const EditBudget: React.FC<EditBudgetProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Currency conversion state
   const [originalCurrency, setOriginalCurrency] = useState<CurrencyType>(
     budget.currency as CurrencyType
   );
@@ -64,7 +63,6 @@ const EditBudget: React.FC<EditBudgetProps> = ({
   const searchRef = useRef<HTMLDivElement>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -217,18 +215,18 @@ const EditBudget: React.FC<EditBudgetProps> = ({
 
   const handleSearchFocus = () => {
     setIsSearchOpen(true);
-    setIsCurrencyOpen(false); // Close currency dropdown when search is focused
+    setIsCurrencyOpen(false);
   };
 
   const handleCurrencyToggle = () => {
     setIsCurrencyOpen(!isCurrencyOpen);
-    setIsSearchOpen(false); // Close search dropdown when currency is clicked
+    setIsSearchOpen(false); 
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Close any open dropdowns
+    
     setIsSearchOpen(false);
     setIsCurrencyOpen(false);
     
@@ -295,9 +293,9 @@ const EditBudget: React.FC<EditBudgetProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Enhanced Header */}
+            {/*Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-              {/* Mobile-optimized background elements */}
+              {/*background elements */}
               <div
                 className={`absolute top-0 right-0 bg-white/20 rounded-full ${
                   isMobileView

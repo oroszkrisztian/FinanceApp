@@ -13,7 +13,7 @@ import {
   fetchDefaultAccounts,
 } from "../services/accountService";
 import { CustomCategory } from "../interfaces/CustomCategory";
-import { getAllSystemCategories } from "../services/categoriesService";
+import { getAllCategoriesForUser} from "../services/categoriesService";
 
 const Payments: React.FC = () => {
   const { user } = useAuth();
@@ -53,7 +53,7 @@ const Payments: React.FC = () => {
   const fetchCategories = async () => {
     setLoading(true);
     try {
-      const categoryData = await getAllSystemCategories();
+      const categoryData = await getAllCategoriesForUser(user!.id);
       setCategories(categoryData);
       console;
     } catch (error) {

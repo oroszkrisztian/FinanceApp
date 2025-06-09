@@ -23,11 +23,11 @@ interface Transaction {
   description?: string;
   name?: string;
   category?: string;
-  categories?: any[]; // For upcoming payments
-  transactionCategories?: any[]; // For regular transactions
+  categories?: any[]; 
+  transactionCategories?: any[]; 
   account?: string;
-  fromAccount?: string; // For transfer transactions
-  toAccount?: string; // For transfer transactions
+  fromAccount?: string;
+  toAccount?: string; 
   createdAt?: string;
   date?: string;
 }
@@ -82,7 +82,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 }) => {
   const [isMobileView, setIsMobileView] = React.useState(false);
 
-  // Enhanced mobile view detection
+  
   React.useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -106,7 +106,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       0
     );
 
-    // Helper function to check if a payment should be included in the current month
+   
     const shouldIncludePaymentInMonth = (
       paymentDate: Date,
       currentMonth: Date,
@@ -163,7 +163,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return false;
     };
 
-    // Filter current month transactions
     const monthlyTransactions = transactions.filter((t) => {
       const transactionDate = new Date(t.createdAt || t.date || "");
       return shouldIncludePaymentInMonth(
@@ -174,7 +173,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       );
     });
 
-    // Separate income, expense, and transfer transactions
     const incomeTransactions = monthlyTransactions.filter(
       (t) => t.type === "INCOME"
     );
@@ -185,7 +183,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       (t) => t.type === "TRANSFER"
     );
 
-    // Filter upcoming payments for current month using the same logic as the chart
     const upcomingIncome = futureIncomingPayments.filter((p) => {
       if (!p.nextExecution) return false;
       const nextDate = new Date(p.nextExecution);
@@ -211,7 +208,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       );
     });
 
-    // Calculate totals
     const totalActualIncome = incomeTransactions.reduce(
       (sum, t) =>
         sum +
@@ -247,10 +243,8 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       0
     );
 
-    // Create combined list of all transactions for "all" filter type
     const allTransactionsWithUpcoming: CombinedTransaction[] = [];
 
-    // Add actual transactions
     monthlyTransactions.forEach((t) => {
       allTransactionsWithUpcoming.push({
         ...t,
@@ -259,7 +253,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       });
     });
 
-    // Add upcoming payments if included
     if (includeUpcoming) {
       upcomingIncome.forEach((p) => {
         allTransactionsWithUpcoming.push({
@@ -280,7 +273,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       });
     }
 
-    // Sort by date (most recent first) - for "all" filter type
     allTransactionsWithUpcoming.sort(
       (a, b) => b.sortDate.getTime() - a.sortDate.getTime()
     );
@@ -302,7 +294,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       totalExpenses:
         totalActualExpenses + (includeUpcoming ? totalUpcomingExpenses : 0),
       totalTransfers: totalActualTransfers,
-      // For simplified view calculations
       actualNet: totalActualIncome - totalActualExpenses - totalActualTransfers,
       projectedNet: totalUpcomingIncome - totalUpcomingExpenses,
     };
@@ -350,7 +341,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return <TrendingDown size={isMobileView ? 20 : 24} />;
     if (filterType === "transfer")
       return <ArrowRightLeft size={isMobileView ? 20 : 24} />;
-    // For 'all' type, show DollarSign icon
     return <DollarSign size={isMobileView ? 20 : 24} />;
   };
 
@@ -358,7 +348,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     if (filterType === "income") return "text-emerald-600";
     if (filterType === "expense") return "text-red-600";
     if (filterType === "transfer") return "text-blue-600";
-    // For 'all' type, use indigo
     return "text-indigo-600";
   };
 
@@ -417,7 +406,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
   };
 
   const getAccountName = (accountId: number | string | any) => {
-    // Handle case where accountId is an object
     if (
       typeof accountId === "object" &&
       accountId !== null &&
@@ -425,7 +413,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     ) {
       return accountId.name || `Account ${accountId.id || "Unknown"}`;
     }
-    // Handle regular account id lookup
     const account = accounts.find((a) => a.id === accountId);
     return account?.name || `Account ${accountId}`;
   };
@@ -434,7 +421,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     transaction: Transaction | CombinedTransaction;
     isUpcoming?: boolean;
   }> = ({ transaction, isUpcoming = false }) => {
-    // Use the isUpcoming prop first, then check if it's a CombinedTransaction with isUpcoming property
     const actualIsUpcoming =
       isUpcoming ||
       ("isUpcoming" in transaction ? transaction.isUpcoming : false);
@@ -451,7 +437,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 
     const categoryList: string[] = [];
 
-    // Handle upcoming payment categories (categories array)
     if (transaction.categories && transaction.categories.length > 0) {
       transaction.categories.forEach((cat: any) => {
         if (cat.customCategory?.name) {
@@ -464,7 +449,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       });
     }
 
-    // Handle regular transaction categories (transactionCategories array)
     if (
       transaction.transactionCategories &&
       transaction.transactionCategories.length > 0
@@ -478,7 +462,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       });
     }
 
-    // Fallback to single category field
     if (categoryList.length === 0 && transaction.category) {
       categoryList.push(transaction.category);
     }
@@ -536,7 +519,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return <ArrowDown size={isMobileView ? 12 : 16} />;
     };
 
-    // Add account name resolution for transfers
     const fromAccountName = transaction.fromAccount
       ? getAccountName(transaction.fromAccount)
       : "";
@@ -582,7 +564,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                   <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
                     <Calendar size={10} />
                     {actualIsUpcoming && "nextExecution" in transaction ? (
-                      // For upcoming payments (CombinedTransaction with nextExecution)
                       <>
                         <span className="text-orange-600 font-medium mr-1">
                           Upcoming:
@@ -613,7 +594,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                           )}
                       </>
                     ) : (
-                      // For regular transactions
+                      // Regular transactions
                       <>
                         {new Date(
                           transaction.createdAt || transaction.date || ""
@@ -660,7 +641,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                 </div>
               </div>
 
-              {/* Categories - more compact on mobile */}
+              {/* Categories */}
               {categoryList.length > 0 && (
                 <div
                   className={`flex flex-wrap gap-1 ${isMobileView ? "mt-1" : "mt-2"}`}
@@ -708,7 +689,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
 
     const categoryList: string[] = [];
 
-    // Handle upcoming payment categories (categories array)
     if (payment.categories && payment.categories.length > 0) {
       payment.categories.forEach((cat: any) => {
         if (cat.customCategory?.name) {
@@ -721,7 +701,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       });
     }
 
-    // Fallback to single category field
     if (categoryList.length === 0 && payment.category) {
       categoryList.push(payment.category);
     }
@@ -747,12 +726,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
       return "bg-gray-100 text-gray-600";
     };
 
-    const getTextColor = () => {
-      if (isIncome) return "text-emerald-700";
-      if (isExpense) return "text-red-700";
-      if (isTransfer) return "text-blue-700";
-      return "text-gray-700";
-    };
 
     const getCategoryColor = () => {
       if (isIncome) return "bg-emerald-100 text-emerald-700";
@@ -843,7 +816,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                 </div>
               </div>
 
-              {/* Categories - more compact on mobile */}
+              {/* Categories */}
               {categoryList.length > 0 && (
                 <div
                   className={`flex flex-wrap gap-1 ${isMobileView ? "mt-1" : "mt-2"}`}
@@ -875,10 +848,7 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
     );
   };
 
-  // Check if we should show simplified view (all + includeUpcoming)
-  const showSimplifiedView = filterType === "all" && includeUpcoming;
 
-  // Check if we should show single column for all transactions (any "all" filter)
   const showSingleColumn = filterType === "all";
 
   return (
@@ -901,11 +871,11 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Fixed Header with Enhanced Design */}
+            {/* Fixed Header*/}
             <div
               className={`${isMobileView ? "p-3" : "p-4"} ${getHeaderGradient()} text-white relative flex-shrink-0 overflow-hidden`}
             >
-              {/* Enhanced decorative elements */}
+              {/*Decorative elements */}
               <div className="absolute top-0 right-0 w-16 h-16 bg-white/20 rounded-full -translate-y-8 translate-x-8"></div>
               <div className="absolute bottom-0 left-0 w-12 h-12 bg-white/10 rounded-full translate-y-6 -translate-x-6"></div>
               <div className="absolute top-2 left-16 w-8 h-8 bg-white/15 rounded-full"></div>
@@ -953,12 +923,11 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
               </div>
             </div>
 
-            {/* Enhanced Scrollable Content */}
+            {/* Scrollable Content */}
             <div
               className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"} bg-gradient-to-b from-white to-gray-50/50`}
             >
               {showSingleColumn ? (
-                // Single column for all transactions (with or without upcoming)
                 <div
                   className={`space-y-${isMobileView ? "2" : "3"} ${isMobileView ? "max-h-80" : "max-h-96"} overflow-y-auto`}
                 >
@@ -983,7 +952,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                   )}
                 </div>
               ) : (
-                // Original separate columns view for income/expense/transfer only filters
                 <div>
                   {/* Income Section */}
                   {filterType === "income" && (

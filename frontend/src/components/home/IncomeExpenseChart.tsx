@@ -273,9 +273,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     setIsModalOpen(false);
   };
 
-  {
-    /* Enhanced mobile view detection */
-  }
+
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -286,9 +284,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  {
-    /* Exchange rates loading */
-  }
+ 
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -305,9 +301,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     loadExchangeRates();
   }, []);
 
-  {
-    /* Click outside handlers */
-  }
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -394,9 +388,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     return paymentDateOnly >= rangeStartOnly && paymentDateOnly <= rangeEndOnly;
   };
 
-  {
-    /* Chart data generation */
-  }
+
   const chartData = useMemo(() => {
     if (accountsLoading) {
       return { dataPoints: [], todayDay: 1 };
@@ -427,9 +419,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         ) + 1
       : totalDays + 1;
 
-    {
-      /* Account balance calculation */
-    }
+    
     const accountBalancesByDay: Record<
       number,
       Record<
@@ -579,9 +569,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
       >
     );
 
-    {
-      /* Future payments processing */
-    }
+    
     if (includeUpcoming) {
       const allFuturePayments = [
         ...futureIncomingPayments.map((p: any) => ({ ...p, type: "INCOME" })),
@@ -691,9 +679,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
       ? totalDays
       : Math.min(todayInRange, totalDays);
 
-    {
-      /* Data points generation */
-    }
+  
     for (let day = 1; day <= lastDayToShow; day++) {
       const currentDate = new Date(
         startDate.getFullYear(),
@@ -811,9 +797,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         dayIndex: day,
       };
 
-      {
-        /* Set line data for past/present vs future */
-      }
+      
       if (!isFuture) {
         dataPoint.income = actualIncome || 0;
         dataPoint.expenses = actualExpenses || 0;
@@ -832,18 +816,14 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         dataPoint.transfersFuture = dayUpcomingTransfers || 0;
       }
 
-      {
-        /* Handle today transition point */
-      }
+     
       if (includeUpcoming && day === todayInRange) {
         dataPoint.incomeFuture = actualIncome || 0;
         dataPoint.expensesFuture = actualExpenses || 0;
         dataPoint.transfersFuture = actualTransfers || 0;
       }
 
-      {
-        /* Account balance data */
-      }
+      
       defaultAccounts.forEach((account: any) => {
         const balanceData = accountBalancesByDay[account.id]?.[day];
         const balance =
@@ -1005,9 +985,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     );
   };
 
-  {
-    /* Summary statistics */
-  }
+  
   const summaryStats = useMemo(() => {
     let totalActualIncome = 0;
     let totalActualExpenses = 0;
@@ -1070,7 +1048,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
           overflowX: "hidden",
         }}
       >
-        {/* Mobile-optimized background elements */}
+        {/* Mobile background elements */}
         <div
           className={`absolute top-0 right-0 bg-gradient-to-br from-blue-300 to-indigo-500 rounded-full opacity-20 ${
             isMobileView
@@ -1107,7 +1085,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         overflowX: "hidden",
       }}
     >
-      {/* Mobile-optimized background elements */}
+      {/* Mobile background elements */}
       <div
         className={`absolute top-0 right-0 bg-gradient-to-br from-blue-300 to-indigo-500 rounded-full opacity-20 ${
           isMobileView
@@ -1136,12 +1114,12 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
       ></div>
 
       <div className="relative z-10 h-full flex flex-col">
-        {/* Enhanced Header */}
+        {/* Header */}
         <div className={`flex-shrink-0 ${isMobileView ? "mb-2" : "mb-4"}`}>
           <div
             className={`flex ${isMobileView ? "flex-col space-y-3" : "justify-between items-center"}`}
           >
-            {/* Title Section */}
+            {/* Title */}
             <div className="flex items-center space-x-3">
               <motion.div
                 className={`bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md ${
@@ -1417,7 +1395,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
           </ResponsiveContainer>
         </div>
 
-        {/* Enhanced Summary Cards */}
+        {/* Summary Cards */}
         <div
           className={`flex-shrink-0 grid gap-2 ${isMobileView ? "grid-cols-3" : "grid-cols-3"}`}
         >
@@ -1596,7 +1574,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
           </motion.div>
         </div>
 
-        {/* Enhanced Mobile Legend */}
+        {/* Mobile Legend */}
         {isMobileView && (
           <div className="flex-shrink-0 mt-2 bg-gray-50 rounded-lg p-1.5">
             <div className="flex justify-center space-x-2 text-xs flex-wrap gap-1">

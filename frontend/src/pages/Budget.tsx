@@ -5,7 +5,7 @@ import { getAllBudgets } from "../services/budgetService";
 import { Budget as BudgetType } from "../interfaces/Budget";
 import { CustomCategory } from "../interfaces/CustomCategory";
 import LoadingState from "../components/LoadingState";
-import { getAllSystemCategories } from "../services/categoriesService";
+import { getAllCategoriesForUser } from "../services/categoriesService";
 import BudgetDashboard from "../components/budget/BudgetDashboard";
 
 const Budget: React.FC = () => {
@@ -43,7 +43,7 @@ const Budget: React.FC = () => {
       return;
     }
     try {
-      const categoriesData = await getAllSystemCategories();
+      const categoriesData = await getAllCategoriesForUser(user!.id);
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (err) {
       console.error("Error fetching categories:", err);

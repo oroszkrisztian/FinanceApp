@@ -184,7 +184,6 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
 
   const steps = ["Basic Info", "Categories", "Review"];
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -634,9 +633,9 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Enhanced Header */}
+            {/* Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
-              {/* Mobile-optimized background elements */}
+              {/* ackground elements */}
               <div
                 className={`absolute top-0 right-0 bg-white/20 rounded-full ${
                   isMobileView

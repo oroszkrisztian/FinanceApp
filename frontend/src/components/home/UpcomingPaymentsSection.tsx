@@ -39,7 +39,6 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
   const [previewItem, setPreviewItem] = useState<any>(null);
   const currencyRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced mobile detection with more breakpoints
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -117,7 +116,6 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
     setPreviewItem(null);
   };
 
-  // Process payments data (NO dependency on rates for base calculations)
   const allPayments = useMemo(() => {
     const currentDate = new Date();
     const currentMonth = currentDate.getMonth();
@@ -191,7 +189,6 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
     return 'future';
   };
 
-  // Mobile-optimized empty state
   if (allPayments.length === 0) {
     return (
       <div
@@ -289,7 +286,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
         overflowX: "hidden"
       }}
     >
-      {/* Mobile-optimized background elements */}
+      {/* Background elements */}
       <div
         className={`absolute top-0 right-0 bg-gradient-to-br from-violet-300 to-purple-500 rounded-full opacity-20 ${
           isMobileView
@@ -311,9 +308,9 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
       ></div>
 
       <div className="relative z-10 h-full flex flex-col">
-        {/* Enhanced Mobile Header */}
+        {/* Header */}
         <div className={`flex-shrink-0 ${isMobileView ? "mb-3" : "mb-6"}`}>
-          {/* Title Section - Always on top for mobile */}
+          {/* Title Section*/}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <motion.div
@@ -403,7 +400,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
             </div>
           </div>
 
-          {/* Enhanced Mobile Tab System */}
+          {/*Mobile Tab System */}
           <div className="relative">
             <div className={`flex ${isMobileView ? "space-x-1" : "space-x-1"} bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-1 shadow-inner`}>
               <motion.button
@@ -484,7 +481,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
           </div>
         </div>
 
-        {/* Enhanced Scrollable Payment List */}
+        {/* Scrollable Payment List */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
           <div className="pr-2" style={{ paddingBottom: "1rem" }}>
             <AnimatePresence mode="wait">
@@ -493,7 +490,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }} // Simplified animation
+                transition={{ duration: 0.2 }} 
                 className="space-y-2 overflow-x-hidden"
               >
                 {sortedPayments.length === 0 ? (
@@ -528,7 +525,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                           key={payment.id || index}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
-                          transition={{ duration: 0.2 }} // Simplified animation
+                          transition={{ duration: 0.2 }} 
                           whileTap={{ scale: 0.98 }}
                           onClick={() => openPreview(payment)}
                           className={`p-3 rounded-xl border-l-4 shadow-sm hover:shadow-md active:shadow-lg transition-all cursor-pointer w-full ${
@@ -547,7 +544,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                         >
                           <div className="flex items-start justify-between">
                             <div className="flex items-start space-x-3 flex-1 min-w-0">
-                              {/* Enhanced Mobile-Friendly Icon */}
+                              
                               <div
                                 className={`${isMobileView ? "p-2" : "p-2"} rounded-xl shadow-sm ${
                                   payment.isIncome
@@ -566,7 +563,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                                 )}
                               </div>
 
-                              {/* Enhanced Mobile Payment Info */}
+                              {/*Payment Info */}
                               <div className="flex-1 min-w-0 max-w-full">
                                 <div className="flex items-start justify-between">
                                   <div className="min-w-0 flex-1 max-w-full">
@@ -590,7 +587,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                                       )}
                                     </div>
 
-                                    {/* Compact Date and Days Until - Same line */}
+                                    {/* Compact Date and Days Until */}
                                     <div className="flex items-center space-x-2 mt-1">
                                       <span className={`text-gray-600 font-medium ${isMobileView ? "text-xs" : "text-xs"}`}>
                                         📅 {formatDate(payment.nextExecution)}
@@ -609,7 +606,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
                                     </div>
                                   </div>
 
-                                  {/* Enhanced Mobile Amount Display */}
+                                  {/*Amount Display */}
                                   <div className="text-right ml-3 flex-shrink-0 max-w-[40%]">
                                     <p
                                       className={`font-bold break-words ${isMobileView ? "text-sm" : "text-sm"} ${

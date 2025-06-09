@@ -13,7 +13,6 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -44,7 +43,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
           isMobileView ? "max-w-sm w-full p-6" : "max-w-md w-full p-8"
         }`}
       >
-        {/* Mobile-optimized background elements */}
+        {/*background elements */}
         <div
           className={`absolute top-0 right-0 bg-gradient-to-br from-indigo-300 to-purple-500 rounded-full opacity-20 ${
             isMobileView
@@ -73,7 +72,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
         ></div>
 
         <div className="relative z-10 flex flex-col items-center justify-center text-center">
-          {/* Enhanced animated icon */}
+          {/* Animated icon */}
           <motion.div
             className={`mb-6 bg-gradient-to-r from-indigo-100 to-purple-100 rounded-full flex items-center justify-center border border-indigo-200/50 backdrop-blur-sm ${
               isMobileView ? "w-20 h-20" : "w-24 h-24"
@@ -103,7 +102,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
             </motion.div>
           </motion.div>
 
-          {/* Enhanced title with gradient */}
+          {/*Title */}
           <motion.h2
             className={`font-bold mb-3 bg-gradient-to-r from-indigo-700 to-purple-700 bg-clip-text text-transparent ${
               isMobileView ? "text-xl" : "text-2xl"
@@ -115,7 +114,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
             Your Budget Journey Awaits!
           </motion.h2>
 
-          {/* Enhanced description */}
+          {/* Description */}
           <motion.p
             className={`text-gray-600 mb-6 max-w-sm leading-relaxed ${
               isMobileView ? "text-sm" : "text-base"
@@ -127,7 +126,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
             Take control of your finances with smart budgeting. Set limits, track expenses, and achieve your financial goals.
           </motion.p>
 
-          {/* Enhanced features list */}
+          {/* List*/}
           <motion.div
             className={`grid gap-3 mb-6 w-full ${isMobileView ? "grid-cols-1" : "grid-cols-1"}`}
             initial={{ opacity: 0, y: 20 }}
@@ -153,7 +152,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
             </div>
           </motion.div>
 
-          {/* Enhanced CTA button */}
+          {/*Button */}
           <motion.button
             onClick={handleCreateBudget}
             className={`bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-xl transform transition-all duration-300 flex items-center justify-center gap-2 backdrop-blur-sm ${
@@ -177,7 +176,7 @@ const EmptyBudget: React.FC<EmptyBudgetProps> = ({ categories, onSuccess }) => {
             Create Your First Budget
           </motion.button>
 
-          {/* Enhanced footer text */}
+          {/* Footer */}
           <motion.p
             className={`text-gray-400 mt-4 ${isMobileView ? "text-xs" : "text-sm"}`}
             initial={{ opacity: 0 }}

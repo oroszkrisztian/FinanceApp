@@ -57,7 +57,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [nameSearchTerm, setNameSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
 
-  // Auto-set to current month
   const getCurrentMonthRange = () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -81,7 +80,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -286,7 +284,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
     };
 
     if (dateRange.start && dateRange.end) {
-      // Check if it's current month
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const currentMonthEnd = new Date(
@@ -318,7 +315,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setCategorySearchTerm("");
-    setDateRange(getCurrentMonthRange()); // Reset to current month instead of null
+    setDateRange(getCurrentMonthRange()); 
   };
 
   const handleFundClick = (fund: any, event: React.MouseEvent) => {
@@ -350,6 +347,13 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           return;
         }
 
+        const categoryIds =
+          incomeToExecute.categories && incomeToExecute.categories.length > 0
+            ? categories
+                .filter((cat) => incomeToExecute.categories.includes(cat.name))
+                .map((cat) => cat.id)
+            : null;
+
         await executeRecurringIncome(
           user.id,
           incomeToExecute.id,
@@ -357,7 +361,8 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           incomeToExecute.currency,
           account.id,
           incomeToExecute.name,
-          incomeToExecute.description || null
+          incomeToExecute.description || null,
+          categoryIds
         );
 
         console.log("Income executed successfully:", incomeToExecute);
@@ -422,7 +427,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           height: isMobileView ? "calc(100vh - 160px)" : "calc(100vh - 80px)",
         }}
       >
-        {/* Mobile-optimized background elements */}
+        {/* Background elements */}
         <div
           className={`absolute top-0 right-0 bg-gradient-to-br from-green-300 to-emerald-500 rounded-full opacity-20 ${
             isMobileView
@@ -451,7 +456,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         ></div>
 
         <div className="relative z-10 h-full flex flex-col">
-          {/* Enhanced Header */}
+          {/* Header */}
           <div className={`flex-shrink-0 ${isMobileView ? "mb-2" : "mb-4"}`}>
             <div className="flex justify-between items-center mb-2">
               <div className="flex items-center gap-2">
@@ -853,7 +858,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         </div>
       </div>
 
-      {/* Enhanced Get Income Now Confirmation Dialog */}
+      {/*Get Income Now Confirmation Dialog */}
       <AnimatePresence>
         {isGetIncomeDialogOpen && incomeToExecute && (
           <motion.div
@@ -869,7 +874,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
               className="bg-white rounded-2xl max-w-md w-full shadow-2xl flex flex-col overflow-hidden pointer-events-auto border border-gray-200"
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Simplified Header */}
+              {/* Header */}
               <div className="p-3 bg-gradient-to-r from-green-600 to-green-800 text-white relative flex-shrink-0 rounded-t-2xl">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
@@ -892,7 +897,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                 </div>
               </div>
 
-              {/* Simplified Content */}
+              {/*Content */}
               <div className="p-3 space-y-4">
                 {/* Income Amount */}
                 <div className="text-center py-2">
@@ -914,7 +919,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                   )}
                 </div>
 
-                {/* Account & Categories - Simplified */}
+                {/* Account & Categories */}
                 <div className="bg-gray-50 rounded-lg p-2 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600">Account:</span>
@@ -948,8 +953,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                   </div>
                 </div>
 
-                {/* Balance Change with Arrows */}
-                {/* Minimal Balance Impact */}
+                
                 {(() => {
                   const account = accounts.find(
                     (acc) => acc.name === incomeToExecute.account

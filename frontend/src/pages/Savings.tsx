@@ -938,7 +938,7 @@ const Savings: React.FC = () => {
         <DeleteSavingAccountModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
-          accounts={[]} // We don't need to pass all accounts anymore
+          accounts={savingsAccounts} 
           defaultAccounts={defaultAccounts}
           accountId={selectedAccount.id}
           accountName={selectedAccount.name}

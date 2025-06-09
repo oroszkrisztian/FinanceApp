@@ -58,7 +58,6 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const [nameSearchTerm, setNameSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
 
-  // Auto-set to current month
   const getCurrentMonthRange = () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -82,7 +81,6 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -287,7 +285,6 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
     };
 
     if (dateRange.start && dateRange.end) {
-      // Check if it's current month
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const currentMonthEnd = new Date(
@@ -319,7 +316,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setCategorySearchTerm("");
-    setDateRange(getCurrentMonthRange()); // Reset to current month instead of null
+    setDateRange(getCurrentMonthRange()); 
   };
 
   const handleBillClick = (bill: any, event: React.MouseEvent) => {
@@ -431,7 +428,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
           height: isMobileView ? "calc(100vh - 160px)" : "calc(100vh - 80px)",
         }}
       >
-        {/* Mobile-optimized background elements */}
+        {/* Background elements */}
         <div
           className={`absolute top-0 right-0 bg-gradient-to-br from-red-300 to-rose-500 rounded-full opacity-20 ${
             isMobileView
@@ -872,7 +869,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
         </div>
       </div>
 
-      {/* Enhanced Pay Now Confirmation Dialog */}
+      {/* Pay Now Confirmation Dialog */}
       <AnimatePresence>
         {isPayNowDialogOpen && paymentToExecute && (
           <motion.div
@@ -911,7 +908,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
                 </div>
               </div>
 
-              {/* Simplified Content */}
+              {/*Content */}
               <div className="p-3 space-y-4">
                 {/* Payment Amount */}
                 <div className="text-center py-2">
@@ -933,7 +930,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
                   )}
                 </div>
 
-                {/* Account & Categories - Simplified */}
+                {/* Account & Categories */}
                 <div className="bg-gray-50 rounded-lg p-2 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="text-xs text-gray-600">Account:</span>

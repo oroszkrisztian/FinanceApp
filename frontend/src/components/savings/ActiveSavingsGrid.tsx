@@ -41,7 +41,6 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [updatedCardId, setUpdatedCardId] = useState<number | null>(null);
 
-  // Calculate completion percentage for each account
   const calculateProgress = (account: Account): number => {
     if (!account.savingAccount || !account.savingAccount.targetAmount) return 0;
     const currentAmount = account.amount || 0;
@@ -49,14 +48,12 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
     return (currentAmount / targetAmount) * 100;
   };
 
-  // Fetch accounts data
   const fetchSavingAccounts = async (accountId?: number): Promise<void> => {
     if (!userId) return;
     setLoading(true);
     try {
       const data: Account[] = await fetchSavings(userId);
 
-      // If updating a specific account, only update that one
       if (accountId && accounts.length > 0) {
         const updatedAccounts = accounts.map((acc) =>
           acc.id === accountId
@@ -64,11 +61,10 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
             : acc
         );
         setAccounts(updatedAccounts);
-        setUpdatedCardId(accountId); // Track the updated card
+        setUpdatedCardId(accountId); 
       } else {
-        // Full reload only if needed
         setAccounts(data);
-        setUpdatedCardId(null); // Reset if full reload
+        setUpdatedCardId(null); 
       }
 
       setLoading(false);
@@ -80,26 +76,22 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
     }
   };
 
-  // Initial fetch
   useEffect(() => {
     fetchSavingAccounts();
   }, [userId]);
 
-  // Fetch specific account when updatedAccountId changes
   useEffect(() => {
     if (updatedAccountId) {
       fetchSavingAccounts(updatedAccountId);
     }
   }, [updatedAccountId]);
 
-  // Filter accounts based on search and filter options
   useEffect(() => {
     if (accounts.length === 0) {
       setFilteredAccounts([]);
       return;
     }
 
-    // Apply search filter first
     let filtered = accounts;
     if (selectedSearchResult) {
       filtered = [selectedSearchResult];
@@ -109,14 +101,12 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
       );
     }
 
-    // Now apply active/completed filter
     if (filterOption === "active") {
       filtered = filtered.filter(
         (account) => !account.savingAccount?.isCompleted
       );
     }
 
-    // Sort results if needed
     if (sortType === "percentage" && sortOrder !== "none") {
       filtered = [...filtered].sort((a, b) => {
         const progressA = calculateProgress(a);
@@ -138,15 +128,13 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
     sortType,
   ]);
 
-  // Display only active accounts
   const activeAccounts = filteredAccounts.filter(
     (account) => !account.savingAccount?.isCompleted
   );
 
-  // Handle success events from modals
   const handleSuccess = (accountId: number): void => {
-    setUpdatedCardId(accountId); // Trigger animation for the updated card
-    fetchSavingAccounts(accountId); // Refresh the specific account
+    setUpdatedCardId(accountId); 
+    fetchSavingAccounts(accountId); 
   };
 
   if (loading && accounts.length === 0) {
@@ -208,7 +196,7 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
               }}
               onDelete={onDelete}
               updatedSavingId={updatedAccountId}
-              isUpdated={account.id === updatedCardId} // Pass animation trigger
+              isUpdated={account.id === updatedCardId} 
             />
           </motion.div>
         ))}

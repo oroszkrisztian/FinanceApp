@@ -35,7 +35,6 @@ const CreateDefaultAccountPopup = ({
 
   const currencyRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -152,9 +151,9 @@ const CreateDefaultAccountPopup = ({
           }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Enhanced Header */}
+          {/*Header */}
           <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-            {/* Mobile-optimized background elements */}
+            {/*background elements */}
             <div
               className={`absolute top-0 right-0 bg-white/20 rounded-full ${
                 isMobileView

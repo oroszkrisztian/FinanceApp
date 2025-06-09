@@ -36,7 +36,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
 
   const currencyRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -248,9 +247,9 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Enhanced Header */}
+            {/* Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-green-600 to-emerald-600 text-white">
-              {/* Mobile-optimized background elements */}
+              {/* Background elements */}
               <div
                 className={`absolute top-0 right-0 bg-white/20 rounded-full ${
                   isMobileView

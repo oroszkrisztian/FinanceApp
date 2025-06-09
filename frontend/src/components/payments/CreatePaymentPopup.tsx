@@ -241,7 +241,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const [isNotificationDayOpen, setIsNotificationDayOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -391,21 +390,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  const calculateMonthlyImpact = () => {
-    const amount = parseFloat(formData.amount) || 0;
-    const multipliers = {
-      [Frequency.WEEKLY]: 4.33,
-      [Frequency.BIWEEKLY]: 2.17,
-      [Frequency.MONTHLY]: 1,
-      [Frequency.QUARTERLY]: 0.33,
-      [Frequency.YEARLY]: 0.083,
-      [Frequency.DAILY]: 30,
-      [Frequency.CUSTOM]: 1,
-      [Frequency.ONCE]: 0,
-    };
-    return amount * multipliers[formData.frequency];
-  };
 
   const calculateNextPayments = () => {
     const dates = [];
@@ -1041,11 +1025,11 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Enhanced Header */}
+            {/*Header */}
             <div
               className={`relative overflow-hidden ${theme.gradient} text-white`}
             >
-              {/* Mobile-optimized background elements */}
+              {/* Background elements */}
               <div
                 className={`absolute top-0 right-0 bg-white/20 rounded-full ${
                   isMobileView

@@ -18,7 +18,6 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const [shouldAnimate, setShouldAnimate] = useState<boolean>(true);
 
-  // Card animation variants
   const cardVariants = {
     hidden: { opacity: 0, y: 20, scale: 0.95 },
     visible: (i: number) => ({
@@ -26,7 +25,7 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
       y: 0,
       scale: 1,
       transition: {
-        delay: i * 0.05 + 0.3, // Add extra delay to stagger after active cards
+        delay: i * 0.05 + 0.3, 
         duration: 0.4,
         ease: "easeOut",
       },
@@ -43,7 +42,6 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
   };
 
   useEffect(() => {
-    // Setup a one-time animation on first render
     const timer = setTimeout(() => {
       setShouldAnimate(false);
     }, 1000);
@@ -87,14 +85,11 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
         const buttonRect = button.getBoundingClientRect();
         const el = menuRef.current;
 
-        // Position menu
         el.style.left = `${buttonRect.right - el.offsetWidth}px`;
         el.style.top = `${buttonRect.bottom + 8}px`;
 
-        // Calculate available space
         const spaceBelow = window.innerHeight - buttonRect.bottom;
 
-        // Adjust position if not enough space below
         if (
           spaceBelow < el.offsetHeight + 10 &&
           buttonRect.top > el.offsetHeight + 10
@@ -105,7 +100,6 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
           el.style.transformOrigin = "top right";
         }
 
-        // Animate in
         requestAnimationFrame(() => {
           el.style.opacity = "1";
           el.style.transition =
@@ -127,7 +121,7 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
       {/* Decorative corner accent */}
       <div className="absolute top-0 right-0 w-20 h-20 bg-green-500 opacity-10 rounded-bl-full"></div>
 
-      {/* Wave background at bottom with green loading effect */}
+      {/* Wave background*/}
       <div className="absolute bottom-0 left-0 right-0 h-16 sm:h-20 md:h-24 z-0 overflow-hidden">
         <div
           className="absolute bottom-0 left-0 w-full h-full bg-green-400 z-0"
@@ -139,7 +133,7 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
         ></div>
       </div>
 
-      {/* Card content with higher z-index to appear above the background */}
+      {/* Card content */}
       <div className="relative">
         {/* Top section with account name and menu button */}
         <div className="flex justify-between items-start mb-2">
@@ -218,7 +212,7 @@ const CompletedSavingCard: React.FC<CompletedSavingCardProps> = ({
           </div>
         </div>
 
-        {/* Completion percentage moved under the name */}
+        {/* Completion percentage*/}
         <div className="mb-4">
           <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
             100% Complete

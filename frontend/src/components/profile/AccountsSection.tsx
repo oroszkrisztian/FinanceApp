@@ -28,7 +28,6 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
   const [currentAccount, setCurrentAccount] = useState<Account | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | number | null>(null);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -98,7 +97,7 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
 
   return (
     <>
-      {/* Section Header */}
+      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -227,14 +226,11 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
                                 const windowHeight = window.innerHeight;
                                 const dropdownHeight = 120; // approximate height
                                 
-                                // Check if dropdown would go below viewport
                                 const spaceBelow = windowHeight - rect.bottom;
                                 
                                 if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
-                                  // Position above the button
                                   el.style.top = `${rect.top + scrollY - dropdownHeight - 8}px`;
                                 } else {
-                                  // Position below the button
                                   el.style.top = `${rect.bottom + scrollY + 8}px`;
                                 }
                                 

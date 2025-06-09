@@ -24,7 +24,6 @@ const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch accounts data
   const fetchCompletedAccounts = async (): Promise<void> => {
     if (!userId) return;
     setLoading(true);
@@ -42,19 +41,16 @@ const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
     }
   };
 
-  // Initial fetch
   useEffect(() => {
     fetchCompletedAccounts();
   }, [userId]);
 
-  // Filter accounts based on search and filter options
   useEffect(() => {
     if (accounts.length === 0) {
       setFilteredAccounts([]);
       return;
     }
 
-    // Apply search filter first
     let filtered = accounts;
     if (selectedSearchResult) {
       filtered = [selectedSearchResult];
@@ -64,7 +60,6 @@ const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
       );
     }
 
-    // Only show completed accounts
     filtered = filtered.filter((account) => account.savingAccount?.isCompleted);
 
     setFilteredAccounts(filtered);

@@ -128,7 +128,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
     };
   }, []);
 
-  // Filter accounts based on search input
   useEffect(() => {
     if (searchInput.trim() === "") {
       setFilteredAccounts(defaultAccounts);
@@ -273,7 +272,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
         throw new Error("User not found");
       }
 
-      // Check if this would exceed the goal target
       const targetCheck = calculateTargetAmountExceed();
       if (targetCheck?.exceeded) {
         throw new Error(
@@ -299,7 +297,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
 
       setLoading(false);
       handleClose();
-      onSuccess(account.id); // Pass account ID to trigger animation
+      onSuccess(account.id); 
     } catch (err) {
       setLoading(false);
       setError(err instanceof Error ? err.message : "Failed to add funds");
@@ -339,7 +337,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
               className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl pointer-events-auto"
-              style={{ maxWidth: isMobileScreen ? "auto" : "auto" ,
+              style={{ maxWidth: isMobileScreen ? "auto" : "500px" ,
                         minWidth: isMobileScreen ? "auto" : "400px"
               }}
             >
@@ -350,7 +348,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                 <div className="absolute top-8 left-16 bg-white/10 h-10 w-10 rounded-full"></div>
                 <div className="absolute -top-2 right-12 bg-white/10 h-12 w-12 rounded-full"></div>
 
-                {/* Title is now part of the header, not overlapping */}
+                {/* Title */}
                 <div className="absolute bottom-0 left-0 w-full px-6 pb-3 flex items-center justify-between">
                   <div className="flex items-center">
                     <div className="bg-white w-12 h-12 rounded-full flex items-center justify-center mr-4 shadow-lg">
@@ -696,7 +694,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                       {targetCheck?.exceeded &&
                       sourceAccountNewBalance !== null &&
                       sourceAccountNewBalance > 0 ? (
-                        // Target amount exceeded warning
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -736,7 +733,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                         </motion.div>
                       ) : sourceAccountNewBalance !== null &&
                         sourceAccountNewBalance <= 0 ? (
-                        // Insufficient funds error state
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -778,7 +774,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                         newTargetBalance &&
                         !isNaN(parseNumberInput(amountTransfer)) &&
                         sourceAccountNewBalance !== null ? (
-                        // Valid transaction summary
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}

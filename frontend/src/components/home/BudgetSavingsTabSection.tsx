@@ -39,7 +39,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
   );
   const currencyRef = useRef<HTMLDivElement>(null);
 
-  // Enhanced mobile detection with more breakpoints
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -109,7 +108,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
     setIsCurrencyMenuOpen(false);
   };
 
-  // Process savings data (NO dependency on rates for base calculations)
   const savingsData = useMemo(() => {
     const savingsAccountsWithGoals = accounts
       .filter(
@@ -153,9 +151,8 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       totalGoalsCount: savingsAccountsWithGoals.length,
       overallProgress,
     };
-  }, [accounts]); // NO rates dependency
+  }, [accounts]); 
 
-  // Process budget data (NO dependency on rates for base calculations)
   const budgetData = useMemo(() => {
     if (!budgets || budgets.length === 0) {
       return {
@@ -172,14 +169,12 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
     const currentYear = new Date().getFullYear();
 
     const budgetsWithProgress = budgets.map((budget) => {
-      // Get category IDs for this budget
       const budgetCategoryIds = budget.customCategories
         ? budget.customCategories.map((cat: any) => String(cat.id))
         : budget.categoryIds
           ? budget.categoryIds.map((id: any) => String(id))
           : [];
 
-      // Filter transactions that match this budget's categories and are from current month
       const budgetTransactions = transactions.filter((transaction) => {
         const transactionDate = new Date(transaction.date);
         const isCurrentMonth =
@@ -188,7 +183,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
 
         const isExpense = transaction.type === "EXPENSE";
 
-        // Check if transaction matches any of the budget's categories
         const matchesCategory = transaction.transactionCategories?.some(
           (tc: any) => budgetCategoryIds.includes(String(tc.customCategoryId))
         );
@@ -196,7 +190,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
         return isCurrentMonth && isExpense && matchesCategory;
       });
 
-      // Calculate spent amount ONLY from matching transactions
       const spent = budgetTransactions.reduce((total, transaction) => {
         let transactionAmount = Math.abs(transaction.amount);
         return total + transactionAmount;
@@ -240,7 +233,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       totalBudgetsCount: budgetsWithProgress.length,
       overallProgress,
     };
-  }, [budgets, transactions]); // NO rates dependency
+  }, [budgets, transactions]); 
 
   const openPreview = (item: any, type: "budget" | "savings") => {
     setPreviewItem(item);
@@ -252,14 +245,12 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
     setPreviewType(null);
   };
 
-  // Get days remaining in current month
   const getDaysRemainingInMonth = () => {
     const now = new Date();
     const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return lastDay.getDate() - now.getDate();
   };
 
-  // Color logic from dashboard
   const getStatusColor = (percentage: number) => {
     if (percentage >= 75)
       return {
@@ -289,7 +280,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
     };
   };
 
-  // Mobile-optimized empty state
   if (activeTab === "budgets" && budgetData.totalBudgetsCount === 0) {
     return (
       <div
@@ -546,7 +536,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       ></div>
 
       <div className="relative z-10 h-full flex flex-col">
-        {/* Enhanced Mobile Header */}
+        {/* Mobile Header */}
         <div className={`flex-shrink-0 ${isMobileView ? "mb-3" : "mb-6"}`}>
           {/* Title Section - Always on top for mobile */}
           <div className="flex items-center justify-between mb-3">
@@ -673,7 +663,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
             </div>
           </div>
 
-          {/* Enhanced Mobile Tab System */}
+          {/*Mobile Tab System */}
           <div className="relative">
             <div
               className={`flex ${isMobileView ? "space-x-1" : "space-x-1"} bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-1 shadow-inner`}
@@ -735,7 +725,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
           </div>
         </div>
 
-        {/* Enhanced Scrollable Content */}
+        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
           <div className="pr-2" style={{ paddingBottom: "1rem" }}>
             <AnimatePresence mode="wait">

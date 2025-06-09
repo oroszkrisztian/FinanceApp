@@ -312,7 +312,8 @@ export const executeRecurringIncome = async (
   currency: string,
   toAccountId: number,
   name: string,
-  description: string | null
+  description: string | null,
+  customCategoriesId: number[] | null
 ) => {
   try {
     const response = await fetch(
@@ -330,6 +331,7 @@ export const executeRecurringIncome = async (
           toAccountId,
           name,
           description,
+          customCategoriesId
         }),
       }
     );

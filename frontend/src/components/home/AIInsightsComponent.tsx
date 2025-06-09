@@ -208,7 +208,7 @@ const AIInsightsComponent: React.FC<AIInsightsComponentProps> = ({
               </div>
             </div>
 
-            {/* Clear Chat Button - Only show when there are messages */}
+            {/* Clear Chat Button*/}
             {chat.length > 0 && (
               <motion.button
                 onClick={clearChat}

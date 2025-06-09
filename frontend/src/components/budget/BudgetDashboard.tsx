@@ -310,7 +310,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
       const data = await response.json();
       console.log("AI recommendations:", data);
 
-      // Parse the AI response and convert to our format
       if (data.success && data.recommendations) {
         setAiRecommendations(data.recommendations);
       } else {
@@ -338,7 +337,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     for (const rec of recommendations) {
       try {
         if (rec.action === "create") {
-          // Create new budget
+          
           await createUserBudgetWithCategories(
             user.id,
             rec.name,
@@ -348,7 +347,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
           );
           results.push({ success: true, action: "create", name: rec.name });
         } else if (rec.action === "update" && rec.budgetId) {
-          // Update existing budget
           await updateUserBudget(
             user.id,
             rec.budgetId,
@@ -370,10 +368,8 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
       }
     }
 
-    // Refresh budgets after applying changes
     onSuccess?.();
 
-    // Show success/error messages (you can implement a toast system here)
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
@@ -388,23 +384,19 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
       if (!transactions || transactions.length === 0 || transactionsLoading)
         return budget.currentSpent;
 
-      // Get all category IDs for this budget
       const budgetCategoryIds = budget.customCategories.map((cat) =>
         String(cat.id)
       );
 
-      // Filter transactions that belong to this budget's categories
       const budgetTransactions = transactions.filter((transaction) => {
         return (transaction as any).transactionCategories?.some((tc: any) =>
           budgetCategoryIds.includes(String(tc.customCategoryId))
         );
       });
 
-      // Calculate total spent from matching transactions
       const calculatedSpent = budgetTransactions.reduce(
         (total, transaction) => {
           if (transaction.type === "EXPENSE") {
-            // Convert to budget currency for accurate calculation
             let convertedAmount = transaction.amount;
             if (
               transaction.currency !== budget.currency &&
@@ -433,7 +425,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
         0
       );
 
-      // Return the higher of backend value or calculated value to ensure accuracy
       return Math.max(budget.currentSpent, calculatedSpent);
     };
   }, [transactions, transactionsLoading, rates]);
@@ -538,47 +529,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     });
   }, [transactions, budgetCategoryIds, filteredBudgets, transactionSearchTerm]);
 
-  const summaryStats = useMemo(() => {
-    if (!filteredBudgets || filteredBudgets.length === 0) {
-      return {
-        totalBudget: 0,
-        totalSpent: 0,
-        totalRemaining: 0,
-        budgetsOnTrack: 0,
-        budgetsOverLimit: 0,
-        avgUsage: 0,
-        currency: displayCurrency,
-      };
-    }
-
-    let totalBudget = 0;
-    let totalSpent = 0;
-    let budgetsOnTrack = 0;
-    let budgetsOverLimit = 0;
-
-    filteredBudgets.forEach((b) => {
-      const actualSpent = calculateBudgetSpent(b);
-      const limit = convertToDisplayCurrency(b.limitAmount, b.currency);
-      const spent = convertToDisplayCurrency(actualSpent, b.currency);
-      totalBudget += limit;
-      totalSpent += spent;
-      if (spent / limit <= 0.8) budgetsOnTrack++;
-      if (spent > limit) budgetsOverLimit++;
-    });
-
-    const totalRemaining = totalBudget - totalSpent;
-    const avgUsage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
-
-    return {
-      totalBudget,
-      totalSpent,
-      totalRemaining,
-      budgetsOnTrack,
-      budgetsOverLimit,
-      avgUsage,
-      currency: displayCurrency,
-    };
-  }, [filteredBudgets, displayCurrency, rates, transactions]);
 
   const budgetNames = useMemo(() => {
     return budgets?.map((budget) => budget.name) || [];
@@ -656,13 +606,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     };
   };
 
-  const getStatusIcon = (percentage: number) => {
-    if (percentage > 100)
-      return <AlertTriangle size={14} className="text-red-500" />;
-    if (percentage > 80)
-      return <TrendingUp size={14} className="text-orange-500" />;
-    return <CheckCircle size={14} className="text-green-500" />;
-  };
 
   if (!budgets || budgets.length === 0) {
     return <EmptyBudget categories={categories} onSuccess={onSuccess} />;
@@ -1402,8 +1345,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                         transaction.name ||
                         transaction.description ||
                         "Untitled Transaction";
-                      const categoryInfo = (transaction as any)
-                        .transactionCategories?.[0]?.customCategory;
 
                       const showConversion =
                         transaction.currency !== displayCurrency;
