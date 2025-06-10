@@ -2,7 +2,7 @@
   "name": "backend",
   "version": "1.0.0",
   "description": "",
-  "main": "index.ts",
+  "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
@@ -21,7 +21,7 @@
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.13.4",
     "@types/node-cron": "^3.0.11",
-    "@types/xml2js": "^0.4.14", 
+    "@types/xml2js": "^0.4.14",
     "prisma": "^5.22.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
