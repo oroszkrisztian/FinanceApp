@@ -60,7 +60,7 @@ type AICategorySuggestion =
 
 async function createCategory(userId: number, categoryName: string) {
   const response = await fetch(
-    `http://localhost:3000/categories/createUserCategory`,
+    `https://financeapp-bg0k.onrender.com/categories/createUserCategory`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -76,7 +76,7 @@ async function createCategory(userId: number, categoryName: string) {
 
 async function getAllCategoriesForUser(userId: number) {
   const response = await fetch(
-    "http://localhost:3000/categories/getAllCategoriesForUser",
+    "https://financeapp-bg0k.onrender.com/categories/getAllCategoriesForUser",
     {
       method: "POST",
       headers: {
@@ -92,7 +92,7 @@ async function getAllCategoriesForUser(userId: number) {
 async function getUserBudgets(userId: number) {
   try {
     const response = await fetch(
-      `http://localhost:3000/budget/getUserBudgets`,
+      `https://financeapp-bg0k.onrender.com/budget/getUserBudgets`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -116,7 +116,7 @@ async function createUserBudgetWithCategories(
   categoryIds: number[]
 ) {
   const response = await fetch(
-    `http://localhost:3000/budget/createUserBudgetWithCategories`,
+    `https://financeapp-bg0k.onrender.com/createUserBudgetWithCategories`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -157,7 +157,7 @@ async function updateUserBudget(
   categoryIds: number[]
 ) {
   const response = await fetch(
-    `http://localhost:3000/budget/updateUserBudget`,
+    `https://financeapp-bg0k.onrender.com/budget/updateUserBudget`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,7 +177,7 @@ async function updateUserBudget(
 
 async function deleteUserBudget(userId: number, budgetId: number) {
   const response = await fetch(
-    `http://localhost:3000/budget/deleteUserBudget`,
+    `https://financeapp-bg0k.onrender.com/budget/deleteUserBudget`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

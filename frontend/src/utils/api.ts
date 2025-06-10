@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://financeapp-bg0k.onrender.com';
 
 export const api = {
   login: async (username: string, password: string) => {

@@ -366,7 +366,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       setCreatingCategories((prev) => [...prev, categoryName]);
 
       const response = await fetch(
-        "http://localhost:3000/categories/createUserCategory",
+        "https://financeapp-bg0k.onrender.com/categories/createUserCategory",
         {
           method: "POST",
           headers: {
@@ -422,7 +422,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       console.log("🤖 Fetching enhanced AI category suggestions...");
 
       const response = await fetch(
-        "http://localhost:3000/ai/aiCategorySuggestion",
+        "https://financeapp-bg0k.onrender.com/ai/aiCategorySuggestion",
         {
           method: "POST",
           headers: {

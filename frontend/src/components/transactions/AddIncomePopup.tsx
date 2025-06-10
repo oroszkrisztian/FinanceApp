@@ -324,7 +324,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     try {
       setCreatingCategories(prev => [...prev, categoryName]);
 
-      const response = await fetch("http://localhost:3000/categories/createUserCategory", {
+      const response = await fetch("https://financeapp-bg0k.onrender.com/categories/createUserCategory", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -374,7 +374,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
       console.log("🤖 Fetching enhanced AI category suggestions for income...");
 
       const response = await fetch(
-        "http://localhost:3000/ai/aiCategorySuggestion",
+        "https://financeapp-bg0k.onrender.com/ai/aiCategorySuggestion",
         {
           method: "POST",
           headers: {

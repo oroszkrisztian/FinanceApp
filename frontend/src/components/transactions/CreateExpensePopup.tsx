@@ -321,7 +321,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       setCreatingCategories((prev) => [...prev, categoryName]);
 
       const response = await fetch(
-        "http://localhost:3000/categories/createUserCategory",
+        "https://financeapp-bg0k.onrender.com/categories/createUserCategory",
         {
           method: "POST",
           headers: {
@@ -382,7 +382,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       );
 
       const response = await fetch(
-        "http://localhost:3000/ai/aiCategorySuggestion",
+        "https://financeapp-bg0k.onrender.com/ai/aiCategorySuggestion",
         {
           method: "POST",
           headers: {

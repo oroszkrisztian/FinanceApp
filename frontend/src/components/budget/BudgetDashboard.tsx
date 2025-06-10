@@ -287,7 +287,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     setIsAIModalOpen(true);
 
     try {
-      const response = await fetch("http://localhost:3000/ai/budgetEdit", {
+      const response = await fetch("https://financeapp-bg0k.onrender.com/ai/budgetEdit", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

@@ -1,7 +1,7 @@
 export const getAllCategoriesForUser = async (userId: number) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/categories/getAllCategoriesForUser",
+      "https://financeapp-bg0k.onrender.com/categories/getAllCategoriesForUser",
       {
         method: "POST",
         headers: {
@@ -24,7 +24,7 @@ export const createUserCategory = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/categories/createUserCategory",
+      "https://financeapp-bg0k.onrender.com/categories/createUserCategory",
       {
         method: "POST",
         headers: {

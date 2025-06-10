@@ -69,7 +69,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
     const fetchExchangeRates = async () => {
       setFetchingRates(true);
       try {
-        const response = await fetch("http://localhost:3000/exchange-rates");
+        const response = await fetch("https://financeapp-bg0k.onrender.com/exchange-rates");
         const xmlText = await response.text();
 
         const parser = new DOMParser();

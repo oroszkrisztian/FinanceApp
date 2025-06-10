@@ -3,7 +3,7 @@
 export const getAllBudgets = async (userId: number) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/budget/getAllUserBudgets`,
+      `https://financeapp-bg0k.onrender.com/budget/getAllUserBudgets`,
       {
         method: "POST",
         headers: {
@@ -44,7 +44,7 @@ export const createUserBudgetWithCategories = async (
 ) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/budget/createUserBudgetWithCategories`,
+      `https://financeapp-bg0k.onrender.com/budget/createUserBudgetWithCategories`,
       {
         method: "POST",
         headers: {
@@ -74,7 +74,7 @@ export const createUserBudgetWithCategories = async (
 export const deleteUserBudget = async (userId: number, budgetId: number) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/budget/deleteUserBudget`,
+      `https://financeapp-bg0k.onrender.com/budget/deleteUserBudget`,
       {
         method: "POST",
         headers: {
@@ -118,7 +118,7 @@ export const updateUserBudget = async (
   });
   try {
     const response = await fetch(
-      `http://localhost:3000/budget/updateUserBudget`,
+      `https://financeapp-bg0k.onrender.com/budget/updateUserBudget`,
       {
         method: "POST",
         headers: {

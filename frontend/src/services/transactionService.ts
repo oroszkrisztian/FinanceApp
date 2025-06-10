@@ -3,7 +3,7 @@ import { TransactionType } from "../interfaces/enums";
 export const getUserAllTransactions = async (userId: number) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/getUserAllTransactions",
+      "https://financeapp-bg0k.onrender.com/transaction/getUserAllTransactions",
       {
         method: "POST",
         headers: {
@@ -57,7 +57,7 @@ export const addFundsDefaultAccount = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/addFundDefaultAccount",
+      "https://financeapp-bg0k.onrender.com/transaction/addFundDefaultAccount",
       {
         method: "POST",
         headers: {
@@ -101,7 +101,7 @@ export const addFundsSaving = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/addFundSaving",
+      "https://financeapp-bg0k.onrender.com/transaction/addFundSaving",
       {
         method: "POST",
         headers: {
@@ -143,7 +143,7 @@ export const addFundsDefault = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/addFundDefault",
+      "https://financeapp-bg0k.onrender.com/transaction/addFundDefault",
       {
         method: "POST",
         headers: {
@@ -187,7 +187,7 @@ export const createExpense = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/createExpense",
+      "https://financeapp-bg0k.onrender.com/transaction/createExpense",
       {
         method: "POST",
         headers: {
@@ -229,7 +229,7 @@ export const transferFundsDefault = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/transferFundsDefault",
+      "https://financeapp-bg0k.onrender.com/transaction/transferFundsDefault",
       {
         method: "POST",
         headers: {
@@ -273,7 +273,7 @@ export const executeRecurringPayment = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/executeRecurringPayment",
+      "https://financeapp-bg0k.onrender.com/transaction/executeRecurringPayment",
       {
         method: "POST",
         headers: {
@@ -317,7 +317,7 @@ export const executeRecurringIncome = async (
 ) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/transaction/executeRecurringIncome",
+      "https://financeapp-bg0k.onrender.com/transaction/executeRecurringIncome",
       {
         method: "POST",
         headers: {

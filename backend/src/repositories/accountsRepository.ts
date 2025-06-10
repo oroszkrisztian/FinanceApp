@@ -261,7 +261,7 @@ export class AccountsRepository {
 
   private async getExchangeRates() {
     try {
-      const response = await axios.get("http://localhost:3000/exchange-rates");
+      const response = await axios.get("https://financeapp-bg0k.onrender.com/exchange-rates");
       const xmlText = response.data;
       const result = await parseStringPromise(xmlText, {
         explicitArray: false,

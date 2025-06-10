@@ -108,7 +108,7 @@ const AIInsightsComponent: React.FC<AIInsightsComponentProps> = ({
     setError(null);
     setInput("");
     try {
-      const response = await fetch("http://localhost:3000/ai/chat", {
+      const response = await fetch("https://financeapp-bg0k.onrender.com/ai/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

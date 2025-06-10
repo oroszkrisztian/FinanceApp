@@ -4,7 +4,7 @@ export interface ExchangeRates {
 
 let cachedRates: ExchangeRates = {};
 let lastFetchTime: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const CACHE_DURATION = 5 * 60 * 1000; 
 
 export const getCachedRates = (): ExchangeRates | null => {
   if (
@@ -16,19 +16,15 @@ export const getCachedRates = (): ExchangeRates | null => {
   return cachedRates;
 };
 
-/**
- * Fetches exchange rates from the server
- * @returns A promise that resolves to an object with currency codes as keys and exchange rates as values
- */
+
 export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
-  // Return cached rates if they exist and are not expired
   const cached = getCachedRates();
   if (cached) {
     return cached;
   }
 
   try {
-    const response = await fetch("http://localhost:3000/exchange-rates");
+    const response = await fetch("https://financeapp-bg0k.onrender.com/exchange-rates");
     const xmlText = await response.text();
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
@@ -47,7 +43,6 @@ export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
 
     ratesObj["RON"] = 1;
 
-    // Update cache
     cachedRates = ratesObj;
     lastFetchTime = Date.now();
 
@@ -58,14 +53,7 @@ export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
   }
 };
 
-/**
- * Converts an amount from one currency to another
- * @param amount The amount to convert
- * @param fromCurrency The currency to convert from
- * @param toCurrency The currency to convert to
- * @param rates The exchange rates object
- * @returns The converted amount
- */
+
 export const convertAmount = (
   amount: number,
   fromCurrency: string,
@@ -85,13 +73,7 @@ export const convertAmount = (
   }
 };
 
-/**
- * Calculates the exchange rate between two currencies
- * @param fromCurrency The currency to convert from
- * @param toCurrency The currency to convert to
- * @param rates The exchange rates object
- * @returns The exchange rate as a number
- */
+
 export const getExchangeRate = (
   fromCurrency: string,
   toCurrency: string,
@@ -103,13 +85,7 @@ export const getExchangeRate = (
   return rates[fromCurrency] / rates[toCurrency];
 };
 
-/**
- * Validates if conversion between two currencies is possible
- * @param fromCurrency The currency to convert from
- * @param toCurrency The currency to convert to
- * @param rates The exchange rates object
- * @returns An object with validity status and error message if invalid
- */
+
 export const validateCurrencyConversion = (
   fromCurrency: string,
   toCurrency: string,

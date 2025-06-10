@@ -1,7 +1,7 @@
 export const getAllPaymentsUser = async (userId: number) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/payment/getAllPayments",
+      "https://financeapp-bg0k.onrender.com/payment/getAllPayments",
       {
         method: "POST",
         headers: {
@@ -61,7 +61,7 @@ export const createPayment = async (paymentData: {
 }) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/payment/createPayment",
+      "https://financeapp-bg0k.onrender.com/payment/createPayment",
       {
         method: "POST",
         headers: {
@@ -99,7 +99,7 @@ export const createPayment = async (paymentData: {
 export const deletePayment = async (userId: number, paymentId: number) => {
   try {
     const response = await fetch(
-      "http://localhost:3000/payment/deletePayment",
+      "https://financeapp-bg0k.onrender.com/payment/deletePayment",
       {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },

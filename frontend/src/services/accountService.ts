@@ -19,7 +19,7 @@ export const createDefaultAccount = async ({
 }: CreateDefaultAccountParams) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/insertDefault?userId=${userId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/insertDefault?userId=${userId}`,
       {
         method: "POST",
         headers: {
@@ -58,7 +58,7 @@ export const createSavingAccount = async (
 ) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/insertSaving?userId=${userId}`,
+      `https://financeapp-bg0k.onrender.comaccounts/insertSaving?userId=${userId}`,
       {
         method: "POST",
         headers: {
@@ -115,7 +115,7 @@ export const fetchAllAccounts = async (
     }
 
     const response = await fetch(
-      `http://localhost:3000/accounts/getAllAccounts?${queryParams.toString()}`,
+      `https://financeapp-bg0k.onrender.com/accounts/getAllAccounts?${queryParams.toString()}`,
       { signal }
     );
 
@@ -144,7 +144,7 @@ export const fetchDefaultAccounts = async (
 ): Promise<Account[]> => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/getDefault?userId=${userId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/getDefault?userId=${userId}`,
       { signal }
     );
 
@@ -173,7 +173,7 @@ export const fetchSavings = async (
 ): Promise<Account[]> => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/getSavings?userId=${userId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/getSavings?userId=${userId}`,
       { signal }
     );
 
@@ -203,7 +203,7 @@ export const searchAccount = async (
 ): Promise<Account[]> => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/searchAccount?userId=${userId}&search=${search}`,
+      `https://financeapp-bg0k.onrender.com/accounts/searchAccount?userId=${userId}&search=${search}`,
       { signal }
     );
 
@@ -227,7 +227,7 @@ export const deleteDefaultAccount = async (
 ) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/deleteDefaultAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/deleteDefaultAccount?userId=${userId}&accountId=${accountId}`,
       {
         method: "DELETE",
       }
@@ -253,7 +253,7 @@ export const deleteSavingAccount = async (
 ) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/deleteSavingAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/deleteSavingAccount?userId=${userId}&accountId=${accountId}`,
       {
         method: "DELETE",
       }
@@ -288,7 +288,7 @@ export const editDefaultAccount = async (
     const { name, description, currency, accountType, amount } = requestData;
 
     const response = await fetch(
-      `http://localhost:3000/accounts/editDefaultAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/editDefaultAccount?userId=${userId}&accountId=${accountId}`,
       {
         method: "POST",
         headers: {
@@ -334,7 +334,7 @@ export const editSavingAccount = async (
 ) => {
   try {
     const response = await fetch(
-      `http://localhost:3000/accounts/editSavingAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/editSavingAccount?userId=${userId}&accountId=${accountId}`,
       {
         method: "POST",
         headers: {

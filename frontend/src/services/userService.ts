@@ -37,7 +37,7 @@ export interface UserData {
   export const getUser = async (userId: number) => {
     try {
       const response = await fetch(
-        "http://localhost:3000/user/getUser",
+        "https://financeapp-bg0k.onrender.com/user/getUser",
         {
           method: "POST",
           headers: {
@@ -82,7 +82,7 @@ export interface UserData {
   export const editUser = async (userData: EditUserData) => {
     try {
       const response = await fetch(
-        "http://localhost:3000/user/editUser",
+        "https://financeapp-bg0k.onrender.com/user/editUser",
         {
           method: "POST",
           headers: {
@@ -123,7 +123,7 @@ export interface UserData {
   export const changePassword = async (passwordData: ChangePasswordData) => {
     try {
       const response = await fetch(
-        "http://localhost:3000/user/changePassword",
+        "https://financeapp-bg0k.onrender.com/user/changePassword",
         {
           method: "POST",
           headers: {
@@ -164,7 +164,7 @@ export interface UserData {
   export const checkAvailability = async (availabilityData: AvailabilityData) => {
     try {
       const response = await fetch(
-        "http://localhost:3000/user/checkAvailability",
+        "https://financeapp-bg0k.onrender.com/user/checkAvailability",
         {
           method: "POST",
           headers: {
