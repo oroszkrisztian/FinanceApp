@@ -32,12 +32,17 @@ const paymentCron = new SimplePaymentNotificationCron({
 app.use(
   "*",
   cors({
-    origin: ["http://localhost:5173", "http://127.0.0.1:5173"],
+    origin: [
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://finance-app-frontend-bice.vercel.app",
+    ],
     allowMethods: ["POST", "GET", "DELETE", "PUT", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
 app.use("*", logger());
 
 // Mount routes
@@ -157,7 +162,7 @@ app.put("/notifications/config", async (c) => {
   }
 });
 
-// Test email configuration and send test email
+
 app.post("/test-email", async (c) => {
   try {
     const body = await c.req.json();
@@ -169,7 +174,7 @@ app.post("/test-email", async (c) => {
 
     console.log(`🧪 Testing email to: ${testEmail}`);
 
-    // Test Brevo connection first
+    
     const { default: BrevoEmailService } = await import(
       "./services/brevoService"
     );
@@ -186,7 +191,7 @@ app.post("/test-email", async (c) => {
       );
     }
 
-    // Send a simple test email
+   
     const testEmailData = {
       sender: {
         name: process.env.BREVO_SENDER_NAME || "Test App",
@@ -281,7 +286,7 @@ API: Brevo
   }
 });
 
-// Test Brevo connection only
+
 app.get("/test-brevo", async (c) => {
   try {
     const { default: BrevoEmailService } = await import(
@@ -311,7 +316,7 @@ app.get("/test-brevo", async (c) => {
   }
 });
 
-// Existing exchange rates endpoint
+
 app.get("/exchange-rates", async (c) => {
   try {
     const response = await fetch("https://www.bnr.ro/nbrfxrates.xml");

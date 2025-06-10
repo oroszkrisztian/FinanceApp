@@ -39,7 +39,7 @@ interface AIBudgetRecommendation {
 }
 
 interface AIExistingCategorySuggestion {
-  type: 'existing';
+  type: "existing";
   categoryId: number;
   categoryName: string;
   confidence: number;
@@ -47,14 +47,16 @@ interface AIExistingCategorySuggestion {
 }
 
 interface AINewCategorySuggestion {
-  type: 'new';
+  type: "new";
   categoryName: string;
   confidence: number;
   reason: string;
   description?: string;
 }
 
-type AICategorySuggestion = AIExistingCategorySuggestion | AINewCategorySuggestion;
+type AICategorySuggestion =
+  | AIExistingCategorySuggestion
+  | AINewCategorySuggestion;
 
 async function createCategory(userId: number, categoryName: string) {
   const response = await fetch(
@@ -130,6 +132,21 @@ async function createUserBudgetWithCategories(
   if (!response.ok) throw new Error("Failed to create budget");
   return response.json();
 }
+
+// async function getExchangerates() {
+//   try {
+//     const response = await fetch("https://www.bnr.ro/nbrfxrates.xml");
+//     if (!response.ok) {
+//       throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
+//     }
+//     const xmlText = await response.text();
+//     return xmlText, 200, {
+//       "Content-Type": "application/xml",
+//     };
+//   } catch (error) {
+//     console.error("Proxy error exhange rates:", error);
+//   }
+// }
 
 async function updateUserBudget(
   userId: number,
@@ -256,13 +273,17 @@ ai.post("/aiCategorySuggestion", async (c) => {
       return c.json(
         {
           success: false,
-          error: "Missing required fields: userId, paymentName, paymentAmount, paymentType",
+          error:
+            "Missing required fields: userId, paymentName, paymentAmount, paymentType",
         },
         400
       );
     }
 
-    console.log("🧪 Processing enhanced AI category suggestions for payment:", paymentName);
+    console.log(
+      "🧪 Processing enhanced AI category suggestions for payment:",
+      paymentName
+    );
 
     const categoriesData = await getAllCategoriesForUser(userId);
     if (!categoriesData || !Array.isArray(categoriesData)) {
@@ -291,14 +312,19 @@ Payment Details:
 - Description: ${description || "No description"}
 
 Existing Categories:
-${categoriesData.map((cat: any) => `- ID: ${cat.id}, Name: "${cat.name}"`).join('\n')}
+${categoriesData.map((cat: any) => `- ID: ${cat.id}, Name: "${cat.name}"`).join("\n")}
 
 User's Current Budgets (for context):
-${userBudgets && userBudgets.length > 0 
-  ? userBudgets.map((budget: any) => 
-      `- Budget: "${budget.name}" (${budget.limitAmount} ${budget.currency}) - Categories: ${budget.categoryIds?.join(', ') || 'None'}`
-    ).join('\n')
-  : 'No existing budgets'}
+${
+  userBudgets && userBudgets.length > 0
+    ? userBudgets
+        .map(
+          (budget: any) =>
+            `- Budget: "${budget.name}" (${budget.limitAmount} ${budget.currency}) - Categories: ${budget.categoryIds?.join(", ") || "None"}`
+        )
+        .join("\n")
+    : "No existing budgets"
+}
 
 Analysis Guidelines:
 1. First, analyze if any existing categories fit well (confidence 0.7+)
@@ -337,7 +363,9 @@ Return ONLY a valid JSON array in this exact format:
 
 Important: Return only the JSON array, no other text or formatting.`;
 
-    console.log("🤖 Sending enhanced category suggestion prompt to Gemini AI...");
+    console.log(
+      "🤖 Sending enhanced category suggestion prompt to Gemini AI..."
+    );
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
@@ -346,7 +374,7 @@ Important: Return only the JSON array, no other text or formatting.`;
 
     try {
       let cleanedText = text.trim();
-      
+
       cleanedText = cleanedText
         .replace(/```json\s*/g, "")
         .replace(/```\s*/g, "");
@@ -360,21 +388,27 @@ Important: Return only the JSON array, no other text or formatting.`;
 
       const validSuggestions = suggestions
         .filter((suggestion: any) => {
-          if (!suggestion.type || !suggestion.categoryName || !suggestion.reason) {
+          if (
+            !suggestion.type ||
+            !suggestion.categoryName ||
+            !suggestion.reason
+          ) {
             return false;
           }
 
-          if (suggestion.type === 'existing') {
+          if (suggestion.type === "existing") {
             return (
               suggestion.categoryId &&
-              typeof suggestion.confidence === 'number' &&
+              typeof suggestion.confidence === "number" &&
               suggestion.confidence >= 0.1 &&
               suggestion.confidence <= 1.0 &&
-              categoriesData.some((cat: any) => cat.id === suggestion.categoryId)
+              categoriesData.some(
+                (cat: any) => cat.id === suggestion.categoryId
+              )
             );
-          } else if (suggestion.type === 'new') {
+          } else if (suggestion.type === "new") {
             return (
-              typeof suggestion.confidence === 'number' &&
+              typeof suggestion.confidence === "number" &&
               suggestion.confidence >= 0.1 &&
               suggestion.confidence <= 1.0 &&
               suggestion.categoryName.trim().length > 0
@@ -386,22 +420,30 @@ Important: Return only the JSON array, no other text or formatting.`;
         .slice(0, 4)
         .map((suggestion: any) => ({
           type: suggestion.type,
-          categoryId: suggestion.type === 'existing' ? suggestion.categoryId : undefined,
+          categoryId:
+            suggestion.type === "existing" ? suggestion.categoryId : undefined,
           categoryName: suggestion.categoryName.trim(),
           confidence: Math.round(suggestion.confidence * 100) / 100,
           reason: suggestion.reason.trim(),
-          description: suggestion.type === 'new' ? suggestion.description?.trim() : undefined
+          description:
+            suggestion.type === "new"
+              ? suggestion.description?.trim()
+              : undefined,
         }));
 
-      console.log(`✅ Generated ${validSuggestions.length} valid enhanced category suggestions`);
+      console.log(
+        `✅ Generated ${validSuggestions.length} valid enhanced category suggestions`
+      );
 
       return c.json({
         success: true,
         suggestions: validSuggestions,
       });
-
     } catch (parseError) {
-      console.error("❌ Failed to parse AI enhanced category suggestions:", parseError);
+      console.error(
+        "❌ Failed to parse AI enhanced category suggestions:",
+        parseError
+      );
       console.error("Raw response was:", text);
 
       const fallbackSuggestions: AICategorySuggestion[] = [];
@@ -412,20 +454,23 @@ Important: Return only the JSON array, no other text or formatting.`;
       for (const category of categoriesData) {
         const categoryNameLower = category.name.toLowerCase();
         let confidence = 0;
-        let reason = '';
+        let reason = "";
 
-        if (searchText.includes(categoryNameLower) || categoryNameLower.includes(paymentNameLower)) {
+        if (
+          searchText.includes(categoryNameLower) ||
+          categoryNameLower.includes(paymentNameLower)
+        ) {
           confidence = 0.8;
-          reason = 'Direct name match with payment';
+          reason = "Direct name match with payment";
         }
 
         if (confidence > 0) {
           fallbackSuggestions.push({
-            type: 'existing',
+            type: "existing",
             categoryId: category.id,
             categoryName: category.name,
             confidence,
-            reason
+            reason,
           });
         }
       }
@@ -434,19 +479,26 @@ Important: Return only the JSON array, no other text or formatting.`;
         for (const budget of userBudgets) {
           if (budget.categoryIds && budget.categoryIds.length > 0) {
             for (const categoryId of budget.categoryIds) {
-              const category = categoriesData.find((cat: any) => cat.id === categoryId);
-              if (category && !fallbackSuggestions.some(s => s.type === 'existing' && s.categoryId === categoryId)) {
+              const category = categoriesData.find(
+                (cat: any) => cat.id === categoryId
+              );
+              if (
+                category &&
+                !fallbackSuggestions.some(
+                  (s) => s.type === "existing" && s.categoryId === categoryId
+                )
+              ) {
                 const budgetNameLower = budget.name.toLowerCase();
                 if (
                   paymentNameLower.includes(budgetNameLower) ||
                   budgetNameLower.includes(paymentNameLower)
                 ) {
                   fallbackSuggestions.push({
-                    type: 'existing',
+                    type: "existing",
                     categoryId: category.id,
                     categoryName: category.name,
                     confidence: 0.75,
-                    reason: `Used in existing budget: ${budget.name}`
+                    reason: `Used in existing budget: ${budget.name}`,
                   });
                 }
               }
@@ -464,7 +516,6 @@ Important: Return only the JSON array, no other text or formatting.`;
         suggestions: finalSuggestions,
       });
     }
-
   } catch (error) {
     console.error("❌ AI Category Suggestions Error:", error);
     return c.json(

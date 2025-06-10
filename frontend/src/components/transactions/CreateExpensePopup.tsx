@@ -11,6 +11,13 @@ import {
   Info,
   AlertCircle,
   Plus,
+  Brain,
+  Sparkles,
+  Check,
+  Loader,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { TransactionType } from "../../interfaces/enums";
@@ -37,6 +44,26 @@ interface CreateExpensePopupProps {
   currentStep?: number;
   onStepChange?: (step: number) => void;
 }
+
+interface AIExistingCategorySuggestion {
+  type: "existing";
+  categoryId: number;
+  categoryName: string;
+  confidence: number;
+  reason: string;
+}
+
+interface AINewCategorySuggestion {
+  type: "new";
+  categoryName: string;
+  confidence: number;
+  reason: string;
+  description?: string;
+}
+
+type AICategorySuggestion =
+  | AIExistingCategorySuggestion
+  | AINewCategorySuggestion;
 
 const SearchWithSuggestions: React.FC<{
   placeholder: string;
@@ -124,14 +151,14 @@ const SearchWithSuggestions: React.FC<{
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-32 sm:max-h-40 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleSuggestionClick(suggestion)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-red-50 transition-colors ${
+              className={`w-full text-left px-3 py-2.5 sm:py-2 text-sm hover:bg-red-50 transition-colors ${
                 selectedItems.includes(suggestion)
                   ? "bg-red-50 text-red-700"
                   : "text-gray-700"
@@ -144,17 +171,17 @@ const SearchWithSuggestions: React.FC<{
       )}
 
       {multiSelect && selectedItems.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="flex flex-wrap gap-1.5 mt-2">
           {selectedItems.map((item, index) => (
             <button
               key={index}
               type="button"
               onClick={() => onSelect && onSelect(item)}
-              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-75 bg-red-100 text-red-700 hover:bg-red-200"
+              className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs transition-colors hover:opacity-75 bg-red-100 text-red-700 hover:bg-red-200 min-h-[32px] touch-manipulation"
             >
               <Tag size={10} />
-              {item}
-              <X size={10} className="ml-1" />
+              <span className="max-w-[100px] truncate">{item}</span>
+              <X size={10} className="ml-1 flex-shrink-0" />
             </button>
           ))}
         </div>
@@ -174,7 +201,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   currentStep: externalCurrentStep = 1,
   onStepChange,
 }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [internalCurrentStep, setInternalCurrentStep] = useState(1);
   const currentStep = onStepChange ? externalCurrentStep : internalCurrentStep;
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
@@ -206,8 +233,21 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false);
+  const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] =
+    useState(false);
   const [localCategories, setLocalCategories] = useState(categories);
+
+  const [aiSuggestions, setAiSuggestions] = useState<AICategorySuggestion[]>(
+    []
+  );
+  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState<string | null>(
+    null
+  );
+  const [showAiSuggestions, setShowAiSuggestions] = useState(true);
+  const [suggestionsAccepted, setSuggestionsAccepted] = useState(false);
+  const [hasTriggeredSuggestions, setHasTriggeredSuggestions] = useState(false);
+  const [creatingCategories, setCreatingCategories] = useState<string[]>([]);
 
   const [rates, setRates] = useState<ExchangeRates>({});
   const [ratesError, setRatesError] = useState<string | null>(null);
@@ -243,6 +283,203 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   useEffect(() => {
     setLocalCategories(categories);
   }, [categories]);
+
+  // Trigger AI suggestions when entering step 2
+  useEffect(() => {
+    console.log("Checking AI suggestions trigger:", {
+      currentStep,
+      showAiSuggestions,
+      hasTriggeredSuggestions,
+      name: formData.name,
+      nameValid: formData.name.trim(),
+      amount: formData.amount,
+      amountValid: formData.amount > 0,
+      token: !!token,
+    });
+    if (
+      currentStep === 2 &&
+      showAiSuggestions &&
+      !hasTriggeredSuggestions &&
+      formData.name.trim() &&
+      formData.amount > 0 &&
+      token
+    ) {
+      console.log("🚀 Triggering AI suggestions for expense...");
+      fetchAICategorySuggestions();
+    }
+  }, [
+    currentStep,
+    formData.name,
+    formData.amount,
+    showAiSuggestions,
+    hasTriggeredSuggestions,
+    token,
+  ]);
+
+  const createNewCategory = async (categoryName: string) => {
+    try {
+      setCreatingCategories((prev) => [...prev, categoryName]);
+
+      const response = await fetch(
+        "http://localhost:3000/categories/createUserCategory",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId: user?.id,
+            categoryName,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create category");
+      }
+
+      const result = await response.json();
+
+      const newCategory = {
+        id: result.id || Date.now(),
+        name: categoryName,
+      } as CustomCategory;
+      setLocalCategories((prev) => [...prev, newCategory]);
+
+      setFormData((prev) => ({
+        ...prev,
+        selectedCategories: [...prev.selectedCategories, newCategory.id],
+      }));
+
+      if (onCategoryCreated) {
+        await onCategoryCreated();
+      }
+
+      console.log("✅ Category created successfully:", categoryName);
+      return result;
+    } catch (error) {
+      console.error("❌ Error creating category:", error);
+      throw error;
+    } finally {
+      setCreatingCategories((prev) =>
+        prev.filter((name) => name !== categoryName)
+      );
+    }
+  };
+
+  const fetchAICategorySuggestions = async () => {
+    if (!formData.name || !formData.amount || !token || !user?.id) {
+      return;
+    }
+
+    setAiSuggestionsLoading(true);
+    setAiSuggestionsError(null);
+
+    try {
+      console.log(
+        "🤖 Fetching enhanced AI category suggestions for expense..."
+      );
+
+      const response = await fetch(
+        "http://localhost:3000/ai/aiCategorySuggestion",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            paymentName: formData.name,
+            paymentAmount: formData.amount,
+            paymentType: "EXPENSE",
+            currency: formData.currency,
+            description: formData.description || "",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.suggestions && Array.isArray(data.suggestions)) {
+        console.log("✅ Received enhanced AI suggestions:", data.suggestions);
+        setAiSuggestions(data.suggestions);
+        setHasTriggeredSuggestions(true);
+      } else {
+        throw new Error(data.error || "Failed to get AI suggestions");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching enhanced AI suggestions:", error);
+      setAiSuggestionsError("Failed to get AI suggestions. Please try again.");
+      setHasTriggeredSuggestions(true);
+    } finally {
+      setAiSuggestionsLoading(false);
+    }
+  };
+
+  const acceptAISuggestion = async (suggestion: AICategorySuggestion) => {
+    try {
+      if (suggestion.type === "existing") {
+        if (!formData.selectedCategories.includes(suggestion.categoryId)) {
+          setFormData((prev) => ({
+            ...prev,
+            selectedCategories: [
+              ...prev.selectedCategories,
+              suggestion.categoryId,
+            ],
+          }));
+        }
+      } else if (suggestion.type === "new") {
+        await createNewCategory(suggestion.categoryName);
+      }
+    } catch (error) {
+      console.error("Error accepting suggestion:", error);
+      setAiSuggestionsError("Failed to process suggestion. Please try again.");
+    }
+  };
+
+  const acceptAllAISuggestions = async () => {
+    try {
+      for (const suggestion of aiSuggestions) {
+        if (suggestion.type === "existing") {
+          if (!formData.selectedCategories.includes(suggestion.categoryId)) {
+            setFormData((prev) => ({
+              ...prev,
+              selectedCategories: [
+                ...prev.selectedCategories,
+                suggestion.categoryId,
+              ],
+            }));
+          }
+        } else if (suggestion.type === "new") {
+          await createNewCategory(suggestion.categoryName);
+        }
+      }
+      setSuggestionsAccepted(true);
+    } catch (error) {
+      console.error("Error accepting all suggestions:", error);
+      setAiSuggestionsError(
+        "Failed to process some suggestions. Please try individually."
+      );
+    }
+  };
+
+  const retryAISuggestions = () => {
+    setHasTriggeredSuggestions(false);
+    setAiSuggestions([]);
+    setAiSuggestionsError(null);
+    fetchAICategorySuggestions();
+  };
+
+  const dismissAISuggestions = () => {
+    setShowAiSuggestions(false);
+    setSuggestionsAccepted(true);
+  };
 
   useEffect(() => {
     const loadExchangeRates = async () => {
@@ -379,6 +616,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       error: null,
     });
     setError(null);
+    // Reset AI suggestions state
+    setShowAiSuggestions(true);
+    setHasTriggeredSuggestions(false);
+    setAiSuggestions([]);
+    setAiSuggestionsError(null);
+    setSuggestionsAccepted(false);
   };
 
   const handleClose = () => {
@@ -396,6 +639,13 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       [field]: field === "amount" ? parseFloat(value) || 0 : value,
     }));
     setError(null);
+
+    // Reset AI suggestions if payment details change
+    if (field === "name" || field === "amount") {
+      setHasTriggeredSuggestions(false);
+      setAiSuggestions([]);
+      setAiSuggestionsError(null);
+    }
   };
 
   const handleAccountSelect = (accountName: string) => {
@@ -462,7 +712,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 1:
         return formData.name && formData.amount > 0;
       case 2:
-        return true;
+        return true; // Categories are optional
       case 3:
         return formData.selectedAccount;
       default:
@@ -545,7 +795,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         formData.amount,
         formData.currency,
         parseInt(formData.selectedAccount),
-        null, 
+        null,
         formData.description || null,
         formData.selectedCategories.length > 0
           ? formData.selectedCategories
@@ -578,10 +828,10 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-3">
+          <div className="space-y-4 sm:space-y-3">
             {/* Name Field */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                 <span className="text-red-500 mr-1">🏷️</span>
                 Expense Name<span className="text-red-500">*</span>
               </label>
@@ -589,27 +839,27 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full px-3 py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm text-sm"
+                className="w-full px-4 sm:px-3 py-3 sm:py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm text-base sm:text-sm"
                 placeholder="Enter expense name"
                 required
               />
             </div>
 
             {/* Amount and Currency */}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-2">
+              <div className="sm:col-span-1">
+                <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                   <span className="text-red-500 mr-1">💰</span>
                   Amount<span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
                   <DollarSign
-                    size={14}
-                    className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-red-400"
+                    size={16}
+                    className="absolute left-3 sm:left-2.5 top-1/2 transform -translate-y-1/2 text-red-400"
                   />
                   <input
                     type="text"
-                    className="w-full pl-8 pr-3 py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm font-medium text-sm"
+                    className="w-full pl-10 sm:pl-8 pr-4 sm:pr-3 py-3 sm:py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm font-medium text-base sm:text-sm"
                     placeholder="0.00"
                     value={amountString}
                     onChange={(e) => {
@@ -633,8 +883,8 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">
+              <div className="sm:col-span-1">
+                <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1">
                   Currency
                 </label>
                 <div className="relative" ref={currencyRef}>
@@ -642,19 +892,19 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     type="button"
                     onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
                     disabled={fetchingRates}
-                    className="w-full p-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between bg-red-50/50 shadow-sm transition-all disabled:opacity-50 text-sm"
+                    className="w-full p-3 sm:p-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-left flex items-center justify-between bg-red-50/50 shadow-sm transition-all disabled:opacity-50 text-base sm:text-sm touch-manipulation"
                   >
                     <span>
                       {fetchingRates ? "Loading..." : formData.currency}
                     </span>
-                    <ChevronDown size={14} className="text-red-400" />
+                    <ChevronDown size={16} className="text-red-400" />
                   </button>
 
                   {isCurrencyOpen && !fetchingRates && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-32 sm:max-h-28 overflow-y-auto"
                     >
                       {availableCurrencies.map((currency) => (
                         <button
@@ -664,7 +914,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                             handleInputChange("currency", currency);
                             setIsCurrencyOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 hover:bg-red-50 transition-colors text-sm ${
+                          className={`w-full text-left px-4 sm:px-3 py-3 sm:py-2 hover:bg-red-50 transition-colors text-base sm:text-sm touch-manipulation ${
                             formData.currency === currency
                               ? "bg-red-50 text-red-700"
                               : ""
@@ -681,7 +931,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
             {/* Description */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                 <span className="text-red-500 mr-1">📝</span>
                 Description (Optional)
               </label>
@@ -690,8 +940,8 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
-                rows={2}
-                className="w-full px-3 py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm text-sm"
+                rows={3}
+                className="w-full px-4 sm:px-3 py-3 sm:py-2.5 border border-red-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all bg-red-50/50 shadow-sm text-base sm:text-sm resize-none"
                 placeholder="Add expense details"
               />
             </div>
@@ -700,22 +950,23 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-5 sm:space-y-4">
+            {/* Categories Selection - TOP */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-xs font-medium text-gray-700 flex items-center">
+              <div className="flex items-center justify-between mb-3 sm:mb-1">
+                <label className="block text-sm sm:text-xs font-medium text-gray-700 flex items-center">
                   <span className="text-red-500 mr-1">🏷️</span>
                   Categories (Optional)
                 </label>
                 <motion.button
                   type="button"
                   onClick={() => setIsCreateCategoryModalOpen(true)}
-                  className="flex items-center gap-1 px-2 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  className="flex items-center gap-1.5 sm:gap-1 px-3 py-2 sm:px-2 sm:py-1 bg-red-600 text-white text-sm sm:text-xs rounded-lg hover:bg-red-700 transition-colors shadow-sm touch-manipulation"
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Plus size={12} />
-                  Add
+                  <Plus size={14} className="sm:w-3 sm:h-3" />
+                  <span className="hidden sm:inline">Add</span>
                 </motion.button>
               </div>
               <SearchWithSuggestions
@@ -727,22 +978,233 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                 multiSelect={true}
               />
             </div>
+
+            {/* AI Category Suggestions - BOTTOM */}
+            {showAiSuggestions && (
+              <div className="space-y-4 sm:space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain
+                      size={18}
+                      className="text-purple-600 sm:w-4 sm:h-4"
+                    />
+                    <label className="text-base sm:text-sm font-medium text-gray-700">
+                      AI Suggestions
+                    </label>
+                  </div>
+                  {aiSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={retryAISuggestions}
+                      className="flex items-center gap-1 px-3 py-2 sm:px-2 sm:py-1 text-sm sm:text-xs text-gray-500 hover:text-gray-700 transition-colors touch-manipulation"
+                      title="Get new suggestions"
+                    >
+                      <RefreshCw size={14} className="sm:w-3 sm:h-3" />
+                      Refresh
+                    </button>
+                  )}
+                </div>
+
+                {aiSuggestionsLoading && (
+                  <div className="flex items-center justify-center p-5 sm:p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <Loader
+                      className="animate-spin text-purple-600 mr-3 sm:mr-2"
+                      size={20}
+                    />
+                    <span className="text-base sm:text-sm text-purple-700">
+                      AI is analyzing your expense for the best categories...
+                    </span>
+                  </div>
+                )}
+
+                {aiSuggestionsError && (
+                  <div className="p-4 sm:p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle
+                          size={16}
+                          className="text-red-600 flex-shrink-0"
+                        />
+                        <span className="text-sm text-red-700">
+                          {aiSuggestionsError}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={retryAISuggestions}
+                        className="text-sm text-red-600 hover:text-red-800 underline self-start sm:self-auto touch-manipulation"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {aiSuggestions.length > 0 && !aiSuggestionsLoading && (
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-5 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-3 gap-3 sm:gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles
+                          size={16}
+                          className="text-purple-600 flex-shrink-0"
+                        />
+                        <span className="text-base sm:text-sm font-medium text-purple-800">
+                          Suggested for "{formData.name}"
+                        </span>
+                      </div>
+                      <div className="flex gap-2 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={acceptAllAISuggestions}
+                          disabled={creatingCategories.length > 0}
+                          className="px-4 py-2 sm:px-3 sm:py-1 bg-purple-600 text-white text-sm sm:text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1.5 sm:gap-1 disabled:opacity-50 touch-manipulation"
+                        >
+                          <ThumbsUp size={14} className="sm:w-3 sm:h-3" />
+                          <span className="hidden sm:inline">Accept All</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={dismissAISuggestions}
+                          className="px-4 py-2 sm:px-3 sm:py-1 bg-white text-red-600 text-sm sm:text-xs rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5 sm:gap-1 touch-manipulation"
+                        >
+                          <ThumbsDown size={14} className="sm:w-3 sm:h-3" />
+                          <span className="hidden sm:inline">Skip</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 sm:space-y-2">
+                      {aiSuggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={`${suggestion.type}-${suggestion.categoryName}-${index}`}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="p-4 sm:p-3 bg-white rounded-lg border border-purple-100 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2 sm:mb-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 min-w-0 flex-1">
+                              <span className="text-base sm:text-sm font-medium text-gray-800 truncate">
+                                {suggestion.categoryName}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-1 sm:px-1.5 sm:py-0.5 rounded-full self-start sm:self-auto ${
+                                  suggestion.type === "new"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-purple-100 text-purple-700"
+                                }`}
+                              >
+                                {suggestion.type === "new" ? "New" : "Existing"}{" "}
+                                • {Math.round(suggestion.confidence * 100)}%
+                                match
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => acceptAISuggestion(suggestion)}
+                              disabled={
+                                (suggestion.type === "existing" &&
+                                  formData.selectedCategories.includes(
+                                    suggestion.categoryId
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  creatingCategories.includes(
+                                    suggestion.categoryName
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  localCategories.some(
+                                    (cat) =>
+                                      cat.name.toLowerCase() ===
+                                      suggestion.categoryName.toLowerCase()
+                                  ))
+                              }
+                              className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-xs transition-colors touch-manipulation flex-shrink-0 flex items-center justify-center ${
+                                (suggestion.type === "existing" &&
+                                  formData.selectedCategories.includes(
+                                    suggestion.categoryId
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  localCategories.some(
+                                    (cat) =>
+                                      cat.name.toLowerCase() ===
+                                      suggestion.categoryName.toLowerCase()
+                                  ))
+                                  ? "bg-green-100 text-green-700 cursor-default"
+                                  : creatingCategories.includes(
+                                        suggestion.categoryName
+                                      )
+                                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                    : suggestion.type === "new"
+                                      ? "bg-green-600 text-white hover:bg-green-700"
+                                      : "bg-purple-600 text-white hover:bg-purple-700"
+                              }`}
+                            >
+                              {(suggestion.type === "existing" &&
+                                formData.selectedCategories.includes(
+                                  suggestion.categoryId
+                                )) ||
+                              (suggestion.type === "new" &&
+                                localCategories.some(
+                                  (cat) =>
+                                    cat.name.toLowerCase() ===
+                                    suggestion.categoryName.toLowerCase()
+                                )) ? (
+                                <Check size={16} className="sm:w-3 sm:h-3" />
+                              ) : creatingCategories.includes(
+                                  suggestion.categoryName
+                                ) ? (
+                                <Loader
+                                  size={16}
+                                  className="animate-spin sm:w-3 sm:h-3"
+                                />
+                              ) : (
+                                <Plus size={16} className="sm:w-3 sm:h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-sm sm:text-xs text-gray-600 leading-relaxed">
+                            {suggestion.reason}
+                          </p>
+                          {suggestion.type === "new" &&
+                            suggestion.description && (
+                              <p className="text-sm sm:text-xs text-gray-500 mt-2 sm:mt-1 italic leading-relaxed">
+                                {suggestion.description}
+                              </p>
+                            )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!aiSuggestionsLoading &&
+                  !aiSuggestionsError &&
+                  aiSuggestions.length === 0 &&
+                  hasTriggeredSuggestions && (
+                    <div className="p-4 sm:p-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
+                      <p className="text-base sm:text-sm text-gray-600">
+                        No specific category suggestions found. Please select
+                        categories manually.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            )}
           </div>
         );
 
       case 3:
         return (
-          <div className="space-y-4">
+          <div className="space-y-5 sm:space-y-4">
             {/* Account Selection */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-3 sm:mb-1 flex items-center">
                 <span className="text-red-500 mr-1">💳</span>
                 Select Account<span className="text-red-500">*</span>
               </label>
               {accountsLoading ? (
-                <div className="animate-pulse h-11 bg-gray-200 rounded-xl"></div>
+                <div className="animate-pulse h-12 sm:h-11 bg-gray-200 rounded-xl"></div>
               ) : accounts.length === 0 ? (
-                <div className="p-3 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
+                <div className="p-4 sm:p-3 text-sm sm:text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
                   No accounts available. Please create one first.
                 </div>
               ) : (
@@ -755,13 +1217,13 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     value={selectedAccount?.name || accountSearchTerm}
                   />
                   {selectedAccount && (
-                    <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded-xl shadow-sm">
+                    <div className="mt-3 sm:mt-2 p-3 sm:p-2 bg-red-50 border border-red-200 rounded-xl shadow-sm">
                       <div className="flex items-center justify-between">
-                        <div>
-                          <div className="font-medium text-red-800 text-sm">
+                        <div className="min-w-0 flex-1">
+                          <div className="font-medium text-red-800 text-base sm:text-sm truncate">
                             {selectedAccount.name}
                           </div>
-                          <div className="text-xs text-red-600">
+                          <div className="text-sm sm:text-xs text-red-600">
                             Balance: {selectedAccount.amount.toFixed(2)}{" "}
                             {selectedAccount.currency}
                           </div>
@@ -769,9 +1231,9 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                         <button
                           type="button"
                           onClick={clearAccountSelection}
-                          className="text-red-500 hover:text-red-700 transition-colors"
+                          className="text-red-500 hover:text-red-700 transition-colors p-1 touch-manipulation"
                         >
-                          <X size={14} />
+                          <X size={16} className="sm:w-4 sm:h-4" />
                         </button>
                       </div>
                     </div>
@@ -782,14 +1244,14 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
             {/* Preview Section */}
             {selectedAccount && (
-              <div className="space-y-3">
+              <div className="space-y-4 sm:space-y-3">
                 {/* Expense Summary */}
-                <div className="p-3 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-xl shadow-sm">
-                  <h3 className="font-semibold text-base mb-2 text-red-800">
+                <div className="p-4 sm:p-3 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-xl shadow-sm">
+                  <h3 className="font-semibold text-lg sm:text-base mb-3 sm:mb-2 text-red-800">
                     {formData.name}
                   </h3>
 
-                  <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2 text-sm sm:text-xs">
                     <div>
                       <span className="text-gray-600">Amount:</span>
                       <span className="ml-2 font-medium">
@@ -805,26 +1267,26 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                   </div>
 
                   {formData.description && (
-                    <div className="mt-2 pt-2 border-t border-red-200">
-                      <span className="text-gray-600 text-xs">
+                    <div className="mt-3 sm:mt-2 pt-3 sm:pt-2 border-t border-red-200">
+                      <span className="text-gray-600 text-sm sm:text-xs">
                         Description:{" "}
                       </span>
-                      <span className="text-xs text-gray-800">
+                      <span className="text-sm sm:text-xs text-gray-800">
                         {formData.description}
                       </span>
                     </div>
                   )}
 
                   {formData.selectedCategories.length > 0 && (
-                    <div className="mt-2 pt-2 border-t border-red-200">
-                      <span className="text-gray-600 text-xs">
+                    <div className="mt-3 sm:mt-2 pt-3 sm:pt-2 border-t border-red-200">
+                      <span className="text-gray-600 text-sm sm:text-xs">
                         Categories:{" "}
                       </span>
-                      <div className="flex flex-wrap gap-1 mt-1">
+                      <div className="flex flex-wrap gap-1.5 sm:gap-1 mt-2 sm:mt-1">
                         {selectedCategoryNames.map((categoryName, index) => (
                           <span
                             key={index}
-                            className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded"
+                            className="px-2.5 py-1 sm:px-1.5 sm:py-0.5 bg-red-100 text-red-700 text-sm sm:text-xs rounded"
                           >
                             {categoryName}
                           </span>
@@ -836,20 +1298,23 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
                 {/* Transaction Summary */}
                 {formData.amount > 0 && (
-                  <div className="p-3 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm">
-                    <h3 className="font-bold text-red-700 mb-2 flex items-center text-sm">
+                  <div className="p-4 sm:p-3 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm">
+                    <h3 className="font-bold text-red-700 mb-3 sm:mb-2 flex items-center text-base sm:text-sm">
                       <span className="mr-1">💰</span>
                       Transaction Summary
                     </h3>
 
                     {balanceInfo && !balanceInfo.isValid ? (
-                      <div className="p-2 bg-red-100 rounded-lg border border-red-200">
-                        <div className="flex items-center text-red-600 font-medium mb-1">
-                          <AlertCircle size={14} className="mr-2" />
+                      <div className="p-3 sm:p-2 bg-red-100 rounded-lg border border-red-200">
+                        <div className="flex items-center text-red-600 font-medium mb-2 sm:mb-1">
+                          <AlertCircle
+                            size={16}
+                            className="mr-2 flex-shrink-0"
+                          />
                           Insufficient funds
                         </div>
-                        <div className="bg-white p-2 rounded-lg border border-red-100">
-                          <p className="text-xs text-gray-700">
+                        <div className="bg-white p-3 sm:p-2 rounded-lg border border-red-100">
+                          <p className="text-sm sm:text-xs text-gray-700">
                             Amount exceeded by:
                             <span className="ml-2 font-medium text-red-600 bg-red-50 px-2 py-1 rounded">
                               {Math.abs(balanceInfo.newBalance).toFixed(2)}{" "}
@@ -861,29 +1326,29 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     ) : balanceInfo ? (
                       <div className="bg-white rounded-lg border border-red-100 shadow-sm overflow-hidden">
                         <div className="grid grid-cols-1 divide-y divide-red-50">
-                          <div className="p-2 flex justify-between items-center">
-                            <span className="text-xs text-gray-600">
+                          <div className="p-3 sm:p-2 flex justify-between items-center">
+                            <span className="text-sm sm:text-xs text-gray-600">
                               Current Balance:
                             </span>
-                            <span className="font-medium text-sm">
+                            <span className="font-medium text-base sm:text-sm">
                               {balanceInfo.currentBalance.toFixed(2)}{" "}
                               {selectedAccount.currency}
                             </span>
                           </div>
-                          <div className="p-2 flex justify-between items-center">
-                            <span className="text-xs text-gray-600">
+                          <div className="p-3 sm:p-2 flex justify-between items-center">
+                            <span className="text-sm sm:text-xs text-gray-600">
                               Transaction:
                             </span>
-                            <span className="text-red-500 font-medium text-sm">
+                            <span className="text-red-500 font-medium text-base sm:text-sm">
                               -{balanceInfo.transactionAmount.toFixed(2)}{" "}
                               {selectedAccount.currency}
                             </span>
                           </div>
-                          <div className="p-2 flex justify-between items-center bg-red-50/50">
-                            <span className="text-xs font-medium text-gray-700">
+                          <div className="p-3 sm:p-2 flex justify-between items-center bg-red-50/50">
+                            <span className="text-sm sm:text-xs font-medium text-gray-700">
                               New Balance:
                             </span>
-                            <span className="font-bold text-sm">
+                            <span className="font-bold text-base sm:text-sm">
                               {balanceInfo.newBalance.toFixed(2)}{" "}
                               {selectedAccount.currency}
                             </span>
@@ -896,34 +1361,37 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                     {formData.currency !== selectedAccount.currency &&
                       !conversionDetails.error &&
                       !fetchingRates && (
-                        <div className="mt-2 text-xs">
-                          <div className="flex items-center text-red-700 mb-1">
-                            <Info size={12} className="mr-1" />
+                        <div className="mt-3 sm:mt-2 text-sm sm:text-xs">
+                          <div className="flex items-center text-red-700 mb-2 sm:mb-1">
+                            <Info size={14} className="mr-1 flex-shrink-0" />
                             <span className="font-medium">
                               Currency Conversion
                             </span>
                           </div>
 
-                          <div className="flex items-center justify-between">
-                            <div className="px-2 py-1 bg-white rounded-lg border border-red-200 text-red-900">
-                              <p className="text-xs font-medium">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="px-3 py-2 sm:px-2 sm:py-1 bg-white rounded-lg border border-red-200 text-red-900 text-center">
+                              <p className="text-sm sm:text-xs font-medium">
                                 {formData.amount.toFixed(2)} {formData.currency}
                               </p>
                             </div>
 
-                            <div className="flex items-center justify-center px-1">
-                              <ArrowRight size={12} className="text-red-500" />
+                            <div className="flex items-center justify-center px-2 sm:px-1">
+                              <ArrowRight
+                                size={14}
+                                className="text-red-500 flex-shrink-0"
+                              />
                             </div>
 
-                            <div className="px-2 py-1 bg-red-500 text-white rounded-lg shadow-md">
-                              <p className="text-xs font-medium">
+                            <div className="px-3 py-2 sm:px-2 sm:py-1 bg-red-500 text-white rounded-lg shadow-md text-center">
+                              <p className="text-sm sm:text-xs font-medium">
                                 {conversionDetails.convertedAmount.toFixed(2)}{" "}
                                 {selectedAccount.currency}
                               </p>
                             </div>
                           </div>
 
-                          <div className="text-xs mt-1 text-red-600 border-t border-red-100 pt-1">
+                          <div className="text-sm sm:text-xs mt-2 sm:mt-1 text-red-600 border-t border-red-100 pt-2 sm:pt-1">
                             <p className="flex items-center">
                               <span className="mr-1">💱</span>
                               Exchange rate: 1 {formData.currency} ={" "}
@@ -948,68 +1416,38 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       {/* Backdrop */}
-      <div
-        className="absolute inset-0"
-        onClick={handleClose}
-      />
+      <div className="absolute inset-0 " onClick={handleClose} />
 
       {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10"
+        className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10 w-full max-w-md mx-auto"
         style={{
-          width: isMobileView ? "90%" : "28rem",
-          minHeight: "50vh",
-          maxHeight: "90vh",
+          height: isMobileView ? "90vh" : "85vh",
+          maxHeight: isMobileView ? "90vh" : "85vh",
         }}
       >
         {/* Enhanced Header */}
-        <div className="bg-gradient-to-r from-red-600 to-red-800 relative overflow-hidden">
-          {/* Mobile-optimized background elements */}
-          <div
-            className={`absolute top-0 right-0 bg-white/20 rounded-full ${
-              isMobileView
-                ? "w-10 h-10 -translate-y-5 translate-x-5"
-                : "w-12 h-12 -translate-y-6 translate-x-6"
-            }`}
-          ></div>
-          <div
-            className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
-              isMobileView
-                ? "w-6 h-6 translate-y-3 -translate-x-3"
-                : "w-8 h-8 translate-y-4 -translate-x-4"
-            }`}
-          ></div>
-          <div
-            className={`absolute bg-white/15 rounded-full ${
-              isMobileView ? "top-1 left-12 w-4 h-4" : "top-1 left-14 w-6 h-6"
-            }`}
-          ></div>
+        <div className="bg-gradient-to-r from-red-600 to-red-800 relative overflow-hidden flex-shrink-0">
+          {/* Background decorations */}
+          <div className="absolute top-0 right-0 bg-white/20 rounded-full w-16 h-16 sm:w-12 sm:h-12 -translate-y-8 translate-x-8 sm:-translate-y-6 sm:translate-x-6"></div>
+          <div className="absolute bottom-0 left-0 bg-white/10 rounded-full w-10 h-10 sm:w-8 sm:h-8 translate-y-5 -translate-x-5 sm:translate-y-4 sm:-translate-x-4"></div>
+          <div className="absolute bg-white/15 rounded-full w-8 h-8 sm:w-6 sm:h-6 top-2 left-20 sm:top-1 sm:left-14"></div>
 
-          <div
-            className={`${isMobileView ? "px-4 py-3" : "px-4 py-3"} flex items-center justify-between relative z-10 mb-2`}
-          >
-            <div className="flex items-center">
-              <div
-                className={`bg-white rounded-full flex items-center justify-center mr-3 shadow-lg ${isMobileView ? "w-8 h-8" : "w-10 h-10"}`}
-              >
-                <span className={isMobileView ? "text-base" : "text-lg"}>
-                  💸
-                </span>
+          <div className="relative z-10 px-5 py-4 sm:px-4 sm:py-3 flex items-center justify-between mb-3 sm:mb-2">
+            <div className="flex items-center min-w-0">
+              <div className="bg-white rounded-full flex items-center justify-center mr-3 shadow-lg w-10 h-10 sm:w-8 sm:h-8">
+                <span className="text-lg sm:text-base">💸</span>
               </div>
-              <div>
-                <h2
-                  className={`font-bold text-white ${isMobileView ? "text-base" : "text-lg"}`}
-                >
+              <div className="min-w-0">
+                <h2 className="font-bold text-white text-lg sm:text-base truncate">
                   Add an Expense
                 </h2>
-                <p
-                  className={`text-white/90 ${isMobileView ? "text-xs" : "text-sm"}`}
-                >
+                <p className="text-white/90 text-sm sm:text-xs truncate">
                   {steps[currentStep - 1]}
                 </p>
               </div>
@@ -1017,23 +1455,21 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
             <motion.button
               onClick={handleClose}
-              className="text-white/80 hover:text-white transition-colors"
+              className="text-white/80 hover:text-white transition-colors p-2 sm:p-1 touch-manipulation"
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
             >
-              <X size={isMobileView ? 18 : 20} />
+              <X size={20} className="sm:w-5 sm:h-5" />
             </motion.button>
           </div>
 
           {/* Progress */}
-          <div
-            className={`${isMobileView ? "px-4 pb-3" : "px-4 pb-3"} relative z-10`}
-          >
+          <div className="relative z-10 px-5 pb-4 sm:px-4 sm:pb-3">
             <div className="flex gap-1">
               {steps.map((_, index) => (
                 <div
                   key={index}
-                  className={`h-1 flex-1 rounded transition-all duration-300 ${
+                  className={`h-1.5 sm:h-1 flex-1 rounded transition-all duration-300 ${
                     index < currentStep ? "bg-white" : "bg-white/30"
                   }`}
                 />
@@ -1043,17 +1479,15 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         </div>
 
         {/* Content */}
-        <div
-          className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"}`}
-        >
+        <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 min-h-0">
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-3 p-2 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs flex items-center gap-2 shadow-sm"
+              className="mb-4 sm:mb-3 p-3 sm:p-2 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm sm:text-xs flex items-center gap-2 shadow-sm"
             >
-              <AlertCircle size={14} />
-              {error}
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <span>{error}</span>
             </motion.div>
           )}
 
@@ -1061,17 +1495,15 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         </div>
 
         {/* Footer */}
-        <div
-          className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 backdrop-blur-sm flex justify-between`}
-        >
+        <div className="border-t bg-gray-50/50 backdrop-blur-sm flex justify-between px-5 py-4 sm:px-4 sm:py-3 flex-shrink-0">
           <motion.button
             onClick={prevStep}
             disabled={currentStep === 1}
-            className="flex items-center gap-1 px-3 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
+            className="flex items-center gap-2 sm:gap-1 px-4 py-3 sm:px-3 sm:py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base sm:text-sm touch-manipulation"
             whileHover={{ scale: currentStep === 1 ? 1 : 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            <ArrowLeft size={14} />
+            <ArrowLeft size={16} className="sm:w-4 sm:h-4" />
             Back
           </motion.button>
 
@@ -1079,12 +1511,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
             <motion.button
               onClick={nextStep}
               disabled={!canProceed()}
-              className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-sm"
+              className="flex items-center gap-2 sm:gap-1 px-6 py-3 sm:px-4 sm:py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-base sm:text-sm touch-manipulation"
               whileHover={{ scale: !canProceed() ? 1 : 1.02 }}
               whileTap={{ scale: 0.98 }}
             >
               Continue
-              <ArrowRight size={14} />
+              <ArrowRight size={16} className="sm:w-4 sm:h-4" />
             </motion.button>
           ) : (
             <motion.button
@@ -1092,7 +1524,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               disabled={
                 isLoading || (balanceInfo ? !balanceInfo.isValid : false)
               }
-              className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-sm"
+              className="flex items-center gap-2 sm:gap-1 px-6 py-3 sm:px-4 sm:py-2 bg-gradient-to-r from-red-600 to-red-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-base sm:text-sm touch-manipulation"
               whileHover={{
                 scale:
                   isLoading || (balanceInfo && !balanceInfo.isValid) ? 1 : 1.02,
@@ -1100,7 +1532,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               whileTap={{ scale: 0.98 }}
             >
               {isLoading ? (
-                <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent" />
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
               ) : (
                 "💸"
               )}

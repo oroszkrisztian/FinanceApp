@@ -1037,10 +1037,20 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
       case 3:
         return (
-          <div className="space-y-4">
+          <div className="space-y-5 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Account *
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-3 sm:mb-1 flex items-center">
+                <span
+                  className={`${defaultType === PaymentType.EXPENSE ? "text-red-500" : "text-green-500"} mr-1`}
+                >
+                  💳
+                </span>
+                Select Account
+                <span
+                  className={`${defaultType === PaymentType.EXPENSE ? "text-red-500" : "text-green-500"}`}
+                >
+                  *
+                </span>
               </label>
               <SearchWithSuggestions
                 placeholder="Search and select account..."
@@ -1061,248 +1071,92 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 }
               />
               {formData.accountId && (
-                <div className="mt-2 p-2 bg-gray-50 rounded-xl shadow-sm">
-                  <div className="text-sm text-gray-600">
-                    Selected:{" "}
-                    <span className="font-medium">
-                      {
-                        accounts.find(
-                          (acc) => acc.id.toString() === formData.accountId
-                        )?.name
+                <div
+                  className={`mt-3 sm:mt-2 p-3 sm:p-2 rounded-xl border shadow-sm ${
+                    defaultType === PaymentType.EXPENSE
+                      ? "bg-red-50 border-red-200"
+                      : "bg-green-50 border-green-200"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className={`font-medium text-base sm:text-sm truncate ${
+                          defaultType === PaymentType.EXPENSE
+                            ? "text-red-800"
+                            : "text-green-800"
+                        }`}
+                      >
+                        {
+                          accounts.find(
+                            (acc) => acc.id.toString() === formData.accountId
+                          )?.name
+                        }
+                      </div>
+                      <div
+                        className={`text-sm sm:text-xs ${
+                          defaultType === PaymentType.EXPENSE
+                            ? "text-red-600"
+                            : "text-green-600"
+                        }`}
+                      >
+                        Balance:{" "}
+                        {accounts
+                          .find(
+                            (acc) => acc.id.toString() === formData.accountId
+                          )
+                          ?.amount.toFixed(2)}{" "}
+                        {
+                          accounts.find(
+                            (acc) => acc.id.toString() === formData.accountId
+                          )?.currency
+                        }
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({ ...prev, accountId: "" }))
                       }
-                    </span>
-                    <span className="ml-2 text-xs text-gray-500">
-                      (
-                      {accounts
-                        .find((acc) => acc.id.toString() === formData.accountId)
-                        ?.amount.toFixed(2)}{" "}
-                      {
-                        accounts.find(
-                          (acc) => acc.id.toString() === formData.accountId
-                        )?.currency
-                      }
-                      )
-                    </span>
+                      className={`transition-colors p-1 touch-manipulation ${
+                        defaultType === PaymentType.EXPENSE
+                          ? "text-red-500 hover:text-red-700"
+                          : "text-green-500 hover:text-green-700"
+                      }`}
+                    >
+                      <X size={16} className="sm:w-4 sm:h-4" />
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {!isEditMode && showAiSuggestions && (
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Brain size={16} className="text-purple-600" />
-                    <label className="text-sm font-medium text-gray-700">
-                      AI Category Suggestions
-                    </label>
-                  </div>
-                  {aiSuggestions.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={retryAISuggestions}
-                      className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                      title="Get new suggestions"
-                    >
-                      <RefreshCw size={12} />
-                      Refresh
-                    </button>
-                  )}
-                </div>
-
-                {aiSuggestionsLoading && (
-                  <div className="flex items-center justify-center p-4 bg-purple-50 rounded-xl border border-purple-200">
-                    <Loader
-                      className="animate-spin text-purple-600 mr-2"
-                      size={16}
-                    />
-                    <span className="text-sm text-purple-700">
-                      AI is analyzing your payment for the best categories...
-                    </span>
-                  </div>
-                )}
-
-                {aiSuggestionsError && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle size={14} className="text-red-600" />
-                        <span className="text-sm text-red-700">
-                          {aiSuggestionsError}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={retryAISuggestions}
-                        className="text-xs text-red-600 hover:text-red-800 underline"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {aiSuggestions.length > 0 && !aiSuggestionsLoading && (
-                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="flex items-center gap-2">
-                        <Sparkles size={14} className="text-purple-600" />
-                        <span className="text-sm font-medium text-purple-800">
-                          Suggested for "{formData.name}"
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={acceptAllAISuggestions}
-                          disabled={creatingCategories.length > 0}
-                          className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1 disabled:opacity-50"
-                        >
-                          <ThumbsUp size={12} />
-                          Accept All
-                        </button>
-                        <button
-                          type="button"
-                          onClick={dismissAISuggestions}
-                          className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
-                        >
-                          <ThumbsDown size={12} />
-                          Skip
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      {aiSuggestions.map((suggestion, index) => (
-                        <motion.div
-                          key={`${suggestion.type}-${suggestion.categoryName}-${index}`}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-100 shadow-sm"
-                        >
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-sm font-medium text-gray-800">
-                                {suggestion.categoryName}
-                              </span>
-                              <span
-                                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                                  suggestion.type === "new"
-                                    ? "bg-green-100 text-green-700"
-                                    : "bg-purple-100 text-purple-700"
-                                }`}
-                              >
-                                {suggestion.type === "new" ? "New" : "Existing"}{" "}
-                                • {Math.round(suggestion.confidence * 100)}%
-                                match
-                              </span>
-                            </div>
-                            <p className="text-xs text-gray-600">
-                              {suggestion.reason}
-                            </p>
-                            {suggestion.type === "new" &&
-                              suggestion.description && (
-                                <p className="text-xs text-gray-500 mt-1 italic">
-                                  {suggestion.description}
-                                </p>
-                              )}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => acceptAISuggestion(suggestion)}
-                            disabled={
-                              (suggestion.type === "existing" &&
-                                formData.categoriesId.includes(
-                                  suggestion.categoryId
-                                )) ||
-                              (suggestion.type === "new" &&
-                                creatingCategories.includes(
-                                  suggestion.categoryName
-                                )) ||
-                              (suggestion.type === "new" &&
-                                localCategories.some(
-                                  (cat) =>
-                                    cat.name.toLowerCase() ===
-                                    suggestion.categoryName.toLowerCase()
-                                ))
-                            }
-                            className={`ml-3 p-2 rounded-lg text-xs transition-colors ${
-                              (suggestion.type === "existing" &&
-                                formData.categoriesId.includes(
-                                  suggestion.categoryId
-                                )) ||
-                              (suggestion.type === "new" &&
-                                localCategories.some(
-                                  (cat) =>
-                                    cat.name.toLowerCase() ===
-                                    suggestion.categoryName.toLowerCase()
-                                ))
-                                ? "bg-green-100 text-green-700 cursor-default"
-                                : creatingCategories.includes(
-                                      suggestion.categoryName
-                                    )
-                                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                                  : suggestion.type === "new"
-                                    ? "bg-green-600 text-white hover:bg-green-700"
-                                    : "bg-purple-600 text-white hover:bg-purple-700"
-                            }`}
-                          >
-                            {(suggestion.type === "existing" &&
-                              formData.categoriesId.includes(
-                                suggestion.categoryId
-                              )) ||
-                            (suggestion.type === "new" &&
-                              localCategories.some(
-                                (cat) =>
-                                  cat.name.toLowerCase() ===
-                                  suggestion.categoryName.toLowerCase()
-                              )) ? (
-                              <Check size={12} />
-                            ) : creatingCategories.includes(
-                                suggestion.categoryName
-                              ) ? (
-                              <Loader size={12} className="animate-spin" />
-                            ) : (
-                              <Plus size={12} />
-                            )}
-                          </button>
-                        </motion.div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {!aiSuggestionsLoading &&
-                  !aiSuggestionsError &&
-                  aiSuggestions.length === 0 &&
-                  hasTriggeredSuggestions && (
-                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
-                      <p className="text-sm text-gray-600">
-                        No specific category suggestions found. Please select
-                        categories manually.
-                      </p>
-                    </div>
-                  )}
-              </div>
-            )}
-
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-medium text-gray-700">
+              <div className="flex items-center justify-between mb-3 sm:mb-1">
+                <label className="block text-sm sm:text-xs font-medium text-gray-700 flex items-center">
+                  <span
+                    className={`${defaultType === PaymentType.EXPENSE ? "text-red-500" : "text-green-500"} mr-1`}
+                  >
+                    🏷️
+                  </span>
                   Categories{" "}
                   {!showAiSuggestions || suggestionsAccepted
-                    ? ""
+                    ? "(Optional)"
                     : "(or select manually)"}
                 </label>
                 <motion.button
                   type="button"
                   onClick={() => setIsCreateCategoryModalOpen(true)}
-                  className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                  className={`flex items-center gap-1.5 sm:gap-1 px-3 py-2 sm:px-2 sm:py-1 text-white text-sm sm:text-xs rounded-lg transition-colors shadow-sm touch-manipulation ${
+                    defaultType === PaymentType.EXPENSE
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
-                  <Plus size={12} />
-                  Add New
+                  <Plus size={14} className="sm:w-3 sm:h-3" />
+                  <span className="hidden sm:inline">Add</span>
                 </motion.button>
               </div>
               <SearchWithSuggestions
@@ -1317,6 +1171,217 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 multiSelect={true}
               />
             </div>
+
+            {/* AI Category Suggestions */}
+            {!isEditMode && showAiSuggestions && (
+              <div className="space-y-4 sm:space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain
+                      size={18}
+                      className="text-purple-600 sm:w-4 sm:h-4"
+                    />
+                    <label className="text-base sm:text-sm font-medium text-gray-700">
+                      AI Category Suggestions
+                    </label>
+                  </div>
+                  {aiSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={retryAISuggestions}
+                      className="flex items-center gap-1 px-3 py-2 sm:px-2 sm:py-1 text-sm sm:text-xs text-gray-500 hover:text-gray-700 transition-colors touch-manipulation"
+                      title="Get new suggestions"
+                    >
+                      <RefreshCw size={14} className="sm:w-3 sm:h-3" />
+                      Refresh
+                    </button>
+                  )}
+                </div>
+
+                {aiSuggestionsLoading && (
+                  <div className="flex items-center justify-center p-5 sm:p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <Loader
+                      className="animate-spin text-purple-600 mr-3 sm:mr-2"
+                      size={20}
+                    />
+                    <span className="text-base sm:text-sm text-purple-700">
+                      AI is analyzing your payment for the best categories...
+                    </span>
+                  </div>
+                )}
+
+                {aiSuggestionsError && (
+                  <div className="p-4 sm:p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle
+                          size={16}
+                          className="text-red-600 flex-shrink-0"
+                        />
+                        <span className="text-sm text-red-700">
+                          {aiSuggestionsError}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={retryAISuggestions}
+                        className="text-sm text-red-600 hover:text-red-800 underline self-start sm:self-auto touch-manipulation"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {aiSuggestions.length > 0 && !aiSuggestionsLoading && (
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-5 sm:p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-3 gap-3 sm:gap-2">
+                      <div className="flex items-center gap-2">
+                        <Sparkles
+                          size={16}
+                          className="text-purple-600 flex-shrink-0"
+                        />
+                        <span className="text-base sm:text-sm font-medium text-purple-800">
+                          Suggested for "{formData.name}"
+                        </span>
+                      </div>
+                      <div className="flex gap-2 self-start sm:self-auto">
+                        <button
+                          type="button"
+                          onClick={acceptAllAISuggestions}
+                          disabled={creatingCategories.length > 0}
+                          className="px-4 py-2 sm:px-3 sm:py-1 bg-purple-600 text-white text-sm sm:text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1.5 sm:gap-1 disabled:opacity-50 touch-manipulation"
+                        >
+                          <ThumbsUp size={14} className="sm:w-3 sm:h-3" />
+                          <span className="hidden sm:inline">Accept All</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={dismissAISuggestions}
+                          className="px-4 py-2 sm:px-3 sm:py-1 bg-white text-red-600 text-sm sm:text-xs rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1.5 sm:gap-1 touch-manipulation"
+                        >
+                          <ThumbsDown size={14} className="sm:w-3 sm:h-3" />
+                          <span className="hidden sm:inline">Skip</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 sm:space-y-2">
+                      {aiSuggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={`${suggestion.type}-${suggestion.categoryName}-${index}`}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="p-4 sm:p-3 bg-white rounded-lg border border-purple-100 shadow-sm"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2 sm:mb-1">
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-2 min-w-0 flex-1">
+                              <span className="text-base sm:text-sm font-medium text-gray-800 truncate">
+                                {suggestion.categoryName}
+                              </span>
+                              <span
+                                className={`text-xs px-2 py-1 sm:px-1.5 sm:py-0.5 rounded-full self-start sm:self-auto ${
+                                  suggestion.type === "new"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-purple-100 text-purple-700"
+                                }`}
+                              >
+                                {suggestion.type === "new" ? "New" : "Existing"}{" "}
+                                • {Math.round(suggestion.confidence * 100)}%
+                                match
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => acceptAISuggestion(suggestion)}
+                              disabled={
+                                (suggestion.type === "existing" &&
+                                  formData.categoriesId.includes(
+                                    suggestion.categoryId
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  creatingCategories.includes(
+                                    suggestion.categoryName
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  localCategories.some(
+                                    (cat) =>
+                                      cat.name.toLowerCase() ===
+                                      suggestion.categoryName.toLowerCase()
+                                  ))
+                              }
+                              className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-xs transition-colors touch-manipulation flex-shrink-0 flex items-center justify-center ${
+                                (suggestion.type === "existing" &&
+                                  formData.categoriesId.includes(
+                                    suggestion.categoryId
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  localCategories.some(
+                                    (cat) =>
+                                      cat.name.toLowerCase() ===
+                                      suggestion.categoryName.toLowerCase()
+                                  ))
+                                  ? "bg-green-100 text-green-700 cursor-default"
+                                  : creatingCategories.includes(
+                                        suggestion.categoryName
+                                      )
+                                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                    : suggestion.type === "new"
+                                      ? "bg-green-600 text-white hover:bg-green-700"
+                                      : "bg-purple-600 text-white hover:bg-purple-700"
+                              }`}
+                            >
+                              {(suggestion.type === "existing" &&
+                                formData.categoriesId.includes(
+                                  suggestion.categoryId
+                                )) ||
+                              (suggestion.type === "new" &&
+                                localCategories.some(
+                                  (cat) =>
+                                    cat.name.toLowerCase() ===
+                                    suggestion.categoryName.toLowerCase()
+                                )) ? (
+                                <Check size={16} className="sm:w-3 sm:h-3" />
+                              ) : creatingCategories.includes(
+                                  suggestion.categoryName
+                                ) ? (
+                                <Loader
+                                  size={16}
+                                  className="animate-spin sm:w-3 sm:h-3"
+                                />
+                              ) : (
+                                <Plus size={16} className="sm:w-3 sm:h-3" />
+                              )}
+                            </button>
+                          </div>
+                          <p className="text-sm sm:text-xs text-gray-600 leading-relaxed">
+                            {suggestion.reason}
+                          </p>
+                          {suggestion.type === "new" &&
+                            suggestion.description && (
+                              <p className="text-sm sm:text-xs text-gray-500 mt-2 sm:mt-1 italic leading-relaxed">
+                                {suggestion.description}
+                              </p>
+                            )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!aiSuggestionsLoading &&
+                  !aiSuggestionsError &&
+                  aiSuggestions.length === 0 &&
+                  hasTriggeredSuggestions && (
+                    <div className="p-4 sm:p-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
+                      <p className="text-base sm:text-sm text-gray-600">
+                        No specific category suggestions found. Please select
+                        categories manually.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            )}
           </div>
         );
 
@@ -1519,7 +1584,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
               isMobileView
                 ? "max-w-sm w-full max-h-[95vh]"
-                : "max-w-md w-full max-h-[90vh]"
+                : "max-w-md w-full max-h-[95vh]"
             }`}
             onClick={(e) => e.stopPropagation()}
           >
