@@ -1427,7 +1427,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         transition={{ duration: 0.2 }}
         className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10 w-full max-w-md mx-auto"
         style={{
-          height: isMobileView ? "90vh" : "85vh",
+          //height: isMobileView ? "90vh" : "85vh",
           maxHeight: isMobileView ? "90vh" : "85vh",
         }}
       >

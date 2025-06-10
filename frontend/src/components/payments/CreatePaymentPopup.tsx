@@ -103,6 +103,7 @@ const SearchWithSuggestions: React.FC<{
   onSelect?: (suggestion: string) => void;
   selectedItems?: string[];
   multiSelect?: boolean;
+  value?: string;
 }> = ({
   placeholder,
   onSearch,
@@ -111,12 +112,16 @@ const SearchWithSuggestions: React.FC<{
   onSelect,
   selectedItems = [],
   multiSelect = false,
+  value = "",
 }) => {
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
-  const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setSearchTerm(value);
+  }, [value]);
 
   useEffect(() => {
     const filtered = suggestions.filter((suggestion) =>
@@ -156,28 +161,22 @@ const SearchWithSuggestions: React.FC<{
     }
   };
 
-  const baseClasses =
-    "w-full pl-8 pr-3 py-2 text-sm border rounded-xl focus:ring-2 focus:border-transparent transition-colors shadow-sm";
-  const variantClasses =
-    variant === "expense"
-      ? "border-red-200 focus:ring-red-500 bg-red-50/50"
-      : "border-green-200 focus:ring-green-500 bg-green-50/50";
+  const colorClass = variant === "expense" ? "red" : "green";
 
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="relative">
         <Search
           size={14}
-          className={`absolute left-2.5 top-1/2 transform -translate-y-1/2 ${variant === "expense" ? "text-red-400" : "text-green-400"}`}
+          className={`absolute left-2.5 top-1/2 transform -translate-y-1/2 text-${colorClass}-400`}
         />
         <input
-          ref={inputRef}
           type="text"
           placeholder={placeholder}
           value={searchTerm}
           onChange={handleInputChange}
           onFocus={() => setIsOpen(true)}
-          className={`${baseClasses} ${variantClasses}`}
+          className={`w-full pl-8 pr-3 py-2.5 text-sm border border-${colorClass}-200 rounded-xl focus:ring-2 focus:ring-${colorClass}-500 focus:border-transparent transition-colors shadow-sm bg-${colorClass}-50/50`}
         />
       </div>
 
@@ -186,18 +185,16 @@ const SearchWithSuggestions: React.FC<{
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
-          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-28 overflow-y-auto"
+          className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-32 sm:max-h-40 overflow-y-auto"
         >
           {filteredSuggestions.map((suggestion, index) => (
             <button
               key={index}
               type="button"
               onClick={() => handleSuggestionClick(suggestion)}
-              className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+              className={`w-full text-left px-3 py-2.5 sm:py-2 text-sm hover:bg-${colorClass}-50 transition-colors ${
                 selectedItems.includes(suggestion)
-                  ? variant === "expense"
-                    ? "bg-red-50 text-red-700"
-                    : "bg-green-50 text-green-700"
+                  ? `bg-${colorClass}-50 text-${colorClass}-700`
                   : "text-gray-700"
               }`}
             >
@@ -208,21 +205,17 @@ const SearchWithSuggestions: React.FC<{
       )}
 
       {multiSelect && selectedItems.length > 0 && (
-        <div className="flex flex-wrap gap-1 mt-2">
+        <div className="flex flex-wrap gap-1.5 mt-2">
           {selectedItems.map((item, index) => (
             <button
               key={index}
               type="button"
               onClick={() => onSelect && onSelect(item)}
-              className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-75 ${
-                variant === "expense"
-                  ? "bg-red-100 text-red-700 hover:bg-red-200"
-                  : "bg-green-100 text-green-700 hover:bg-green-200"
-              }`}
+              className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs transition-colors hover:opacity-75 bg-${colorClass}-100 text-${colorClass}-700 hover:bg-${colorClass}-200 min-h-[32px] touch-manipulation`}
             >
               <Tag size={10} />
-              {item}
-              <X size={10} className="ml-1" />
+              <span className="max-w-[100px] truncate">{item}</span>
+              <X size={10} className="ml-1 flex-shrink-0" />
             </button>
           ))}
         </div>
@@ -268,6 +261,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
@@ -318,17 +312,29 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   }, []);
 
   const getThemeColors = () => {
-    if (defaultType === PaymentType.EXPENSE) {
+    if (formData.type === PaymentType.EXPENSE) {
       return {
         gradient: "bg-gradient-to-r from-red-600 to-red-800",
-        editButtonBg: "bg-gradient-to-r from-blue-600 to-blue-700",
-        createButtonBg: "bg-gradient-to-r from-red-600 to-red-700",
+        variant: "expense" as const,
+        icon: "💸",
+        colorClass: "red",
+        focusRing: "focus:ring-red-500",
+        bgColor: "bg-red-50/50",
+        borderColor: "border-red-200",
+        textColor: "text-red-500",
+        buttonBg: "bg-red-600 hover:bg-red-700",
       };
     } else {
       return {
         gradient: "bg-gradient-to-r from-green-600 to-green-800",
-        editButtonBg: "bg-gradient-to-r from-blue-600 to-blue-700",
-        createButtonBg: "bg-gradient-to-r from-green-600 to-green-700",
+        variant: "income" as const,
+        icon: "💰",
+        colorClass: "green",
+        focusRing: "focus:ring-green-500",
+        bgColor: "bg-green-50/50",
+        borderColor: "border-green-200",
+        textColor: "text-green-500",
+        buttonBg: "bg-green-600 hover:bg-green-700",
       };
     }
   };
@@ -346,11 +352,9 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const handleCategoryCreated = async () => {
     try {
       setIsCreateCategoryModalOpen(false);
-
       if (onCategoryCreated) {
         await onCategoryCreated();
       }
-
       console.log("Category created and categories refreshed");
     } catch (error) {
       console.error("Error handling category creation:", error);
@@ -511,6 +515,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setSuggestionsAccepted(true);
   };
 
+  // Trigger AI suggestions when entering step 3
   useEffect(() => {
     console.log("Checking AI suggestions trigger:", {
       currentStep,
@@ -552,8 +557,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         console.error("Error fetching exchange rates:", err);
       }
     };
-    loadExchangeRates();
-  }, []);
+    if (isOpen) {
+      loadExchangeRates();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (editPayment && isOpen) {
@@ -701,7 +708,15 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
     setError(null);
 
+    // Reset AI suggestions if payment details change
     if ((field === "name" || field === "amount") && !isEditMode) {
+      setHasTriggeredSuggestions(false);
+      setAiSuggestions([]);
+      setAiSuggestionsError(null);
+    }
+
+    // Update theme when type changes
+    if (field === "type") {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
       setAiSuggestionsError(null);
@@ -725,7 +740,13 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         accountId: selectedAccount.id.toString(),
         currency: selectedAccount.currency,
       }));
+      setAccountSearchTerm("");
     }
+  };
+
+  const clearAccountSelection = () => {
+    setFormData((prev) => ({ ...prev, accountId: "" }));
+    setAccountSearchTerm("");
   };
 
   const handleCategorySelect = (categoryName: string) => {
@@ -805,9 +826,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         paymentId: editPayment?.id,
       });
 
+      handleClose();
       onSuccess();
-      onClose();
-      resetForm();
     } catch (err) {
       setError(
         err instanceof Error
@@ -820,6 +840,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   };
 
   const resetForm = () => {
+    handleStepChange(1);
     setIsEditMode(false);
     setOriginalCurrency("");
     setSuggestionsAccepted(false);
@@ -846,68 +867,88 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setCategorySearchTerm("");
   };
 
+  const handleClose = () => {
+    setIsClosing(true);
+    setTimeout(() => {
+      resetForm();
+      setIsClosing(false);
+      onClose();
+    }, 150);
+  };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-3">
+            {/* Name Field */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name *
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
+                <span className={`${theme.textColor} mr-1`}>🏷️</span>
+                Payment Name<span className={theme.textColor}>*</span>
               </label>
               <input
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
-                placeholder="e.g., Monthly Rent, Salary"
+                className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm`}
+                placeholder={`Enter ${formData.type === PaymentType.EXPENSE ? "expense" : "income"} name`}
                 required
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Amount *
+            {/* Amount and Currency */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-2">
+              <div className="sm:col-span-1">
+                <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
+                  <span className={`${theme.textColor} mr-1`}>💰</span>
+                  Amount<span className={theme.textColor}>*</span>
                 </label>
                 <div className="relative">
                   <DollarSign
                     size={16}
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                    className={`absolute left-3 sm:left-2.5 top-1/2 transform -translate-y-1/2 ${theme.textColor.replace("text-", "text-").replace("-500", "-400")}`}
                   />
                   <input
-                    type="number"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) =>
-                      handleInputChange("amount", e.target.value)
-                    }
-                    className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                    type="text"
+                    className={`w-full pl-10 sm:pl-8 pr-4 sm:pr-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm font-medium text-base sm:text-sm`}
                     placeholder="0.00"
+                    value={formData.amount}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || /^[0-9]*([.,][0-9]*)?$/.test(value)) {
+                        handleInputChange("amount", value);
+                      }
+                    }}
                     required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+              <div className="sm:col-span-1">
+                <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1">
                   Currency
                 </label>
                 <div className="relative" ref={currencyRef}>
                   <button
                     type="button"
                     onClick={() => setIsCurrencyOpen(!isCurrencyOpen)}
-                    className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between shadow-sm"
+                    className={`w-full p-3 sm:p-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent text-left flex items-center justify-between ${theme.bgColor} shadow-sm transition-all text-base sm:text-sm touch-manipulation`}
                   >
                     <span>{formData.currency}</span>
-                    <ChevronDown size={16} className="text-gray-400" />
+                    <ChevronDown
+                      size={16}
+                      className={theme.textColor
+                        .replace("text-", "text-")
+                        .replace("-500", "-400")}
+                    />
                   </button>
 
                   {isCurrencyOpen && (
                     <motion.div
                       initial={{ opacity: 0, y: -10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-xl shadow-lg z-50 max-h-48 overflow-y-auto"
+                      className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-50 max-h-32 sm:max-h-28 overflow-y-auto"
                     >
                       {Object.values(CurrencyType).map((currency) => (
                         <button
@@ -926,7 +967,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                                 formData.currency,
                                 currency
                               );
-
                               handleInputChange("currency", currency);
                               handleInputChange(
                                 "amount",
@@ -937,9 +977,9 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                             }
                             setIsCurrencyOpen(false);
                           }}
-                          className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
+                          className={`w-full text-left px-4 sm:px-3 py-3 sm:py-2 hover:bg-gray-50 transition-colors text-base sm:text-sm touch-manipulation ${
                             formData.currency === currency
-                              ? "bg-blue-50 text-blue-700"
+                              ? `${theme.bgColor} ${theme.textColor.replace("-500", "-700")}`
                               : ""
                           }`}
                         >
@@ -952,18 +992,20 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               </div>
             </div>
 
+            {/* Description */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
+                <span className={`${theme.textColor} mr-1`}>📝</span>
+                Description (Optional)
               </label>
               <textarea
                 value={formData.description}
                 onChange={(e) =>
                   handleInputChange("description", e.target.value)
                 }
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 rows={3}
-                placeholder="Optional description..."
+                className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm resize-none`}
+                placeholder="Add payment details"
               />
             </div>
           </div>
@@ -971,34 +1013,36 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
       case 2:
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date *
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
+                <span className={`${theme.textColor} mr-1`}>📅</span>
+                Start Date<span className={theme.textColor}>*</span>
               </label>
               <input
                 type="date"
                 value={formData.startDate}
                 onChange={(e) => handleInputChange("startDate", e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
+                className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm`}
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Frequency *
+              <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
+                <span className={`${theme.textColor} mr-1`}>🔄</span>
+                Frequency<span className={theme.textColor}>*</span>
               </label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2 sm:gap-1">
                 {Object.values(Frequency).map((freq) => (
                   <button
                     key={freq}
                     type="button"
                     onClick={() => handleInputChange("frequency", freq)}
-                    className={`p-3 rounded-xl border text-sm transition-colors shadow-sm ${
+                    className={`p-3 sm:p-2.5 rounded-xl border text-sm sm:text-xs transition-colors shadow-sm font-medium touch-manipulation ${
                       formData.frequency === freq
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-gray-300 hover:border-gray-400"
+                        ? `${theme.borderColor.replace("border-", "border-").replace("-200", "-500")} ${theme.bgColor} ${theme.textColor.replace("-500", "-700")}`
+                        : "border-gray-300 hover:border-gray-400 text-gray-700"
                     }`}
                   >
                     {freq.charAt(0) + freq.slice(1).toLowerCase()}
@@ -1008,19 +1052,26 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             </div>
 
             {formData.amount && formData.startDate && (
-              <div className="space-y-3">
-                <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Calendar size={14} className="text-blue-600" />
-                    <span className="text-sm font-medium text-blue-800">
+              <div className="space-y-3 sm:space-y-2">
+                <div
+                  className={`${theme.bgColor} border ${theme.borderColor} p-4 sm:p-3 rounded-xl shadow-sm`}
+                >
+                  <div className="flex items-center gap-2 mb-3 sm:mb-2">
+                    <Calendar
+                      size={14}
+                      className={theme.textColor.replace("-500", "-600")}
+                    />
+                    <span
+                      className={`text-sm sm:text-xs font-medium ${theme.textColor.replace("-500", "-800")}`}
+                    >
                       Next 3 Payments
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-2 sm:gap-1">
                     {calculateNextPayments().map((date, index) => (
                       <div
                         key={index}
-                        className="text-xs text-blue-700 bg-blue-100 px-2 py-1 rounded text-center"
+                        className={`text-xs sm:text-xs ${theme.textColor.replace("-500", "-700")} ${theme.bgColor.replace("/50", "").replace("bg-", "bg-").replace("-50", "-100")} px-2 py-1 rounded text-center font-medium`}
                       >
                         {date.toLocaleDateString("en-GB", {
                           day: "numeric",
@@ -1038,54 +1089,34 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       case 3:
         return (
           <div className="space-y-5 sm:space-y-4">
+            {/* Account Selection */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-3 sm:mb-1 flex items-center">
-                <span
-                  className={`${defaultType === PaymentType.EXPENSE ? "text-red-500" : "text-green-500"} mr-1`}
-                >
-                  💳
-                </span>
-                Select Account
-                <span
-                  className={`${defaultType === PaymentType.EXPENSE ? "text-red-500" : "text-green-500"}`}
-                >
-                  *
-                </span>
+                <span className={`${theme.textColor} mr-1`}>💳</span>
+                Select Account<span className={theme.textColor}>*</span>
               </label>
               <SearchWithSuggestions
                 placeholder="Search and select account..."
                 onSearch={setAccountSearchTerm}
                 suggestions={accountSuggestions}
-                variant={
-                  defaultType === PaymentType.EXPENSE ? "expense" : "income"
-                }
+                variant={theme.variant}
                 onSelect={handleAccountSelect}
-                selectedItems={
+                value={
                   formData.accountId
-                    ? [
-                        accounts.find(
-                          (acc) => acc.id.toString() === formData.accountId
-                        )?.name || "",
-                      ]
-                    : []
+                    ? accounts.find(
+                        (acc) => acc.id.toString() === formData.accountId
+                      )?.name || ""
+                    : accountSearchTerm
                 }
               />
               {formData.accountId && (
                 <div
-                  className={`mt-3 sm:mt-2 p-3 sm:p-2 rounded-xl border shadow-sm ${
-                    defaultType === PaymentType.EXPENSE
-                      ? "bg-red-50 border-red-200"
-                      : "bg-green-50 border-green-200"
-                  }`}
+                  className={`mt-3 sm:mt-2 p-3 sm:p-2 ${theme.bgColor} border ${theme.borderColor} rounded-xl shadow-sm`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="min-w-0 flex-1">
                       <div
-                        className={`font-medium text-base sm:text-sm truncate ${
-                          defaultType === PaymentType.EXPENSE
-                            ? "text-red-800"
-                            : "text-green-800"
-                        }`}
+                        className={`font-medium text-base sm:text-sm truncate ${theme.textColor.replace("-500", "-800")}`}
                       >
                         {
                           accounts.find(
@@ -1094,11 +1125,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                         }
                       </div>
                       <div
-                        className={`text-sm sm:text-xs ${
-                          defaultType === PaymentType.EXPENSE
-                            ? "text-red-600"
-                            : "text-green-600"
-                        }`}
+                        className={`text-sm sm:text-xs ${theme.textColor.replace("-500", "-600")}`}
                       >
                         Balance:{" "}
                         {accounts
@@ -1115,14 +1142,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     </div>
                     <button
                       type="button"
-                      onClick={() =>
-                        setFormData((prev) => ({ ...prev, accountId: "" }))
-                      }
-                      className={`transition-colors p-1 touch-manipulation ${
-                        defaultType === PaymentType.EXPENSE
-                          ? "text-red-500 hover:text-red-700"
-                          : "text-green-500 hover:text-green-700"
-                      }`}
+                      onClick={clearAccountSelection}
+                      className={`${theme.textColor} hover:${theme.textColor.replace("-500", "-700")} transition-colors p-1 touch-manipulation`}
                     >
                       <X size={16} className="sm:w-4 sm:h-4" />
                     </button>
@@ -1131,14 +1152,11 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
+            {/* Categories Selection */}
             <div>
               <div className="flex items-center justify-between mb-3 sm:mb-1">
                 <label className="block text-sm sm:text-xs font-medium text-gray-700 flex items-center">
-                  <span
-                    className={`${defaultType === PaymentType.EXPENSE ? "text-red-500" : "text-green-500"} mr-1`}
-                  >
-                    🏷️
-                  </span>
+                  <span className={`${theme.textColor} mr-1`}>🏷️</span>
                   Categories{" "}
                   {!showAiSuggestions || suggestionsAccepted
                     ? "(Optional)"
@@ -1147,11 +1165,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 <motion.button
                   type="button"
                   onClick={() => setIsCreateCategoryModalOpen(true)}
-                  className={`flex items-center gap-1.5 sm:gap-1 px-3 py-2 sm:px-2 sm:py-1 text-white text-sm sm:text-xs rounded-lg transition-colors shadow-sm touch-manipulation ${
-                    defaultType === PaymentType.EXPENSE
-                      ? "bg-red-600 hover:bg-red-700"
-                      : "bg-green-600 hover:bg-green-700"
-                  }`}
+                  className={`flex items-center gap-1.5 sm:gap-1 px-3 py-2 sm:px-2 sm:py-1 text-white text-sm sm:text-xs rounded-lg transition-colors shadow-sm touch-manipulation ${theme.buttonBg}`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -1163,9 +1177,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 placeholder="Search and select categories..."
                 onSearch={setCategorySearchTerm}
                 suggestions={categorySuggestions}
-                variant={
-                  defaultType === PaymentType.EXPENSE ? "expense" : "income"
-                }
+                variant={theme.variant}
                 onSelect={handleCategorySelect}
                 selectedItems={selectedCategoryNames}
                 multiSelect={true}
@@ -1387,11 +1399,14 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
       case 4:
         return (
-          <div className="space-y-4">
-            <div className="p-4 border border-gray-200 rounded-xl hover:border-gray-300 shadow-sm">
+          <div className="space-y-4 sm:space-y-3">
+            {/* Email Notifications */}
+            <div
+              className={`p-4 sm:p-3 border ${theme.borderColor} rounded-xl hover:border-gray-300 shadow-sm transition-colors`}
+            >
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700 flex items-center cursor-pointer">
-                  <Bell size={16} className="mr-2 text-blue-500" />
+                <label className="text-sm sm:text-xs font-medium text-gray-700 flex items-center cursor-pointer">
+                  <Bell size={16} className={`mr-2 ${theme.textColor}`} />
                   Email notifications
                 </label>
                 <input
@@ -1400,13 +1415,15 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   onChange={(e) =>
                     handleInputChange("emailNotification", e.target.checked)
                   }
-                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500 rounded"
+                  className={`w-4 h-4 ${theme.textColor.replace("text-", "text-").replace("-500", "-600")} focus:ring-2 ${theme.focusRing} rounded`}
                 />
               </div>
 
               {formData.emailNotification && (
-                <div className="mt-3 pt-3 border-t border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div
+                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
+                >
+                  <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1">
                     Notification timing
                   </label>
                   <div className="relative" ref={notificationRef}>
@@ -1415,7 +1432,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                       onClick={() =>
                         setIsNotificationDayOpen(!isNotificationDayOpen)
                       }
-                      className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left flex items-center justify-between text-sm shadow-sm"
+                      className={`w-full p-3 sm:p-2.5 border ${theme.borderColor} rounded-xl focus:ring-2 ${theme.focusRing} focus:border-transparent text-left flex items-center justify-between text-sm sm:text-xs shadow-sm ${theme.bgColor} transition-all touch-manipulation`}
                     >
                       <span>
                         {formData.notificationDay === 0 && "On the payment day"}
@@ -1427,7 +1444,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                         {formData.notificationDay === 14 && "2 weeks before"}
                         {formData.notificationDay === 30 && "1 month before"}
                       </span>
-                      <ChevronDown size={16} className="text-gray-400" />
+                      <ChevronDown
+                        size={16}
+                        className={theme.textColor.replace("-500", "-400")}
+                      />
                     </button>
 
                     {isNotificationDayOpen && (
@@ -1435,7 +1455,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                         initial={{ opacity: 0, y: -10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="absolute top-full left-0 right-0 mt-1 max-h-28 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-y-auto"
+                        className="absolute top-full left-0 right-0 mt-1 max-h-32 sm:max-h-28 bg-white border border-gray-200 rounded-xl shadow-lg z-50 overflow-y-auto"
                       >
                         {[
                           { value: 0, label: "On the payment day" },
@@ -1457,9 +1477,9 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                               );
                               setIsNotificationDayOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-2 text-sm hover:bg-gray-50 transition-colors ${
+                            className={`w-full text-left px-3 py-2 sm:py-1.5 text-sm sm:text-xs hover:bg-gray-50 transition-colors touch-manipulation ${
                               formData.notificationDay === option.value
-                                ? "bg-blue-50 text-blue-700"
+                                ? `${theme.bgColor} ${theme.textColor.replace("-500", "-700")}`
                                 : "text-gray-700"
                             }`}
                           >
@@ -1473,10 +1493,13 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
-            <div className="p-4 border border-gray-200 rounded-xl hover:border-gray-300 transition-colors shadow-sm">
+            {/* Automatic Processing */}
+            <div
+              className={`p-4 sm:p-3 border ${theme.borderColor} rounded-xl hover:border-gray-300 transition-colors shadow-sm`}
+            >
               <div className="flex items-center justify-between">
-                <label className="text-sm font-medium text-gray-700 flex items-center cursor-pointer">
-                  <Zap size={16} className="mr-2 text-blue-500" />
+                <label className="text-sm sm:text-xs font-medium text-gray-700 flex items-center cursor-pointer">
+                  <Zap size={16} className={`mr-2 ${theme.textColor}`} />
                   Automatic processing
                 </label>
                 <input
@@ -1485,7 +1508,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   onChange={(e) =>
                     handleInputChange("automaticPayment", e.target.checked)
                   }
-                  className="w-4 h-4 text-blue-600 focus:ring-2 focus:ring-blue-500 rounded"
+                  className={`w-4 h-4 ${theme.textColor.replace("text-", "text-").replace("-500", "-600")} focus:ring-2 ${theme.focusRing} rounded`}
                 />
               </div>
             </div>
@@ -1501,13 +1524,26 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         );
 
         return (
-          <div className="space-y-4">
+          <div className="space-y-4 sm:space-y-3">
+            {/* Payment Summary */}
             <div
-              className={`p-4 rounded-xl border shadow-sm ${defaultType === PaymentType.EXPENSE ? "bg-red-50 border-red-200" : "bg-green-50 border-green-200"}`}
+              className={`p-4 sm:p-3 ${theme.bgColor} backdrop-blur-sm border ${theme.borderColor.replace("-200", "-200/50")} rounded-xl shadow-sm`}
             >
-              <h3 className="font-semibold text-lg mb-3">{formData.name}</h3>
+              <h3
+                className={`font-semibold text-lg sm:text-base mb-3 sm:mb-2 ${theme.textColor.replace("-500", "-800")}`}
+              >
+                {formData.name}
+              </h3>
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2 text-sm sm:text-xs">
+                <div>
+                  <span className="text-gray-600">Type:</span>
+                  <span className="ml-2 font-medium">
+                    {formData.type === PaymentType.EXPENSE
+                      ? "💸 Expense"
+                      : "💰 Income"}
+                  </span>
+                </div>
                 <div>
                   <span className="text-gray-600">Amount:</span>
                   <span className="ml-2 font-medium">
@@ -1517,7 +1553,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 <div>
                   <span className="text-gray-600">Frequency:</span>
                   <span className="ml-2 font-medium">
-                    {formData.frequency.toLowerCase()}
+                    {formData.frequency.charAt(0) +
+                      formData.frequency.slice(1).toLowerCase()}
                   </span>
                 </div>
                 <div>
@@ -1532,16 +1569,39 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     {selectedAccount?.name}
                   </span>
                 </div>
+                <div>
+                  <span className="text-gray-600">Notifications:</span>
+                  <span className="ml-2 font-medium">
+                    {formData.emailNotification ? "✅ Enabled" : "❌ Disabled"}
+                  </span>
+                </div>
               </div>
 
+              {formData.description && (
+                <div
+                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
+                >
+                  <span className="text-gray-600 text-sm sm:text-xs">
+                    Description:{" "}
+                  </span>
+                  <span className="text-sm sm:text-xs text-gray-800">
+                    {formData.description}
+                  </span>
+                </div>
+              )}
+
               {selectedCategories.length > 0 && (
-                <div className="mt-3">
-                  <span className="text-gray-600 text-sm">Categories: </span>
-                  <div className="flex flex-wrap gap-1 mt-1">
+                <div
+                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
+                >
+                  <span className="text-gray-600 text-sm sm:text-xs">
+                    Categories:{" "}
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 sm:gap-1 mt-2 sm:mt-1">
                     {selectedCategories.map((category) => (
                       <span
                         key={category.id}
-                        className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full"
+                        className={`px-2.5 py-1 sm:px-1.5 sm:py-0.5 ${theme.bgColor.replace("/50", "").replace("bg-", "bg-").replace("-50", "-100")} ${theme.textColor.replace("-500", "-700")} text-sm sm:text-xs rounded`}
                       >
                         {category.name}
                       </span>
@@ -1550,12 +1610,28 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 </div>
               )}
 
-              {formData.description && (
-                <div className="mt-3">
-                  <span className="text-gray-600 text-sm">Description: </span>
-                  <p className="text-sm text-gray-800 mt-1">
-                    {formData.description}
-                  </p>
+              {/* Settings Summary */}
+              {(formData.emailNotification || formData.automaticPayment) && (
+                <div
+                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
+                >
+                  <span className="text-gray-600 text-sm sm:text-xs">
+                    Settings:{" "}
+                  </span>
+                  <div className="flex flex-wrap gap-2 sm:gap-1 mt-2 sm:mt-1">
+                    {formData.automaticPayment && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 sm:px-1.5 sm:py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
+                        <Zap size={10} />
+                        Auto Payment
+                      </span>
+                    )}
+                    {formData.emailNotification && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 sm:px-1.5 sm:py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
+                        <Bell size={10} />
+                        Email Alerts
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1567,190 +1643,152 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 flex items-center justify-center z-50 p-4"
-          onClick={onClose}
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 " onClick={handleClose} />
+
+      {/* Modal */}
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.2 }}
+        className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10 w-full max-w-md mx-auto"
+        style={{
+          maxHeight: isMobileView ? "90vh" : "65vh",
+        }}
+      >
+        {/* Enhanced Header */}
+        <div
+          className={`${theme.gradient} relative overflow-hidden flex-shrink-0`}
         >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.9, opacity: 0 }}
-            className={`bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden ${
-              isMobileView
-                ? "max-w-sm w-full max-h-[95vh]"
-                : "max-w-md w-full max-h-[95vh]"
-            }`}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div
-              className={`relative overflow-hidden ${theme.gradient} text-white`}
-            >
-              <div
-                className={`absolute top-0 right-0 bg-white/20 rounded-full ${
-                  isMobileView
-                    ? "w-12 h-12 -translate-y-6 translate-x-6"
-                    : "w-16 h-16 -translate-y-8 translate-x-8"
-                }`}
-              ></div>
-              <div
-                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${
-                  isMobileView
-                    ? "w-8 h-8 translate-y-4 -translate-x-4"
-                    : "w-12 h-12 translate-y-6 -translate-x-6"
-                }`}
-              ></div>
-              <div
-                className={`absolute bg-white/15 rounded-full ${
-                  isMobileView
-                    ? "top-2 left-16 w-6 h-6"
-                    : "top-2 left-16 w-8 h-8"
-                }`}
-              ></div>
-              <div
-                className={`absolute bg-white/10 rounded-full ${
-                  isMobileView
-                    ? "bottom-2 right-12 w-4 h-4"
-                    : "bottom-2 right-12 w-6 h-6"
-                }`}
-              ></div>
+          {/* Background decorations */}
+          <div className="absolute top-0 right-0 bg-white/20 rounded-full w-16 h-16 sm:w-12 sm:h-12 -translate-y-8 translate-x-8 sm:-translate-y-6 sm:translate-x-6"></div>
+          <div className="absolute bottom-0 left-0 bg-white/10 rounded-full w-10 h-10 sm:w-8 sm:h-8 translate-y-5 -translate-x-5 sm:translate-y-4 sm:-translate-x-4"></div>
+          <div className="absolute bg-white/15 rounded-full w-8 h-8 sm:w-6 sm:h-6 top-2 left-20 sm:top-1 sm:left-14"></div>
 
-              <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
-                <div className="flex justify-between items-center mb-3">
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`bg-white rounded-full shadow-lg ${
-                        isMobileView ? "p-1.5" : "p-1.5"
-                      } ${defaultType === PaymentType.EXPENSE ? "text-red-600" : "text-green-600"}`}
-                    >
-                      {defaultType === PaymentType.EXPENSE ? "💸" : "💰"}
-                    </div>
-                    <div>
-                      <h2
-                        className={`font-semibold ${isMobileView ? "text-lg" : "text-lg"}`}
-                      >
-                        {isEditMode ? "Edit" : "Create"}{" "}
-                        {defaultType === PaymentType.EXPENSE
-                          ? "Bill"
-                          : "Income"}
-                      </h2>
-                      <p
-                        className={`opacity-90 ${isMobileView ? "text-sm" : "text-sm"}`}
-                      >
-                        {steps[currentStep - 1]}
-                      </p>
-                    </div>
-                  </div>
-                  <motion.button
-                    onClick={() => {
-                      onClose();
-                      resetForm();
-                    }}
-                    className="text-white/80 hover:text-white transition-colors"
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <X size={isMobileView ? 20 : 20} />
-                  </motion.button>
-                </div>
-
-                <div className="flex gap-1">
-                  {steps.map((_, index) => (
-                    <div
-                      key={index}
-                      className={`h-1 flex-1 rounded ${
-                        index < currentStep ? "bg-white" : "bg-white/30"
-                      }`}
-                    />
-                  ))}
-                </div>
+          <div className="relative z-10 px-5 py-4 sm:px-4 sm:py-3 flex items-center justify-between mb-3 sm:mb-2">
+            <div className="flex items-center min-w-0">
+              <div className="bg-white rounded-full flex items-center justify-center mr-3 shadow-lg w-10 h-10 sm:w-8 sm:h-8">
+                <span className="text-lg sm:text-base">{theme.icon}</span>
+              </div>
+              <div className="min-w-0">
+                <h2 className="font-bold text-white text-lg sm:text-base truncate">
+                  {isEditMode ? "Edit" : "Create"}{" "}
+                  {formData.type === PaymentType.EXPENSE ? "Bill" : "Income"}
+                </h2>
+                <p className="text-white/90 text-sm sm:text-xs truncate">
+                  {steps[currentStep - 1]}
+                </p>
               </div>
             </div>
 
-            <div
-              className={`${isMobileView ? "p-3" : "p-4"} min-h-[300px] overflow-y-auto`}
+            <motion.button
+              onClick={handleClose}
+              className="text-white/80 hover:text-white transition-colors p-2 sm:p-1 touch-manipulation"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
             >
-              {error && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm"
-                >
-                  <AlertCircle size={16} />
-                  {error}
-                </motion.div>
-              )}
+              <X size={20} className="sm:w-5 sm:h-5" />
+            </motion.button>
+          </div>
 
-              {renderStepContent()}
-            </div>
-
-            <div
-              className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex justify-between`}
-            >
-              <motion.button
-                onClick={prevStep}
-                disabled={currentStep === 1}
-                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                whileHover={{ scale: currentStep === 1 ? 1 : 1.02 }}
-                whileTap={{ scale: 0.98 }}
-              >
-                <ArrowLeft size={16} />
-                Back
-              </motion.button>
-
-              {currentStep < 5 ? (
-                <motion.button
-                  onClick={nextStep}
-                  disabled={!canProceed()}
-                  className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md"
-                  whileHover={{ scale: !canProceed() ? 1 : 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  Continue
-                  <ArrowRight size={16} />
-                </motion.button>
-              ) : (
-                <motion.button
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  className={`flex items-center gap-2 px-6 py-3 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 transition-all shadow-md disabled:opacity-50 ${
-                    isEditMode
-                      ? theme.editButtonBg + " focus:ring-blue-500"
-                      : theme.createButtonBg +
-                        " focus:ring-" +
-                        (defaultType === PaymentType.EXPENSE
-                          ? "red"
-                          : "green") +
-                        "-500"
+          {/* Progress */}
+          <div className="relative z-10 px-5 pb-4 sm:px-4 sm:pb-3">
+            <div className="flex gap-1">
+              {steps.map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-1.5 sm:h-1 flex-1 rounded transition-all duration-300 ${
+                    index < currentStep ? "bg-white" : "bg-white/30"
                   }`}
-                  whileHover={{ scale: loading ? 1 : 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                >
-                  {loading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                  ) : (
-                    <Edit size={16} />
-                  )}
-                  {isEditMode ? "Update" : "Create"}
-                </motion.button>
-              )}
+                />
+              ))}
             </div>
-          </motion.div>
+          </div>
+        </div>
 
-          <CreateCategoryModal
-            isOpen={isCreateCategoryModalOpen}
-            onClose={() => setIsCreateCategoryModalOpen(false)}
-            onSuccess={handleCategoryCreated}
-            userId={userId}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 min-h-0">
+          {error && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 sm:mb-3 p-3 sm:p-2 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm sm:text-xs flex items-center gap-2 shadow-sm"
+            >
+              <AlertCircle size={16} className="flex-shrink-0" />
+              <span>{error}</span>
+            </motion.div>
+          )}
+
+          {renderStepContent()}
+        </div>
+
+        {/* Footer */}
+        <div className="border-t bg-gray-50/50 backdrop-blur-sm flex justify-between px-5 py-4 sm:px-4 sm:py-3 flex-shrink-0">
+          <motion.button
+            onClick={prevStep}
+            disabled={currentStep === 1}
+            className="flex items-center gap-2 sm:gap-1 px-4 py-3 sm:px-3 sm:py-2 text-gray-600 hover:text-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-base sm:text-sm touch-manipulation"
+            whileHover={{ scale: currentStep === 1 ? 1 : 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <ArrowLeft size={16} className="sm:w-4 sm:h-4" />
+            Back
+          </motion.button>
+
+          {currentStep < 5 ? (
+            <motion.button
+              onClick={nextStep}
+              disabled={!canProceed()}
+              className={`flex items-center gap-2 sm:gap-1 px-6 py-3 sm:px-4 sm:py-2 font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-base sm:text-sm touch-manipulation ${
+                formData.type === PaymentType.EXPENSE
+                  ? "bg-gradient-to-r from-red-600 to-red-700 text-white focus:ring-red-500"
+                  : "bg-gradient-to-r from-green-600 to-green-700 text-white focus:ring-green-500"
+              }`}
+              whileHover={{ scale: !canProceed() ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              Continue
+              <ArrowRight size={16} className="sm:w-4 sm:h-4" />
+            </motion.button>
+          ) : (
+            <motion.button
+              onClick={handleSubmit}
+              disabled={loading}
+              className={`flex items-center gap-2 sm:gap-1 px-6 py-3 sm:px-4 sm:py-2 font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-base sm:text-sm touch-manipulation ${
+                isEditMode
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white focus:ring-blue-500"
+                  : formData.type === PaymentType.EXPENSE
+                    ? "bg-gradient-to-r from-red-600 to-red-700 text-white focus:ring-red-500"
+                    : "bg-gradient-to-r from-green-600 to-green-700 text-white focus:ring-green-500"
+              }`}
+              whileHover={{ scale: loading ? 1 : 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              {loading ? (
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+              ) : isEditMode ? (
+                <Edit size={16} className="sm:w-4 sm:h-4" />
+              ) : (
+                theme.icon
+              )}
+              {isEditMode ? "Update Payment" : "Create Payment"}
+            </motion.button>
+          )}
+        </div>
+      </motion.div>
+
+      {/* Create Category Modal */}
+      <CreateCategoryModal
+        isOpen={isCreateCategoryModalOpen}
+        onClose={() => setIsCreateCategoryModalOpen(false)}
+        onSuccess={handleCategoryCreated}
+        userId={userId}
+      />
+    </div>
   );
 };
 
