@@ -19,7 +19,7 @@ export const verifyToken = async (c: Context, next: Next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
 
-    // Add user info to context
+  
     c.set("userId", decoded.id || decoded.userId);
     c.set("user", decoded);
 

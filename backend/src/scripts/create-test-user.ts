@@ -5,14 +5,12 @@ const prisma = new PrismaClient();
 
 async function createTestUser() {
   try {
-    // First, clean up any existing test user
     await prisma.user.deleteMany({
       where: {
         OR: [{ username: "testuser" }, { email: "test@test.com" }],
       },
     });
 
-    // Create new test user
     const hashedPassword = await bcrypt.hash("password123", 10);
     const user = await prisma.user.create({
       data: {
@@ -26,7 +24,7 @@ async function createTestUser() {
 
     console.log("Test user created successfully:", {
       ...user,
-      password: "[HASHED]", // Don't log the actual hash
+      password: "[HASHED]", 
     });
   } catch (error) {
     console.error("Error creating test user:", error);

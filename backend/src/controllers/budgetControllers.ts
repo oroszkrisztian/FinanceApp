@@ -15,7 +15,6 @@ export class BudgetController {
         throw "User id not found";
       }
       const budgets = await this.budgetService.getAllBudgets(userId);
-      // Return the budgets directly instead of wrapping them in another json response
       return budgets;
     } catch (error) {
       console.error("Get budgets error:", error);

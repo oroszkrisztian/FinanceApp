@@ -14,4 +14,22 @@ export class CategoriesService {
       throw new Error("Failed to get system categories");
     }
   }
+  async getAllCategoriesForUser(userId:number){
+    try {
+      return await this.categoriesRepository.getAllCategoriesForUser(userId);
+    } catch (error) {
+      console.log("Error in CategoriesService.getAllCategoriesForUser:", error);
+      throw new Error("Failed to get all categories");
+    }
+  }
+
+  async createUserCategory(userId:number,categoryName:string){
+    try {
+      return await this.categoriesRepository.createUserCategory(userId,categoryName);
+    } catch (error) {
+      console.log("Error in CategoriesService.createUserCategory:", error);
+      throw new Error("Failed to create user category");
+    }
+  }
+
 }

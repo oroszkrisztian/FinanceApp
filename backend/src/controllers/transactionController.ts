@@ -35,7 +35,7 @@ export class TransactionController {
         amount,
         type,
         toAccountId,
-        customCategoryId,
+        customCategoriesId,
         currency,
       } = await c.req.json();
 
@@ -51,7 +51,7 @@ export class TransactionController {
           amount,
           type,
           toAccountId,
-          customCategoryId,
+          customCategoriesId,
           currency
         );
 
@@ -232,6 +232,7 @@ export class TransactionController {
         toAccountId,
         name,
         description,
+        customCategoriesId
       } = await c.req.json();
 
       if (!userId || !paymentId || !amount || !toAccountId || !name) {
@@ -245,7 +246,8 @@ export class TransactionController {
         currency,
         toAccountId,
         name,
-        description
+        description,
+        customCategoriesId,
       );
 
       return c.json(transaction);

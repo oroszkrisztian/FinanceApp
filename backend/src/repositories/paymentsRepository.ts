@@ -30,16 +30,13 @@ export class PaymentsRepository {
   ) {
     return await this.prisma.$transaction(async (tx) => {
       if (paymentId) {
-        // Update existing payment
 
-        // First, delete existing categories
         await tx.recurringBillCategory.deleteMany({
           where: {
             recurringFundAndBillId: paymentId,
           },
         });
 
-        // Update the payment
         const updatedPayment = await tx.recurringFundAndBill.update({
           where: {
             id: paymentId,
@@ -61,7 +58,6 @@ export class PaymentsRepository {
             nextExecution: startDate,
             type: type,
             currency: currency,
-            // Add new categories if provided
             ...(categoriesId &&
               categoriesId.length > 0 && {
                 categories: {
@@ -84,7 +80,6 @@ export class PaymentsRepository {
 
         return updatedPayment;
       } else {
-        // Create new payment
         const payment = await tx.recurringFundAndBill.create({
           data: {
             name: name,

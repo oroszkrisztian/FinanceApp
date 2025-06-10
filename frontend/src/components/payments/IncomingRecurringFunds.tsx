@@ -36,6 +36,7 @@ interface IncomingRecurringFundsProps {
   accounts: Account[];
   categories: CustomCategory[];
   onPaymentCreated: () => void;
+  onCategoryCreated: () => void;
 }
 
 const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
@@ -44,8 +45,9 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   accounts,
   categories,
   onPaymentCreated,
+  onCategoryCreated,
 }) => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [rates, setRates] = useState<ExchangeRates>({});
   const [displayCurrency, setDisplayCurrency] = useState<string>(
     CurrencyType.RON
@@ -80,6 +82,8 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
+  const [currentPopupStep, setCurrentPopupStep] = useState(1);
+
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -102,6 +106,11 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const handleCloseCreatePopup = () => {
     setIsCreatePopupOpen(false);
     setEditingPayment(null);
+  };
+
+  const handlePaymentSuccess = () => {
+    setCurrentPopupStep(1);
+    onPaymentCreated();
   };
 
   useEffect(() => {
@@ -315,7 +324,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setCategorySearchTerm("");
-    setDateRange(getCurrentMonthRange()); 
+    setDateRange(getCurrentMonthRange());
   };
 
   const handleFundClick = (fund: any, event: React.MouseEvent) => {
@@ -953,7 +962,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                   </div>
                 </div>
 
-                
                 {(() => {
                   const account = accounts.find(
                     (acc) => acc.name === incomeToExecute.account
@@ -1047,7 +1055,8 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         <CreatePaymentPopup
           isOpen={isCreatePopupOpen}
           onClose={handleCloseCreatePopup}
-          onSuccess={onPaymentCreated}
+          onSuccess={handlePaymentSuccess}
+          onCategoryCreated={onCategoryCreated}
           userId={user.id}
           accounts={accounts.map((acc) => ({
             id: acc.id,
@@ -1058,6 +1067,8 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
           defaultType={PaymentType.INCOME}
           editPayment={editingPayment}
+          currentStep={currentPopupStep}
+          onStepChange={setCurrentPopupStep}
         />
       )}
 

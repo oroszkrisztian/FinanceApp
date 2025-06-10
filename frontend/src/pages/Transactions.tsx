@@ -58,6 +58,7 @@ const Transactions: React.FC = () => {
     useState<Transaction | null>(null);
   const [isTransactionDetailsOpen, setIsTransactionDetailsOpen] =
     useState(false);
+  const [currentIncomePopupStep, setCurrentIncomePopupStep] = useState(1);
 
   const checkScreenSize = () => {
     setIsSmallScreen(window.innerWidth < 768);
@@ -187,6 +188,7 @@ const Transactions: React.FC = () => {
     fetchTransactions();
     fetchAccounts();
     fetchBudgets();
+    fetchCategories();
   };
 
   const handleTransactionClick = (transaction: Transaction) => {
@@ -379,6 +381,7 @@ const Transactions: React.FC = () => {
               <IncomeTransactionsSection
                 transactions={transactions}
                 accounts={accounts}
+                categories={categories}
                 rates={rates}
                 availableCurrencies={Object.keys(rates)}
                 fetchingRates={fetchingRates}
@@ -388,7 +391,10 @@ const Transactions: React.FC = () => {
                 onAddIncomeClick={() => setIsAddIncomeModalOpen(true)}
                 isSmallScreen={isSmallScreen}
                 onTransactionCreated={handleSuccess}
+                onCategoryCreated={handleSuccess}
                 accountsLoading={accountsLoading}
+                currentIncomePopupStep={currentIncomePopupStep}
+                onIncomePopupStepChange={setCurrentIncomePopupStep}
               />
             ) : activeTab === "expenses" ? (
               <ExpenseTransactions
@@ -398,7 +404,10 @@ const Transactions: React.FC = () => {
                 categories={categories}
                 budgets={budgets}
                 onTransactionCreated={handleSuccess}
+                onCategoryCreated={handleSuccess}
                 accountsLoading={accountsLoading}
+                currentIncomePopupStep={currentIncomePopupStep}
+                onIncomePopupStepChange={setCurrentIncomePopupStep}
               />
             ) : (
               <TransferTransactions
@@ -421,6 +430,7 @@ const Transactions: React.FC = () => {
             <IncomeTransactionsSection
               transactions={transactions}
               accounts={accounts}
+              categories={categories}
               rates={rates}
               availableCurrencies={Object.keys(rates)}
               fetchingRates={fetchingRates}
@@ -430,7 +440,10 @@ const Transactions: React.FC = () => {
               onAddIncomeClick={() => setIsAddIncomeModalOpen(true)}
               isSmallScreen={isSmallScreen}
               onTransactionCreated={handleSuccess}
+              onCategoryCreated={handleSuccess}
               accountsLoading={accountsLoading}
+              currentIncomePopupStep={currentIncomePopupStep}
+              onIncomePopupStepChange={setCurrentIncomePopupStep}
             />
           </div>
           <div className="w-1/3 flex flex-col transform transition-all duration-300 hover:scale-[1.01]">
@@ -441,7 +454,10 @@ const Transactions: React.FC = () => {
               categories={categories}
               budgets={budgets}
               onTransactionCreated={handleSuccess}
+              onCategoryCreated={handleSuccess}
               accountsLoading={accountsLoading}
+              currentIncomePopupStep={currentIncomePopupStep}
+              onIncomePopupStepChange={setCurrentIncomePopupStep}
             />
           </div>
           <div className="w-1/3 flex flex-col transform transition-all duration-300 hover:scale-[1.01]">
@@ -473,8 +489,12 @@ const Transactions: React.FC = () => {
         isOpen={isAddIncomeModalOpen}
         onClose={() => setIsAddIncomeModalOpen(false)}
         accounts={defaultAccounts}
+        categories={categories}
         accountsLoading={accountsLoading}
         onSuccess={handleSuccess}
+        onCategoryCreated={handleSuccess}
+        currentStep={currentIncomePopupStep}
+        onStepChange={setCurrentIncomePopupStep}
       />
 
       <TransferDefaultAccounts
@@ -487,7 +507,7 @@ const Transactions: React.FC = () => {
         ratesError={ratesError}
         fetchingRates={fetchingRates}
       />
-    </div>  
+    </div>
   );
 };
 

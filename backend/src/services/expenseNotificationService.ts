@@ -1,4 +1,3 @@
-// services/expenseNotificationService.ts
 import { PrismaClient, RecurringFundAndBill, User, Account, CustomCategory } from '@prisma/client';
 import BrevoEmailService, { TransactionalEmailData } from './brevoService';
 
@@ -45,14 +44,12 @@ class ExpenseNotificationService {
     this.senderName = senderName || process.env.BREVO_SENDER_NAME || 'Your Finance App';
   }
 
-  // NEW METHOD: Send notifications that are scheduled for today
   async sendDailyScheduledNotifications(): Promise<NotificationResult> {
     let successCount = 0;
     let failedCount = 0;
     const details: NotificationResult['details'] = [];
 
     try {
-      // Get all active recurring payments (both income and expenses) with email notifications enabled
       const paymentsWithNotifications = await prisma.recurringFundAndBill.findMany({
         where: {
           isActive: true,
@@ -85,17 +82,14 @@ class ExpenseNotificationService {
       for (const payment of paymentsWithNotifications as UpcomingPayment[]) {
         if (!payment.nextExecution) continue;
 
-        // Get notification days ahead preference from the database field
         const notificationDaysAhead = payment.notificationDay || this.getDefaultNotificationDays(payment);
         
-        // Calculate the notification date (X days before the due date)
         const dueDate = new Date(payment.nextExecution);
         dueDate.setHours(0, 0, 0, 0);
         
         const notificationDate = new Date(dueDate);
         notificationDate.setDate(dueDate.getDate() - notificationDaysAhead);
         
-        // Check if today is the notification date
         if (today.getTime() === notificationDate.getTime()) {
           const user = payment.account.user;
           
@@ -111,7 +105,6 @@ class ExpenseNotificationService {
             
             console.log(`✅ Sent ${payment.type.toLowerCase()} notification for ${payment.name} (due in ${notificationDaysAhead} days)`);
             
-            // Add delay to avoid rate limiting
             await new Promise(resolve => setTimeout(resolve, 200));
           } catch (error) {
             failedCount++;
@@ -138,32 +131,29 @@ class ExpenseNotificationService {
     }
   }
 
-  // Helper method to get default notification days based on payment frequency
   private getDefaultNotificationDays(payment: UpcomingPayment): number {
-    // You can customize these defaults based on your business logic
     switch (payment.frequency) {
       case 'DAILY':
-        return 1; // 1 day ahead for daily payments
+        return 1; 
       case 'WEEKLY':
-        return 2; // 2 days ahead for weekly payments
+        return 2; 
       case 'BIWEEKLY':
-        return 3; // 3 days ahead for biweekly payments
+        return 3; 
       case 'MONTHLY':
-        return 3; // 3 days ahead for monthly payments
+        return 3; 
       case 'QUARTERLY':
-        return 7; // 1 week ahead for quarterly payments
+        return 7; 
       case 'YEARLY':
-        return 14; // 2 weeks ahead for yearly payments
+        return 14; 
       case 'ONCE':
-        return 3; // 3 days ahead for one-time payments
+        return 3; 
       case 'CUSTOM':
-        return 3; // 3 days ahead for custom frequency
+        return 3; 
       default:
-        return 3; // Default 3 days ahead
+        return 3; 
     }
   }
 
-  // Get upcoming payments (both income and expenses) that need email notifications
   async getUpcomingPayments(daysAhead: number = 7, type?: 'INCOME' | 'EXPENSE'): Promise<UpcomingPayment[]> {
     const now = new Date();
     const futureDate = new Date();
@@ -180,7 +170,6 @@ class ExpenseNotificationService {
         deletedAt: null
       };
 
-      // Add type filter if specified
       if (type) {
         whereCondition.type = type;
       }
@@ -212,7 +201,6 @@ class ExpenseNotificationService {
     }
   }
 
-  // Send notification email for a single payment (income or expense)
   async sendPaymentNotification(payment: UpcomingPayment, user: User): Promise<void> {
     if (!payment.nextExecution) {
       throw new Error('Payment has no next execution date');
@@ -226,7 +214,6 @@ class ExpenseNotificationService {
       .map(cat => cat.customCategory.name)
       .join(', ') || 'Uncategorized';
 
-    // Different colors and messaging for income vs expense
     const isIncome = payment.type === 'INCOME';
     const urgencyColor = isIncome 
       ? (daysUntilDue <= 1 ? '#28a745' : daysUntilDue <= 3 ? '#20c997' : '#17a2b8')
@@ -348,12 +335,10 @@ You're receiving this because you enabled notifications for this recurring ${pay
     }
   }
 
-  // Legacy method - kept for backward compatibility (expenses only)
   async sendExpenseNotification(expense: UpcomingPayment, user: User): Promise<void> {
     return this.sendPaymentNotification(expense, user);
   }
 
-  // Send notifications for all upcoming payments
   async sendAllUpcomingPaymentNotifications(daysAhead: number = 7, type?: 'INCOME' | 'EXPENSE'): Promise<NotificationResult> {
     let successCount = 0;
     let failedCount = 0;
@@ -381,7 +366,6 @@ You're receiving this because you enabled notifications for this recurring ${pay
             type: payment.type
           });
           
-          // Add delay to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 200));
         } catch (error) {
           failedCount++;
@@ -405,12 +389,10 @@ You're receiving this because you enabled notifications for this recurring ${pay
     }
   }
 
-  // Legacy method - kept for backward compatibility (expenses only)
   async sendAllUpcomingExpenseNotifications(daysAhead: number = 7): Promise<NotificationResult> {
     return this.sendAllUpcomingPaymentNotifications(daysAhead, 'EXPENSE');
   }
 
-  // Send notification for payments due today
   async sendTodayPaymentNotifications(type?: 'INCOME' | 'EXPENSE'): Promise<NotificationResult> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -486,12 +468,10 @@ You're receiving this because you enabled notifications for this recurring ${pay
     }
   }
 
-  // Legacy method - kept for backward compatibility (expenses only)
   async sendTodayExpenseNotifications(): Promise<NotificationResult> {
     return this.sendTodayPaymentNotifications('EXPENSE');
   }
 
-  // Get payment summary for a specific user
   async getPaymentSummaryForUser(userId: number, daysAhead: number = 30, type?: 'INCOME' | 'EXPENSE'): Promise<PaymentSummary> {
     const now = new Date();
     const futureDate = new Date();
@@ -550,7 +530,6 @@ You're receiving this because you enabled notifications for this recurring ${pay
     }
   }
 
-  // Legacy method - kept for backward compatibility (expenses only)
   async getExpenseSummaryForUser(userId: number, daysAhead: number = 30): Promise<PaymentSummary> {
     return this.getPaymentSummaryForUser(userId, daysAhead, 'EXPENSE');
   }

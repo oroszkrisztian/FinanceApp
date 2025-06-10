@@ -11,6 +11,7 @@ import {
   Plus,
   Clock,
   CreditCard,
+  Tag,
 } from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { CurrencyType, TransactionType } from "../../interfaces/enums";
@@ -24,10 +25,12 @@ import DateRangeFilter from "../payments/DateRangeFilter";
 import SearchWithSuggestions from "../payments/SearchWithSuggestions";
 import TransactionDetailsPopup from "./transactionsHistory/TransactionDetailsPopup";
 import AddIncomePopup from "./AddIncomePopup";
+import { CustomCategory } from "../../interfaces/CustomCategory";
 
 interface IncomeTransactionsSectionProps {
   transactions: Transaction[];
   accounts: Account[];
+  categories: CustomCategory[];
   rates: ExchangeRates;
   availableCurrencies: string[];
   fetchingRates: boolean;
@@ -37,12 +40,16 @@ interface IncomeTransactionsSectionProps {
   onAddIncomeClick: () => void;
   isSmallScreen: boolean;
   onTransactionCreated: () => void;
+  onCategoryCreated: () => void;
   accountsLoading?: boolean;
+  currentIncomePopupStep?: number;
+  onIncomePopupStepChange?: (step: number) => void;
 }
 
 const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   transactions,
   accounts,
+  categories,
   rates,
   availableCurrencies,
   fetchingRates,
@@ -52,7 +59,10 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   onAddIncomeClick,
   isSmallScreen,
   onTransactionCreated,
+  onCategoryCreated,
   accountsLoading = false,
+  currentIncomePopupStep = 1,
+  onIncomePopupStepChange,
 }) => {
   const [displayCurrency, setDisplayCurrency] = useState<string>(
     CurrencyType.RON
@@ -61,7 +71,6 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   const [nameSearchTerm, setNameSearchTerm] = useState("");
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
 
-  // Auto-set to current month
   const getCurrentMonthRange = () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -85,7 +94,6 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -149,7 +157,7 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setAccountSearchTerm("");
-    setDateRange(getCurrentMonthRange()); // Reset to current month instead of null
+    setDateRange(getCurrentMonthRange()); 
   };
 
   const formatDateRangeDisplay = () => {
@@ -242,9 +250,7 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   }, [accounts]);
 
   const hasActiveFilters =
-    nameSearchTerm !== "" ||
-    accountSearchTerm !== "" ||
-    !isCurrentMonth();
+    nameSearchTerm !== "" || accountSearchTerm !== "" || !isCurrentMonth();
 
   function isCurrentMonth() {
     if (!dateRange.start || !dateRange.end) return false;
@@ -574,7 +580,8 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
                           <span
                             className={`text-green-600 font-bold whitespace-nowrap ml-2 ${isMobileView ? "text-sm" : "text-lg"}`}
                           >
-                            +{formatAmount(transaction.amount)} {transaction.currency}
+                            +{formatAmount(transaction.amount)}{" "}
+                            {transaction.currency}
                             {!isMobileView &&
                               transaction.currency !== displayCurrency && (
                                 <span className="ml-2 text-xs text-gray-500 font-normal">
@@ -592,7 +599,9 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                          <span className="truncate">To: {getAccountName(transaction.toAccountId)}</span>
+                          <span className="truncate">
+                            To: {getAccountName(transaction.toAccountId)}
+                          </span>
                           <span className="whitespace-nowrap ml-2">
                             {new Date(transaction.date).toLocaleTimeString([], {
                               hour: "2-digit",
@@ -607,20 +616,45 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
                               <Calendar size={10} />
                               {formatDate(transaction.date)}
                             </span>
-                            {isMobileView && transaction.currency !== displayCurrency && (
-                              <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100/80 text-gray-600 truncate">
-                                ({formatAmount(convertToDisplayCurrency(transaction.amount, transaction.currency))} {displayCurrency})
-                              </span>
-                            )}
+                            {isMobileView &&
+                              transaction.currency !== displayCurrency && (
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100/80 text-gray-600 truncate">
+                                  (
+                                  {formatAmount(
+                                    convertToDisplayCurrency(
+                                      transaction.amount,
+                                      transaction.currency
+                                    )
+                                  )}{" "}
+                                  {displayCurrency})
+                                </span>
+                              )}
                           </div>
 
                           <div className="flex items-center gap-1">
-                            <span className={`${isMobileView ? "hidden" : "opacity-0 group-hover:opacity-100"} transition-opacity text-xs text-gray-500`}>
+                            <span
+                              className={`${isMobileView ? "hidden" : "opacity-0 group-hover:opacity-100"} transition-opacity text-xs text-gray-500`}
+                            >
                               View Details
                             </span>
                             <ChevronRight size={16} className="text-gray-400" />
                           </div>
                         </div>
+
+                        {/* Categories */}
+                        {(transaction.transactionCategories || []).length > 0 && (
+                          <div className="mt-1">
+                            <span className="text-xs px-2 py-0.5 rounded-md bg-green-100/80 text-green-700 truncate flex items-center gap-1 max-w-fit">
+                              <Tag size={10} />
+                              {(transaction.transactionCategories || [])
+                                .map((category: {
+                                  customCategoryId: number;
+                                  customCategory?: { name: string };
+                                }) => category.customCategory?.name || "Uncategorized")
+                                .join(", ")}
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </motion.div>
@@ -690,11 +724,15 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
         isOpen={isAddIncomeModalOpen}
         onClose={() => setIsAddIncomeModalOpen(false)}
         accounts={accounts.filter((acc) => acc.type === "DEFAULT")}
+        categories={categories}
         accountsLoading={accountsLoading}
         onSuccess={() => {
           onTransactionCreated();
           setIsAddIncomeModalOpen(false);
         }}
+        onCategoryCreated={onCategoryCreated}
+        currentStep={currentIncomePopupStep}
+        onStepChange={onIncomePopupStepChange}
       />
     </>
   );

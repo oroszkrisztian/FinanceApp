@@ -166,7 +166,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
 
   const steps = ["Source & Amount", "Destination & Review"];
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -252,7 +251,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     }, 150);
   };
 
-  // Account selection handlers
   const handleFromAccountSelect = (account: { id: number; name: string; amount: number; currency: string }) => {
     const fullAccount = accounts.find((acc) => acc.id === account.id);
     if (fullAccount) {
@@ -269,7 +267,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     }
   };
 
-  // Clear selections
   const clearFromAccountSelection = () => {
     setSelectedFromAccount(null);
     setFromAccountSearchTerm("");
@@ -280,7 +277,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     setToAccountSearchTerm("");
   };
 
-  // Get suggestions
   const accountSuggestions = accounts.map(acc => ({
     id: acc.id,
     name: acc.name,
@@ -288,7 +284,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     currency: acc.currency
   }));
 
-  // Step validation
   const canProceed = () => {
     switch (currentStep) {
       case 1:

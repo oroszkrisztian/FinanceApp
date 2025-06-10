@@ -9,6 +9,8 @@ import {
   ChevronDown,
   Info,
   AlertCircle,
+  Tag,
+  Plus,
 } from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { useAuth } from "../../context/AuthContext";
@@ -21,13 +23,19 @@ import {
   fetchExchangeRates,
 } from "../../services/exchangeRateService";
 import { addFundsDefaultAccount } from "../../services/transactionService";
+import { CustomCategory } from "../../interfaces/CustomCategory";
+import CreateCategoryModal from "../categories/CreateCategoryModal";
 
 interface IncomeProps {
   onClose: () => void;
   isOpen: boolean;
   accounts: Account[];
+  categories: CustomCategory[];
   accountsLoading: boolean;
   onSuccess: () => void;
+  onCategoryCreated?: () => void;
+  currentStep?: number;
+  onStepChange?: (step: number) => void;
 }
 
 const SearchWithSuggestions: React.FC<{
@@ -36,7 +44,17 @@ const SearchWithSuggestions: React.FC<{
   suggestions: string[];
   onSelect?: (suggestion: string) => void;
   value?: string;
-}> = ({ placeholder, onSearch, suggestions, onSelect, value = "" }) => {
+  selectedItems?: string[];
+  multiSelect?: boolean;
+}> = ({
+  placeholder,
+  onSearch,
+  suggestions,
+  onSelect,
+  value = "",
+  selectedItems = [],
+  multiSelect = false,
+}) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
   const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>([]);
@@ -78,8 +96,10 @@ const SearchWithSuggestions: React.FC<{
     if (onSelect) {
       onSelect(suggestion);
     }
-    setSearchTerm(suggestion);
-    setIsOpen(false);
+    if (!multiSelect) {
+      setSearchTerm(suggestion);
+      setIsOpen(false);
+    }
   };
 
   return (
@@ -111,12 +131,33 @@ const SearchWithSuggestions: React.FC<{
               key={index}
               type="button"
               onClick={() => handleSuggestionClick(suggestion)}
-              className="w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors text-gray-700"
+              className={`w-full text-left px-3 py-2 text-sm hover:bg-green-50 transition-colors ${
+                selectedItems.includes(suggestion)
+                  ? "bg-green-50 text-green-700"
+                  : "text-gray-700"
+              }`}
             >
               {suggestion}
             </button>
           ))}
         </motion.div>
+      )}
+
+      {multiSelect && selectedItems.length > 0 && (
+        <div className="flex flex-wrap gap-1 mt-2">
+          {selectedItems.map((item, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => onSelect && onSelect(item)}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs transition-colors hover:opacity-75 bg-green-100 text-green-700 hover:bg-green-200"
+            >
+              <Tag size={10} />
+              {item}
+              <X size={10} className="ml-1" />
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );
@@ -126,17 +167,27 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   onClose,
   isOpen,
   accounts,
+  categories,
   accountsLoading,
   onSuccess,
+  onCategoryCreated,
+  currentStep: externalCurrentStep = 1,
+  onStepChange,
 }) => {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [internalCurrentStep, setInternalCurrentStep] = useState(1);
+  const currentStep = onStepChange ? externalCurrentStep : internalCurrentStep;
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Form data
+  const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [categorySearchTerm, setCategorySearchTerm] = useState("");
+  const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] =
+    useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
+
   const [formData, setFormData] = useState({
     amount: 0,
     name: "",
@@ -145,11 +196,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     currency: "RON",
   });
 
-  // Search states
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  // Currency and conversion
   const [rates, setRates] = useState<ExchangeRates>({});
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [fetchingRates, setFetchingRates] = useState(false);
@@ -171,7 +220,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
 
   const steps = ["Basic Info", "Account & Review"];
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -182,7 +230,10 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  // Load exchange rates
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
+
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -197,13 +248,12 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         setFetchingRates(false);
       }
     };
-    
+
     if (isOpen) {
       loadExchangeRates();
     }
   }, [isOpen]);
 
-  // Currency dropdown click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -217,7 +267,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Update conversion details
   useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedAccount, rates]);
@@ -259,8 +308,46 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     });
   };
 
+  const handleCategoryToggle = (categoryId: number) => {
+    setSelectedCategories((prev) =>
+      prev.includes(categoryId)
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId]
+    );
+  };
+
+  const handleCategorySelect = (categoryName: string) => {
+    const selectedCategory = localCategories.find(
+      (cat) => cat.name === categoryName
+    );
+    if (selectedCategory) {
+      handleCategoryToggle(selectedCategory.id);
+    }
+  };
+
+  const handleCategoryCreated = async () => {
+    try {
+      setIsCreateCategoryModalOpen(false);
+      if (onCategoryCreated) {
+        await onCategoryCreated();
+      }
+      console.log("Category created and categories refreshed");
+    } catch (error) {
+      console.error("Error handling category creation:", error);
+    }
+  };
+
+  const filteredCategories = localCategories.filter((cat) =>
+    cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
+  const categorySuggestions = filteredCategories.map((cat) => cat.name);
+  const selectedCategoryNames = localCategories
+    .filter((cat) => selectedCategories.includes(cat.id))
+    .map((cat) => cat.name);
+
   const resetForm = () => {
-    setCurrentStep(1);
+    handleStepChange(1);
     setFormData({
       amount: 0,
       name: "",
@@ -271,6 +358,8 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     setAmountString("");
     setSelectedAccount(null);
     setAccountSearchTerm("");
+    setSelectedCategories([]);
+    setCategorySearchTerm("");
     setConversionDetails({
       originalAmount: 0,
       convertedAmount: 0,
@@ -297,7 +386,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     setError(null);
   };
 
-  // Account selection
   const handleAccountSelect = (accountName: string) => {
     const account = accounts.find((acc) => acc.name === accountName);
     if (account) {
@@ -307,57 +395,56 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     }
   };
 
-  // Clear account selection
   const clearAccountSelection = () => {
     setSelectedAccount(null);
     setFormData((prev) => ({ ...prev, selectedAccount: "" }));
     setAccountSearchTerm("");
   };
 
-  // Get suggestions
   const accountSuggestions = accounts
     .filter((acc) =>
       acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
     )
     .map((acc) => acc.name);
 
-  // Available currencies from rates with proper prioritization
   const getAvailableCurrencies = () => {
     if (Object.keys(rates).length === 0) {
       return ["USD", "EUR", "GBP", "JPY", "RON"];
     }
 
-    // Most commonly used currencies (prioritized)
     const topCurrencies = [
-      "USD", "EUR", "GBP", "JPY", "CAD", "AUD", "CHF", "CNY", "RON"
+      "USD",
+      "EUR",
+      "GBP",
+      "JPY",
+      "CAD",
+      "AUD",
+      "CHF",
+      "CNY",
+      "RON",
     ];
     const currentCurrency = formData.currency;
-    
-    // Get all available currencies from rates
+
     const allAvailableCurrencies = Object.keys(rates);
-    
-    // Start with top currencies that exist in rates
+
     const prioritizedCurrencies = topCurrencies.filter((curr) => rates[curr]);
-    
-    // Add current currency if not already in the list
+
     if (
       !prioritizedCurrencies.includes(currentCurrency) &&
       rates[currentCurrency]
     ) {
       prioritizedCurrencies.unshift(currentCurrency);
     }
-    
-    // Add remaining currencies alphabetically
+
     const remainingCurrencies = allAvailableCurrencies
       .filter((curr) => !prioritizedCurrencies.includes(curr))
       .sort();
-    
+
     return [...prioritizedCurrencies, ...remainingCurrencies];
   };
 
   const availableCurrencies = getAvailableCurrencies();
 
-  // Step validation
   const canProceed = () => {
     switch (currentStep) {
       case 1:
@@ -369,19 +456,25 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     }
   };
 
+  const handleStepChange = (newStep: number) => {
+    if (onStepChange) {
+      onStepChange(newStep);
+    } else {
+      setInternalCurrentStep(newStep);
+    }
+  };
+
   const nextStep = () => {
     if (canProceed() && currentStep < 2) {
-      setCurrentStep(currentStep + 1);
+      handleStepChange(currentStep + 1); 
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      handleStepChange(currentStep - 1);
     }
   };
-
-  // Balance calculation
   const getTransactionAmount = (): number => {
     if (!selectedAccount || !formData.amount) return 0;
 
@@ -440,11 +533,12 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         finalAmount,
         TransactionType.INCOME,
         selectedAccount.id,
-        null,
+        selectedCategories.length > 0 ? selectedCategories : null,
         selectedAccount.currency
       );
       onSuccess();
       handleClose();
+      handleStepChange(1);
     } catch (error) {
       console.error("Failed to add income:", error);
       setError(error instanceof Error ? error.message : "Failed to add income");
@@ -498,7 +592,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                         if (value === "") {
                           handleInputChange("amount", 0);
                         } else {
-                          const numericValue = parseFloat(value.replace(",", "."));
+                          const numericValue = parseFloat(
+                            value.replace(",", ".")
+                          );
                           if (!isNaN(numericValue)) {
                             handleInputChange("amount", numericValue);
                           }
@@ -625,6 +721,34 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
               )}
             </div>
 
+            {/* Categories Selection */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-gray-700 flex items-center">
+                  <span className="text-green-500 mr-1">🏷️</span>
+                  Categories (Optional)
+                </label>
+                <motion.button
+                  type="button"
+                  onClick={() => setIsCreateCategoryModalOpen(true)}
+                  className="flex items-center gap-1 px-2 py-1 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus size={12} />
+                  Add
+                </motion.button>
+              </div>
+              <SearchWithSuggestions
+                placeholder="Search and select categories..."
+                onSearch={setCategorySearchTerm}
+                suggestions={categorySuggestions}
+                onSelect={handleCategorySelect}
+                selectedItems={selectedCategoryNames}
+                multiSelect={true}
+              />
+            </div>
+
             {/* Preview Section */}
             {selectedAccount && (
               <div className="space-y-3">
@@ -651,10 +775,30 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
 
                   {formData.description && (
                     <div className="mt-2 pt-2 border-t border-green-200">
-                      <span className="text-gray-600 text-xs">Description: </span>
+                      <span className="text-gray-600 text-xs">
+                        Description:{" "}
+                      </span>
                       <span className="text-xs text-gray-800">
                         {formData.description}
                       </span>
+                    </div>
+                  )}
+
+                  {selectedCategories.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-green-200">
+                      <span className="text-gray-600 text-xs">
+                        Categories:{" "}
+                      </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {selectedCategoryNames.map((categoryName, index) => (
+                          <span
+                            key={index}
+                            className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded"
+                          >
+                            {categoryName}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -708,7 +852,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                         <div className="mt-2 text-xs">
                           <div className="flex items-center text-green-700 mb-1">
                             <Info size={12} className="mr-1" />
-                            <span className="font-medium">Currency Conversion</span>
+                            <span className="font-medium">
+                              Currency Conversion
+                            </span>
                           </div>
 
                           <div className="flex items-center justify-between">
@@ -719,7 +865,10 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                             </div>
 
                             <div className="flex items-center justify-center px-1">
-                              <ArrowRight size={12} className="text-green-500" />
+                              <ArrowRight
+                                size={12}
+                                className="text-green-500"
+                              />
                             </div>
 
                             <div className="px-2 py-1 bg-green-500 text-white rounded-lg shadow-md">
@@ -757,11 +906,8 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 "
-        onClick={handleClose}
-      />
-      
+      <div className="absolute inset-0" onClick={handleClose} />
+
       {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
@@ -770,7 +916,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10"
         style={{
           width: isMobileView ? "90%" : "28rem",
-          //height: isMobileView ? "85vh" : "75vh",
           minHeight: "50vh",
           maxHeight: "90vh",
         }}
@@ -798,16 +943,26 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
             }`}
           ></div>
 
-          <div className={`${isMobileView ? "px-4 py-3" : "px-4 py-3"} flex items-center justify-between relative z-10 mb-2`}>
+          <div
+            className={`${isMobileView ? "px-4 py-3" : "px-4 py-3"} flex items-center justify-between relative z-10 mb-2`}
+          >
             <div className="flex items-center">
-              <div className={`bg-white rounded-full flex items-center justify-center mr-3 shadow-lg ${isMobileView ? "w-8 h-8" : "w-10 h-10"}`}>
-                <span className={isMobileView ? "text-base" : "text-lg"}>💰</span>
+              <div
+                className={`bg-white rounded-full flex items-center justify-center mr-3 shadow-lg ${isMobileView ? "w-8 h-8" : "w-10 h-10"}`}
+              >
+                <span className={isMobileView ? "text-base" : "text-lg"}>
+                  💰
+                </span>
               </div>
               <div>
-                <h2 className={`font-bold text-white ${isMobileView ? "text-base" : "text-lg"}`}>
+                <h2
+                  className={`font-bold text-white ${isMobileView ? "text-base" : "text-lg"}`}
+                >
                   Add Income
                 </h2>
-                <p className={`text-white/90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                <p
+                  className={`text-white/90 ${isMobileView ? "text-xs" : "text-sm"}`}
+                >
                   {steps[currentStep - 1]}
                 </p>
               </div>
@@ -824,7 +979,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
           </div>
 
           {/* Progress */}
-          <div className={`${isMobileView ? "px-4 pb-3" : "px-4 pb-3"} relative z-10`}>
+          <div
+            className={`${isMobileView ? "px-4 pb-3" : "px-4 pb-3"} relative z-10`}
+          >
             <div className="flex gap-1">
               {steps.map((_, index) => (
                 <div
@@ -839,7 +996,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         </div>
 
         {/* Content */}
-        <div className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"}`}>
+        <div
+          className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"}`}
+        >
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -855,7 +1014,9 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         </div>
 
         {/* Footer */}
-        <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 backdrop-blur-sm flex justify-between`}>
+        <div
+          className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 backdrop-blur-sm flex justify-between`}
+        >
           <motion.button
             onClick={prevStep}
             disabled={currentStep === 1}
@@ -896,6 +1057,14 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
           )}
         </div>
       </motion.div>
+
+      {/* Create Category Modal */}
+      <CreateCategoryModal
+        isOpen={isCreateCategoryModalOpen}
+        onClose={() => setIsCreateCategoryModalOpen(false)}
+        onSuccess={handleCategoryCreated}
+        userId={user?.id || 0}
+      />
     </div>
   );
 };

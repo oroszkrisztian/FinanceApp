@@ -1,7 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import { User, RegisterData } from "../types/user";
 
-// Add this interface for edit data
 export interface EditUserData {
   firstName?: string;
   lastName?: string;

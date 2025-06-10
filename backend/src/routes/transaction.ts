@@ -36,7 +36,7 @@ transaction.post("/addFundDefaultAccount", async (c) => {
   try {
     const body = await c.req.json();
 
-    const { userId, name, amount, type, toAccountId, currency } = body;
+    const { userId, name, amount, type, toAccountId, currency, customCategoriesId } = body;
     if (!userId || !name || !amount || !type || !toAccountId) {
       return c.json(
         {

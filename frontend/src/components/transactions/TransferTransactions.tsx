@@ -47,7 +47,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
   ratesError: propRatesError,
   fetchingRates: propFetchingRates,
 }) => {
-  // State management
   const [rates, setRates] = useState<ExchangeRates>(propRates || {});
   const [displayCurrency, setDisplayCurrency] = useState<string>(
     CurrencyType.RON
@@ -61,7 +60,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
   const [nameSearchTerm, setNameSearchTerm] = useState("");
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
 
-  // Auto-set to current month
   const getCurrentMonthRange = () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -84,7 +82,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
   const dateFilterButtonRef = useRef<HTMLButtonElement>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -95,7 +92,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  // Load exchange rates if not provided
   useEffect(() => {
     if (!propRates) {
       const loadExchangeRates = async () => {
@@ -121,7 +117,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
     }
   }, [propRates, propRatesError, propFetchingRates]);
 
-  // Handle outside clicks
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -137,7 +132,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isCurrencyMenuOpen, isDateFilterOpen]);
 
-  // Helper functions
   const formatAmount = (amount: number) => amount.toFixed(2);
 
   const formatDate = (dateString: Date) => {
@@ -188,7 +182,7 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setAccountSearchTerm("");
-    setDateRange(getCurrentMonthRange()); // Reset to current month instead of null
+    setDateRange(getCurrentMonthRange()); 
   };
 
   const formatDateRangeDisplay = () => {
@@ -201,7 +195,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
     };
 
     if (dateRange.start && dateRange.end) {
-      // Check if it's current month
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const currentMonthEnd = new Date(
@@ -225,7 +218,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
     return "";
   };
 
-  // Filtered transfer transactions
   const transferTransactions = useMemo(() => {
     const lowerCaseNameSearch = nameSearchTerm.toLowerCase();
     const lowerCaseAccountSearch = accountSearchTerm.toLowerCase();
@@ -270,7 +262,6 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
       });
   }, [transactions, nameSearchTerm, accountSearchTerm, dateRange, accounts]);
 
-  // Suggestions for search
   const transactionNames = useMemo(() => {
     return Array.from(
       new Set(

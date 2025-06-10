@@ -10,6 +10,7 @@ import {
   ChevronDown,
   Info,
   AlertCircle,
+  Plus,
 } from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { TransactionType } from "../../interfaces/enums";
@@ -22,6 +23,8 @@ import {
 } from "../../services/exchangeRateService";
 import { createExpense } from "../../services/transactionService";
 import { useAuth } from "../../context/AuthContext";
+import { CustomCategory } from "../../interfaces/CustomCategory";
+import CreateCategoryModal from "../categories/CreateCategoryModal";
 
 interface CreateExpensePopupProps {
   onClose: () => void;
@@ -29,7 +32,10 @@ interface CreateExpensePopupProps {
   accounts: Account[];
   accountsLoading: boolean;
   onSuccess: () => void;
-  categories?: { id: number; name: string }[];
+  categories?: CustomCategory[];
+  onCategoryCreated?: () => void;
+  currentStep?: number;
+  onStepChange?: (step: number) => void;
 }
 
 const SearchWithSuggestions: React.FC<{
@@ -164,9 +170,13 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   accountsLoading,
   onSuccess,
   categories = [],
+  onCategoryCreated,
+  currentStep: externalCurrentStep = 1,
+  onStepChange,
 }) => {
   const { user } = useAuth();
-  const [currentStep, setCurrentStep] = useState(1);
+  const [internalCurrentStep, setInternalCurrentStep] = useState(1);
+  const currentStep = onStepChange ? externalCurrentStep : internalCurrentStep;
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
   const [formData, setFormData] = useState<{
@@ -191,14 +201,14 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
 
-  // Search states
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
 
-  // Selected items for display
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
-  // Currency and conversion
+  const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] = useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
+
   const [rates, setRates] = useState<ExchangeRates>({});
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [fetchingRates, setFetchingRates] = useState(false);
@@ -220,7 +230,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   const steps = ["Basic Info", "Categories", "Account & Review"];
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -231,7 +240,10 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  // Load exchange rates
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
+
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -252,7 +264,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     }
   }, [isOpen]);
 
-  // Currency dropdown click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -266,7 +277,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Update conversion details
   useEffect(() => {
     updateConversionDetails();
   }, [formData.amount, formData.currency, selectedAccount, rates]);
@@ -308,8 +318,47 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     });
   };
 
+  const handleCategoryToggle = (categoryId: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      selectedCategories: prev.selectedCategories.includes(categoryId)
+        ? prev.selectedCategories.filter((id) => id !== categoryId)
+        : [...prev.selectedCategories, categoryId],
+    }));
+  };
+
+  const handleCategorySelect = (categoryName: string) => {
+    const selectedCategory = localCategories.find(
+      (cat) => cat.name === categoryName
+    );
+    if (selectedCategory) {
+      handleCategoryToggle(selectedCategory.id);
+    }
+  };
+
+  const handleCategoryCreated = async () => {
+    try {
+      setIsCreateCategoryModalOpen(false);
+      if (onCategoryCreated) {
+        await onCategoryCreated();
+      }
+      console.log("Category created and categories refreshed");
+    } catch (error) {
+      console.error("Error handling category creation:", error);
+    }
+  };
+
+  const filteredCategories = localCategories.filter((cat) =>
+    cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
+  );
+
+  const categorySuggestions = filteredCategories.map((cat) => cat.name);
+  const selectedCategoryNames = localCategories
+    .filter((cat) => formData.selectedCategories.includes(cat.id))
+    .map((cat) => cat.name);
+
   const resetForm = () => {
-    setCurrentStep(1);
+    handleStepChange(1);
     setFormData({
       name: "",
       description: "",
@@ -349,7 +398,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     setError(null);
   };
 
-  // Account selection
   const handleAccountSelect = (accountName: string) => {
     const account = accounts.find((acc) => acc.name === accountName);
     if (account) {
@@ -359,51 +407,23 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     }
   };
 
-  // Category selection
-  const handleCategorySelect = (categoryName: string) => {
-    const category = categories.find((cat) => cat.name === categoryName);
-    if (category) {
-      const isSelected = formData.selectedCategories.includes(category.id);
-      setFormData((prev) => ({
-        ...prev,
-        selectedCategories: isSelected
-          ? prev.selectedCategories.filter((id) => id !== category.id)
-          : [...prev.selectedCategories, category.id],
-      }));
-    }
-  };
-
-  // Clear selections
   const clearAccountSelection = () => {
     setSelectedAccount(null);
     setFormData((prev) => ({ ...prev, selectedAccount: "" }));
     setAccountSearchTerm("");
   };
 
-  // Get suggestions
   const accountSuggestions = accounts
     .filter((acc) =>
       acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
     )
     .map((acc) => acc.name);
 
-  const categorySuggestions = categories
-    .filter((cat) =>
-      cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
-    )
-    .map((cat) => cat.name);
-
-  const selectedCategoryNames = categories
-    .filter((cat) => formData.selectedCategories.includes(cat.id))
-    .map((cat) => cat.name);
-
-  // Available currencies from rates with proper prioritization
   const getAvailableCurrencies = () => {
     if (Object.keys(rates).length === 0) {
       return ["USD", "EUR", "GBP", "JPY", "RON"];
     }
 
-    // Most commonly used currencies (prioritized)
     const topCurrencies = [
       "USD",
       "EUR",
@@ -417,13 +437,10 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     ];
     const currentCurrency = formData.currency;
 
-    // Get all available currencies from rates
     const allAvailableCurrencies = Object.keys(rates);
 
-    // Start with top currencies that exist in rates
     const prioritizedCurrencies = topCurrencies.filter((curr) => rates[curr]);
 
-    // Add current currency if not already in the list
     if (
       !prioritizedCurrencies.includes(currentCurrency) &&
       rates[currentCurrency]
@@ -431,7 +448,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       prioritizedCurrencies.unshift(currentCurrency);
     }
 
-    // Add remaining currencies alphabetically
     const remainingCurrencies = allAvailableCurrencies
       .filter((curr) => !prioritizedCurrencies.includes(curr))
       .sort();
@@ -441,7 +457,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   const availableCurrencies = getAvailableCurrencies();
 
-  // Step validation
   const canProceed = () => {
     switch (currentStep) {
       case 1:
@@ -455,19 +470,26 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     }
   };
 
+  const handleStepChange = (newStep: number) => {
+    if (onStepChange) {
+      onStepChange(newStep);
+    } else {
+      setInternalCurrentStep(newStep);
+    }
+  };
+
   const nextStep = () => {
     if (canProceed() && currentStep < 3) {
-      setCurrentStep(currentStep + 1);
+      handleStepChange(currentStep + 1);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      handleStepChange(currentStep - 1);
     }
   };
 
-  // Balance calculation
   const getTransactionAmount = (): number => {
     if (!selectedAccount || !formData.amount) return 0;
 
@@ -523,7 +545,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         formData.amount,
         formData.currency,
         parseInt(formData.selectedAccount),
-        null, // No budget
+        null, 
         formData.description || null,
         formData.selectedCategories.length > 0
           ? formData.selectedCategories
@@ -680,24 +702,30 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         return (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1 flex items-center">
-                <span className="text-red-500 mr-1">🏷️</span>
-                Categories (Optional)
-              </label>
-              {categories.length === 0 ? (
-                <div className="p-3 text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded-xl">
-                  No categories available.
-                </div>
-              ) : (
-                <SearchWithSuggestions
-                  placeholder="Search and select categories..."
-                  onSearch={setCategorySearchTerm}
-                  suggestions={categorySuggestions}
-                  onSelect={handleCategorySelect}
-                  selectedItems={selectedCategoryNames}
-                  multiSelect={true}
-                />
-              )}
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-medium text-gray-700 flex items-center">
+                  <span className="text-red-500 mr-1">🏷️</span>
+                  Categories (Optional)
+                </label>
+                <motion.button
+                  type="button"
+                  onClick={() => setIsCreateCategoryModalOpen(true)}
+                  className="flex items-center gap-1 px-2 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus size={12} />
+                  Add
+                </motion.button>
+              </div>
+              <SearchWithSuggestions
+                placeholder="Search and select categories..."
+                onSearch={setCategorySearchTerm}
+                suggestions={categorySuggestions}
+                onSelect={handleCategorySelect}
+                selectedItems={selectedCategoryNames}
+                multiSelect={true}
+              />
             </div>
           </div>
         );
@@ -774,25 +802,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                         {selectedAccount?.name}
                       </span>
                     </div>
-                    {formData.selectedCategories.length > 0 && (
-                      <div className="col-span-2">
-                        <span className="text-gray-600">Categories: </span>
-                        <div className="flex flex-wrap gap-1 mt-1">
-                          {categories
-                            .filter((cat) =>
-                              formData.selectedCategories.includes(cat.id)
-                            )
-                            .map((category) => (
-                              <span
-                                key={category.id}
-                                className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full"
-                              >
-                                {category.name}
-                              </span>
-                            ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   {formData.description && (
@@ -803,6 +812,24 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                       <span className="text-xs text-gray-800">
                         {formData.description}
                       </span>
+                    </div>
+                  )}
+
+                  {formData.selectedCategories.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-red-200">
+                      <span className="text-gray-600 text-xs">
+                        Categories:{" "}
+                      </span>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {selectedCategoryNames.map((categoryName, index) => (
+                          <span
+                            key={index}
+                            className="px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded"
+                          >
+                            {categoryName}
+                          </span>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -924,7 +951,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 "
+        className="absolute inset-0"
         onClick={handleClose}
       />
 
@@ -936,7 +963,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10"
         style={{
           width: isMobileView ? "90%" : "28rem",
-          //height: isMobileView ? "85vh" : "75vh",
           minHeight: "50vh",
           maxHeight: "90vh",
         }}
@@ -1083,6 +1109,14 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
           )}
         </div>
       </motion.div>
+
+      {/* Create Category Modal */}
+      <CreateCategoryModal
+        isOpen={isCreateCategoryModalOpen}
+        onClose={() => setIsCreateCategoryModalOpen(false)}
+        onSuccess={handleCategoryCreated}
+        userId={user?.id || 0}
+      />
     </div>
   );
 };

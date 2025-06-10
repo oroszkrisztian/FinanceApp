@@ -14,9 +14,8 @@ export class TransactionRepository {
     this.prisma = new PrismaClient();
   }
 
-  // Helper function to record balance changes
   private async recordBalanceChange(
-    prisma: any, // Use the transaction prisma instance
+    prisma: any,
     accountId: number,
     transactionId: number | null,
     previousBalance: number,
@@ -45,7 +44,6 @@ export class TransactionRepository {
     );
   }
 
-  // Helper function to update account balance and record history
   private async updateAccountBalance(
     prisma: any,
     accountId: number,
@@ -55,7 +53,6 @@ export class TransactionRepository {
     changeType: BalanceChangeType,
     description?: string
   ) {
-    // Get current account state
     const account = await prisma.account.findUnique({
       where: { id: accountId },
       select: { amount: true, currency: true },
@@ -70,7 +67,6 @@ export class TransactionRepository {
       ? previousBalance + amount
       : previousBalance - amount;
 
-    // Update account balance
     await prisma.account.update({
       where: { id: accountId },
       data: {
@@ -78,7 +74,6 @@ export class TransactionRepository {
       },
     });
 
-    // Record balance change
     await this.recordBalanceChange(
       prisma,
       accountId,
@@ -141,13 +136,11 @@ export class TransactionRepository {
     return allTransactions;
   }
 
-  // New method to get account balance history
   async getAccountBalanceHistory(
     accountId: number,
     userId: number,
     limit?: number
   ) {
-    // Verify account belongs to user
     const account = await this.prisma.account.findFirst({
       where: {
         id: accountId,
@@ -240,7 +233,7 @@ export class TransactionRepository {
     amount: number,
     type: TransactionType,
     toAccountId: number,
-    customCategoryId: number | null,
+    customCategoriesId: number[] | null,
     currency: CurrencyType
   ) {
     console.log("Sent account id ", toAccountId);
@@ -274,7 +267,6 @@ export class TransactionRepository {
           amount: amount,
           type: type,
           toAccountId: defaultAccount.id,
-          budgetId: customCategoryId,
           currency: currency,
         },
         include: {
@@ -283,16 +275,38 @@ export class TransactionRepository {
         },
       });
 
-      // Update account balance with history tracking
       await this.updateAccountBalance(
         prisma,
         defaultAccount.id,
         amount,
-        true, // increment
+        true,
         transaction.id,
         BalanceChangeType.TRANSACTION_INCOME,
         `Income: ${name || "Funds added"}`
       );
+
+      if (customCategoriesId && customCategoriesId.length > 0) {
+        const validCategories = await prisma.customCategory.findMany({
+          where: {
+            id: { in: customCategoriesId },
+            OR: [{ userId: userId }, { type: "SYSTEM" }],
+            deletedAt: null,
+          },
+        });
+
+        if (validCategories.length !== customCategoriesId.length) {
+          throw new Error(
+            "One or more categories are invalid or don't belong to the user"
+          );
+        }
+
+        await prisma.transactionCategory.createMany({
+          data: customCategoriesId.map((categoryId) => ({
+            transactionId: transaction.id,
+            customCategoryId: categoryId,
+          })),
+        });
+      }
 
       return transaction;
     });
@@ -380,23 +394,21 @@ export class TransactionRepository {
         },
       });
 
-      // Update from account (withdraw) with history tracking
       await this.updateAccountBalance(
         prisma,
         fromAccountId,
         amountToWithdraw,
-        false, // decrement
+        false,
         transaction.id,
         BalanceChangeType.TRANSACTION_TRANSFER_OUT,
         `Transfer to savings account`
       );
 
-      // Update to account (deposit) with history tracking
       await this.updateAccountBalance(
         prisma,
         toSavingId,
         amount,
-        true, // increment
+        true,
         transaction.id,
         BalanceChangeType.TRANSACTION_TRANSFER_IN,
         `Transfer from main account`
@@ -502,25 +514,23 @@ export class TransactionRepository {
         },
       });
 
-      // Update from account (withdraw) with history tracking
       await this.updateAccountBalance(
         prisma,
         fromSavingId,
         amountToWithdraw,
-        false, // decrement
+        false,
         transaction.id,
         BalanceChangeType.TRANSACTION_TRANSFER_OUT,
         `Transfer from savings to main account`
       );
 
-      // Update to account (deposit) with history tracking
       console.log("Adding funds to default account:", toAccountId);
       console.log("amount:", amount);
       await this.updateAccountBalance(
         prisma,
         toAccountId,
         amount,
-        true, // increment
+        true,
         transaction.id,
         BalanceChangeType.TRANSACTION_TRANSFER_IN,
         `Transfer from savings account`
@@ -586,18 +596,16 @@ export class TransactionRepository {
         },
       });
 
-      // Update account balance with history tracking
       await this.updateAccountBalance(
         prisma,
         fromAccountId,
         amountToWithdraw,
-        false, // decrement
+        false,
         transaction.id,
         BalanceChangeType.TRANSACTION_EXPENSE,
         `Expense: ${name}`
       );
 
-      // Insert transaction categories if provided
       if (customCategoriesId && customCategoriesId.length > 0) {
         const validCategories = await prisma.customCategory.findMany({
           where: {
@@ -621,7 +629,6 @@ export class TransactionRepository {
         });
       }
 
-      // Handle budget updates (existing logic)
       if (budgetId) {
         const budget = await prisma.budget.findFirst({
           where: {
@@ -756,23 +763,21 @@ export class TransactionRepository {
         },
       });
 
-      // Update from account with history tracking
       await this.updateAccountBalance(
         prisma,
         fromAccountId,
         amount,
-        false, // decrement
+        false,
         transaction.id,
         BalanceChangeType.TRANSACTION_TRANSFER_OUT,
         `Transfer to account ${toAccount.name}`
       );
 
-      // Update to account with history tracking
       await this.updateAccountBalance(
         prisma,
         toAccountId,
         amountToDeposit,
-        true, // increment
+        true,
         transaction.id,
         BalanceChangeType.TRANSACTION_TRANSFER_IN,
         `Transfer from account ${fromAccount.name}`
@@ -838,18 +843,39 @@ export class TransactionRepository {
         },
       });
 
-      // Update account balance with history tracking
       await this.updateAccountBalance(
         prisma,
         fromAccountId,
         amountToWithdraw,
-        false, // decrement
+        false,
         transaction.id,
         BalanceChangeType.TRANSACTION_EXPENSE,
         `Recurring payment: ${name}`
       );
 
-      // Handle budget updates for recurring payments (existing logic)
+      if (customCategoriesId && customCategoriesId.length > 0) {
+        const validCategories = await prisma.customCategory.findMany({
+          where: {
+            id: { in: customCategoriesId },
+            OR: [{ userId: userId }, { type: "SYSTEM" }],
+            deletedAt: null,
+          },
+        });
+
+        if (validCategories.length !== customCategoriesId.length) {
+          throw new Error(
+            "One or more categories are invalid or don't belong to the user"
+          );
+        }
+
+        await prisma.transactionCategory.createMany({
+          data: customCategoriesId.map((categoryId) => ({
+            transactionId: transaction.id,
+            customCategoryId: categoryId,
+          })),
+        });
+      }
+
       if (customCategoriesId && customCategoriesId.length > 0) {
         const budgets = await prisma.budget.findMany({
           where: {
@@ -893,7 +919,6 @@ export class TransactionRepository {
         }
       }
 
-      // Update recurring payment execution date (existing logic)
       const payment = await prisma.recurringFundAndBill.findUnique({
         where: { id: paymentId },
       });
@@ -958,7 +983,8 @@ export class TransactionRepository {
     currency: CurrencyType,
     toAccountId: number,
     name: string,
-    description: string | null
+    description: string | null,
+    customCategoriesId: number[] | null
   ) {
     const account = await this.prisma.account.findFirst({
       where: {
@@ -1000,18 +1026,16 @@ export class TransactionRepository {
         },
       });
 
-      // Update account balance with history tracking
       await this.updateAccountBalance(
         prisma,
         toAccountId,
         amountToDeposit,
-        true, // increment
+        true,
         transaction.id,
         BalanceChangeType.TRANSACTION_INCOME,
         `Recurring income: ${name}`
       );
 
-      // Update recurring payment execution date (existing logic)
       const payment = await prisma.recurringFundAndBill.findUnique({
         where: { id: paymentId },
       });
@@ -1069,7 +1093,6 @@ export class TransactionRepository {
     });
   }
 
-  // New method to manually adjust account balance (for corrections, interest, fees, etc.)
   async manualBalanceAdjustment(
     userId: number,
     accountId: number,
@@ -1090,13 +1113,12 @@ export class TransactionRepository {
     }
 
     return await this.prisma.$transaction(async (prisma) => {
-      // Update account balance with history tracking
       await this.updateAccountBalance(
         prisma,
         accountId,
         Math.abs(amount),
-        amount > 0, // increment if positive, decrement if negative
-        null, // no transaction associated
+        amount > 0,
+        null,
         changeType,
         description
       );

@@ -30,7 +30,7 @@ export class TransactionService {
     amount: number,
     type: TransactionType,
     toAccountId: number,
-    customCategoryId: number | null,
+    customCategoriesId: number[] | null,
     currency: CurrencyType
   ) {
     try {
@@ -41,7 +41,7 @@ export class TransactionService {
         amount,
         type,
         toAccountId,
-        customCategoryId,
+        customCategoriesId,
         currency
       );
       return newFundAccount;
@@ -192,7 +192,8 @@ export class TransactionService {
     currency: CurrencyType,
     toAccountId: number,
     name: string,
-    description: string | null
+    description: string | null,
+    customCategoriesId: number[] | null
   ) {
     try {
       const transaction = await this.transactionRepo.executeRecurringIncome(
@@ -202,7 +203,8 @@ export class TransactionService {
         currency,
         toAccountId,
         name,
-        description
+        description,
+        customCategoriesId
       );
       return transaction;
     } catch (error) {

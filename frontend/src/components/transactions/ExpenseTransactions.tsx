@@ -27,15 +27,19 @@ import { Transaction } from "../../interfaces/Transaction";
 import DateRangeFilter from "../payments/DateRangeFilter";
 import SearchWithSuggestions from "../payments/SearchWithSuggestions";
 import TransactionDetailsPopup from "./transactionsHistory/TransactionDetailsPopup";
+import { CustomCategory } from "../../interfaces/CustomCategory";
 
 interface ExpenseTransactionsProps {
   isSmallScreen: boolean;
   transactions: Transaction[];
   accounts: Account[];
-  categories: any[];
+  categories: CustomCategory[];
   budgets: any[];
   onTransactionCreated: () => void;
+  onCategoryCreated: () => void;
   accountsLoading?: boolean;
+  currentIncomePopupStep?: number;
+  onIncomePopupStepChange?: (step: number) => void;
 }
 
 const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
@@ -45,9 +49,11 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
   categories,
   budgets,
   onTransactionCreated,
+  onCategoryCreated,
   accountsLoading = false,
+  currentIncomePopupStep = 1,
+  onIncomePopupStepChange,
 }) => {
-  // State management
   const [rates, setRates] = useState<ExchangeRates>({});
   const [displayCurrency, setDisplayCurrency] = useState<string>(
     CurrencyType.RON
@@ -59,7 +65,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
   const [nameSearchTerm, setNameSearchTerm] = useState("");
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
 
-  // Auto-set to current month
   const getCurrentMonthRange = () => {
     const now = new Date();
     const start = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -83,7 +88,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
   const dateFilterButtonRef = useRef<HTMLButtonElement>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -94,7 +98,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  // Load exchange rates
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -113,7 +116,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
     loadExchangeRates();
   }, []);
 
-  // Handle outside clicks
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -129,7 +131,7 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isCurrencyMenuOpen, isDateFilterOpen]);
 
-  // Helper functions
+  
   const formatAmount = (amount: number) => amount.toFixed(2);
 
   const formatDate = (dateString: Date) => {
@@ -180,7 +182,7 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setAccountSearchTerm("");
-    setDateRange(getCurrentMonthRange()); // Reset to current month instead of null
+    setDateRange(getCurrentMonthRange()); 
   };
 
   const formatDateRangeDisplay = () => {
@@ -193,7 +195,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
     };
 
     if (dateRange.start && dateRange.end) {
-      // Check if it's current month
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const currentMonthEnd = new Date(
@@ -217,7 +218,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
     return "";
   };
 
-  // Filtered expense transactions
   const expenseTransactions = useMemo(() => {
     const lowerCaseNameSearch = nameSearchTerm.toLowerCase();
     const lowerCaseAccountSearch = accountSearchTerm.toLowerCase();
@@ -258,7 +258,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
       });
   }, [transactions, nameSearchTerm, accountSearchTerm, dateRange, accounts]);
 
-  // Suggestions for search
   const transactionNames = useMemo(() => {
     return Array.from(
       new Set(
@@ -758,6 +757,9 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
           onTransactionCreated();
           setIsCreateExpenseModalOpen(false);
         }}
+        onCategoryCreated={onCategoryCreated}
+        currentStep={currentIncomePopupStep}
+        onStepChange={onIncomePopupStepChange}
       />
 
       {/* Transaction Details Popup */}

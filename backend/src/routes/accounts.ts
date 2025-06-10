@@ -14,7 +14,7 @@ accounts.get("/getAllAccounts", async (c) => {
       return c.json({ error: "Invalid or missing userId" }, 400);
     }
 
-    // Parse optional date parameters
+   
     let parsedStartDate: Date | undefined;
     let parsedEndDate: Date | undefined;
 
@@ -23,7 +23,7 @@ accounts.get("/getAllAccounts", async (c) => {
         parsedStartDate = new Date(startDate);
         parsedEndDate = new Date(endDate);
 
-        // Validate that the dates are valid
+    
         if (
           isNaN(parsedStartDate.getTime()) ||
           isNaN(parsedEndDate.getTime())
@@ -31,7 +31,7 @@ accounts.get("/getAllAccounts", async (c) => {
           return c.json({ error: "Invalid date format" }, 400);
         }
 
-        // Validate that startDate is before endDate
+      
         if (parsedStartDate > parsedEndDate) {
           return c.json({ error: "startDate must be before endDate" }, 400);
         }

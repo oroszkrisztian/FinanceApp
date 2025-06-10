@@ -32,7 +32,6 @@ const TransactionDetailsPopup: React.FC<TransactionDetailsPopupProps> = ({
 }) => {
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
-  // Enhanced mobile detection
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);

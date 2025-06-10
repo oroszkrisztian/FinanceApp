@@ -3,7 +3,6 @@ import { PrismaClient, CategoryType } from '@prisma/client';
 const prisma = new PrismaClient();
 
 async function main() {
-  // Create default system categories
   const defaultCategories = [
     { name: 'Food & Drinks', type: CategoryType.SYSTEM },
     { name: 'Shopping', type: CategoryType.SYSTEM },

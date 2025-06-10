@@ -37,6 +37,7 @@ interface OutgoingRecurringBillsProps {
   accounts: Account[];
   categories: CustomCategory[];
   onPaymentCreated: () => void;
+  onCategoryCreated: () => void;
 }
 
 const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
@@ -45,6 +46,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   accounts,
   categories,
   onPaymentCreated,
+  onCategoryCreated,
 }) => {
   const { user } = useAuth();
   const [rates, setRates] = useState<ExchangeRates>({});
@@ -81,6 +83,8 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const [editingPayment, setEditingPayment] = useState<any>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
+  const [currentPopupStep, setCurrentPopupStep] = useState(1);
+
   useEffect(() => {
     const checkMobileView = () => {
       setIsMobileView(window.innerWidth < 768);
@@ -98,6 +102,11 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
       setIsCreatePopupOpen(true);
       setIsDetailsOpen(false);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setCurrentPopupStep(1);
+    onPaymentCreated();
   };
 
   const handleCloseCreatePopup = () => {
@@ -316,7 +325,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setCategorySearchTerm("");
-    setDateRange(getCurrentMonthRange()); 
+    setDateRange(getCurrentMonthRange());
   };
 
   const handleBillClick = (bill: any, event: React.MouseEvent) => {
@@ -1105,7 +1114,8 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
         <CreatePaymentPopup
           isOpen={isCreatePopupOpen}
           onClose={handleCloseCreatePopup}
-          onSuccess={onPaymentCreated}
+          onSuccess={handlePaymentSuccess}
+          onCategoryCreated={onCategoryCreated}
           userId={user.id}
           accounts={accounts.map((acc) => ({
             id: acc.id,
@@ -1116,6 +1126,8 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
           categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
           defaultType={PaymentType.EXPENSE}
           editPayment={editingPayment}
+          currentStep={currentPopupStep}
+          onStepChange={setCurrentPopupStep}
         />
       )}
 

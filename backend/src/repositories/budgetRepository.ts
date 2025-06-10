@@ -140,7 +140,6 @@ export class BudgetRepository {
       },
     });
 
-    // Update budget categories
     await this.prisma.budgetCategory.deleteMany({
       where: { budgetId },
     });

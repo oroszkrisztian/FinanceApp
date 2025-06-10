@@ -79,7 +79,7 @@ export class AuthService {
   }
 
   private generateToken(user: User) {
-    console.log("genereating tojen with " + process.env.JWT_SECRET)
+    console.log("genereating token with " + process.env.JWT_SECRET)
     return sign(
       { userId: user.id, username: user.username },
       process.env.JWT_SECRET || "your-secret-key",

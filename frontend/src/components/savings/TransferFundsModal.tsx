@@ -122,7 +122,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
     }
   }, [searchInput, accountsDefault]);
 
-  // Reset amount when target account changes
   useEffect(() => {
     setAmount("");
   }, [selectedTargetAccount]);
@@ -148,18 +147,15 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
     setIsDropdownOpen(false);
   };
 
-  // Calculate how much will be withdrawn from the savings account
   const getWithdrawAmount = (): number => {
     if (!amountTransfer || !targetAccountCurrency || !selectedSaving.currency)
       return 0;
     const amountValue = parseNumberInput(amountTransfer);
     if (isNaN(amountValue)) return 0;
 
-    // If same currency, no conversion needed
     if (selectedSaving.currency === targetAccountCurrency) {
       return amountValue;
     } else {
-      // Convert from target currency to savings currency
       return convertAmount(
         amountValue,
         targetAccountCurrency,
@@ -169,14 +165,12 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
     }
   };
 
-  // Calculate the amount that will be deposited in the target account
   const getTargetAmount = (): number => {
     if (!amountTransfer) return 0;
     const amountValue = parseNumberInput(amountTransfer);
     return isNaN(amountValue) ? 0 : amountValue;
   };
 
-  // Convert savings balance to target account currency
   const getSavingsBalanceInTargetCurrency = (): number | null => {
     if (
       !selectedSaving ||
@@ -250,7 +244,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
           `Insufficient funds in savings account. You have ${(selectedSaving.amount || 0).toFixed(2)} ${selectedSaving.currency} available, but need ${withdrawalAmount.toFixed(2)} ${selectedSaving.currency}.`
         );
 
-      // Use the amount entered (in target currency) directly
       const depositAmount = getTargetAmount();
 
       await addFundsDefault(
@@ -264,7 +257,7 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
 
       setLoading(false);
       handleClose();
-      onSuccess(selectedSaving.id); // Pass the saving ID to trigger animation
+      onSuccess(selectedSaving.id); 
     } catch (err) {
       setLoading(false);
       setError(err instanceof Error ? err.message : "Failed to transfer funds");
@@ -684,7 +677,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
 
                       {sourceAccountNewBalance !== null &&
                       sourceAccountNewBalance < 0 ? (
-                        // Insufficient funds error state
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -732,7 +724,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
                       ) : amountTransfer &&
                         !isNaN(parseNumberInput(amountTransfer)) &&
                         sourceAccountNewBalance !== null ? (
-                        // Valid transaction summary
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -814,7 +805,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
                             )}
                         </motion.div>
                       ) : (
-                        // Empty state - no amount entered
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center">
                           <p className="text-sm text-gray-500">
                             Enter an amount to see transaction details

@@ -6,14 +6,14 @@ interface SimpleCronConfig {
   senderEmail?: string;
   senderName?: string;
   timezone?: string;
-  dailyTime?: string; // Format: "HH:MM" (24-hour)
+  dailyTime?: string; 
   enabled?: boolean;
 }
 
 interface CronJobResult {
   timestamp: Date;
   result: NotificationResult;
-  duration: number; // in milliseconds
+  duration: number; 
 }
 
 class SimplePaymentNotificationCron {
@@ -24,7 +24,6 @@ class SimplePaymentNotificationCron {
   private lastResults: CronJobResult[] = [];
 
   constructor(config: SimpleCronConfig) {
-    // Set default configuration
     this.config = {
       brevoApiKey: config.brevoApiKey,
       senderEmail: config.senderEmail || 'noreply@yourapp.com',
@@ -41,7 +40,7 @@ class SimplePaymentNotificationCron {
     );
   }
 
-  // Start the daily cron job
+  
   start(): void {
     if (this.isRunning) {
       console.log('🔄 Daily payment notification cron is already running');
@@ -57,7 +56,7 @@ class SimplePaymentNotificationCron {
 
     try {
       const [hour, minute] = this.config.dailyTime.split(':');
-      const cronExpression = `${minute} ${hour} * * *`; // Daily at specified time
+      const cronExpression = `${minute} ${hour} * * *`; 
 
       this.job = cron.schedule(cronExpression, async () => {
         await this.runDailyNotifications();
@@ -73,7 +72,6 @@ class SimplePaymentNotificationCron {
     }
   }
 
-  // Stop the cron job
   stop(): void {
     if (this.job) {
       console.log('🛑 Stopping daily payment notification cron...');
@@ -84,14 +82,11 @@ class SimplePaymentNotificationCron {
     }
   }
 
-  // Run daily notifications - this will be called once per day
   private async runDailyNotifications(): Promise<void> {
     const startTime = Date.now();
     console.log('📧 Running daily payment notifications...');
 
     try {
-      // Send notifications for all payments (income and expenses) that should be notified today
-      // This includes checking user preferences for notification timing
       const result = await this.notificationService.sendDailyScheduledNotifications();
 
       const duration = Date.now() - startTime;
@@ -114,7 +109,6 @@ class SimplePaymentNotificationCron {
     }
   }
 
-  // Get job status
   getStatus(): {
     isRunning: boolean;
     nextRun: string | null;
@@ -123,13 +117,11 @@ class SimplePaymentNotificationCron {
   } {
     let nextRun = null;
     if (this.job && this.isRunning) {
-      // Calculate next run time
       const [hour, minute] = this.config.dailyTime.split(':');
       const now = new Date();
       const next = new Date();
       next.setHours(parseInt(hour), parseInt(minute), 0, 0);
       
-      // If time has passed today, schedule for tomorrow
       if (next <= now) {
         next.setDate(next.getDate() + 1);
       }
@@ -148,12 +140,11 @@ class SimplePaymentNotificationCron {
     return {
       isRunning: this.isRunning,
       nextRun,
-      lastResults: this.lastResults.slice(-10), // Last 10 results
+      lastResults: this.lastResults.slice(-10), 
       config: this.config
     };
   }
 
-  // Update configuration and restart if needed
   updateConfig(newConfig: Partial<SimpleCronConfig>): void {
     const wasRunning = this.isRunning;
     
@@ -161,10 +152,9 @@ class SimplePaymentNotificationCron {
       this.stop();
     }
 
-    // Update configuration
+    
     Object.assign(this.config, newConfig);
 
-    // Recreate notification service if API key changed
     if (newConfig.brevoApiKey || newConfig.senderEmail || newConfig.senderName) {
       this.notificationService = new ExpenseNotificationService(
         this.config.brevoApiKey,
@@ -201,7 +191,7 @@ class SimplePaymentNotificationCron {
     console.log(`${enabled ? '✅ Enabled' : '⏸️ Disabled'} daily payment notifications`);
   }
 
-  // Keep only last 30 results
+
   private trimResults(): void {
     if (this.lastResults.length > 30) {
       this.lastResults = this.lastResults.slice(-30);

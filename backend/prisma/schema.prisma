@@ -99,17 +99,16 @@ model Account {
   @@index([userId])
 }
 
-// NEW TABLE: Account Balance History
 model AccountBalanceHistory {
   id              Int                     @id @default(autoincrement())
   accountId       Int
-  transactionId   Int?                    // Optional - null for manual adjustments
+  transactionId   Int?                   
   previousBalance Float
   newBalance      Float
-  amountChanged   Float                   // Can be positive or negative
+  amountChanged   Float                  
   changeType      BalanceChangeType
-  description     String?                 // Optional description of the change
-  currency        CurrencyType            // Account currency at time of change
+  description     String?                 
+  currency        CurrencyType            
   createdAt       DateTime                @default(now())
 
   account         Account                 @relation(fields: [accountId], references: [id])

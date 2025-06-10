@@ -58,7 +58,6 @@ class BrevoEmailService {
     });
   }
 
-  // Send transactional email
   async sendTransactionalEmail(emailData: TransactionalEmailData): Promise<BrevoEmailResponse> {
     try {
       const response: AxiosResponse<BrevoEmailResponse> = await this.client.post('/smtp/email', {
@@ -88,7 +87,6 @@ class BrevoEmailService {
     }
   }
 
-  // Add contact to Brevo (useful for newsletter/marketing)
   async addContact(contactData: ContactData): Promise<any> {
     try {
       const response = await this.client.post('/contacts', {
@@ -106,7 +104,6 @@ class BrevoEmailService {
     }
   }
 
-  // Test email connection
   async testConnection(): Promise<boolean> {
     try {
       await this.client.get('/account');

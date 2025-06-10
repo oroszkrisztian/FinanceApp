@@ -168,7 +168,6 @@ export class AccountsRepository {
     });
   }
 
-  // Helper function to record balance changes
   private async recordBalanceChange(
     prisma: any,
     accountId: number,
@@ -226,7 +225,6 @@ export class AccountsRepository {
       if (amount !== undefined) {
         updateData.amount = amount;
 
-        // Record balance change if amount is updated
         await this.recordBalanceChange(
           prisma,
           accountId,
@@ -238,13 +236,12 @@ export class AccountsRepository {
         );
       }
 
-      // Record balance history for currency change if currency is different
       if (account.currency !== currency && amount === undefined) {
         await this.recordBalanceChange(
           prisma,
           accountId,
           account.amount,
-          account.amount, // Same amount but different currency
+          account.amount, 
           BalanceChangeType.MANUAL_ADJUSTMENT,
           currency,
           `Currency changed from ${account.currency} to ${currency}`
@@ -327,7 +324,7 @@ export class AccountsRepository {
         updatedAt: new Date(),
       };
 
-      // Handle currency change and amount update
+     
       if (account.currency !== currency || amount !== undefined) {
         updateData.currency = currency;
 
@@ -336,7 +333,7 @@ export class AccountsRepository {
         if (amount !== undefined) {
           newAmount = amount;
         } else if (account.currency !== currency) {
-          // Convert amount when currency changes
+        
           const rates = await this.getExchangeRates();
           if (!rates[account.currency] || !rates[currency]) {
             throw new Error(

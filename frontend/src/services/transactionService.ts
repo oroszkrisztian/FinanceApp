@@ -52,7 +52,7 @@ export const addFundsDefaultAccount = async (
   amount: number,
   type: TransactionType,
   toAccountId: number,
-  customCategoryId: number | null,
+  customCategoriesId: number[] | null,
   currency: string
 ) => {
   try {
@@ -70,7 +70,7 @@ export const addFundsDefaultAccount = async (
           amount,
           type,
           toAccountId,
-          customCategoryId,
+          customCategoriesId,
           currency,
         }),
       }

@@ -15,6 +15,13 @@ import {
   ChevronDown,
   Search,
   Edit,
+  Brain,
+  Sparkles,
+  Check,
+  Loader,
+  RefreshCw,
+  ThumbsUp,
+  ThumbsDown,
 } from "lucide-react";
 import {
   ExchangeRates,
@@ -24,11 +31,14 @@ import {
 } from "../../services/exchangeRateService";
 import { CurrencyType, Frequency, PaymentType } from "../../interfaces/enums";
 import { createPayment } from "../../services/paymentService";
+import CreateCategoryModal from "../categories/CreateCategoryModal";
+import { useAuth } from "../../context/AuthContext";
 
 interface CreatePaymentPopupProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  onCategoryCreated?: () => void;
   userId: number;
   accounts: Array<{
     id: number;
@@ -38,6 +48,13 @@ interface CreatePaymentPopupProps {
   }>;
   categories: Array<{ id: number; name: string }>;
   defaultType?: PaymentType;
+  budgets?: Array<{
+    id: number;
+    name: string;
+    limitAmount: number;
+    currency: string;
+    categoryIds: number[];
+  }>;
   editPayment?: {
     id: number;
     name: string;
@@ -54,7 +71,29 @@ interface CreatePaymentPopupProps {
     emailNotification?: boolean;
     automaticPayment?: boolean;
   } | null;
+  currentStep?: number;
+  onStepChange?: (step: number) => void;
 }
+
+interface AIExistingCategorySuggestion {
+  type: "existing";
+  categoryId: number;
+  categoryName: string;
+  confidence: number;
+  reason: string;
+}
+
+interface AINewCategorySuggestion {
+  type: "new";
+  categoryName: string;
+  confidence: number;
+  reason: string;
+  description?: string;
+}
+
+type AICategorySuggestion =
+  | AIExistingCategorySuggestion
+  | AINewCategorySuggestion;
 
 const SearchWithSuggestions: React.FC<{
   placeholder: string;
@@ -196,13 +235,20 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   isOpen,
   onClose,
   onSuccess,
+  onCategoryCreated,
   userId,
   accounts,
   categories,
   defaultType = PaymentType.EXPENSE,
+  budgets = [],
   editPayment = null,
+  currentStep: externalCurrentStep = 1,
+  onStepChange,
 }) => {
-  const [currentStep, setCurrentStep] = useState(1);
+  const { token } = useAuth();
+  const [internalCurrentStep, setInternalCurrentStep] = useState(1);
+  const currentStep = onStepChange ? externalCurrentStep : internalCurrentStep;
+
   const [isMobileView, setIsMobileView] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -230,6 +276,22 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const [originalCurrency, setOriginalCurrency] = useState<string>("");
   const currencyRef = useRef<HTMLDivElement>(null);
 
+  const [isCreateCategoryModalOpen, setIsCreateCategoryModalOpen] =
+    useState(false);
+  const [localCategories, setLocalCategories] = useState(categories);
+
+  const [aiSuggestions, setAiSuggestions] = useState<AICategorySuggestion[]>(
+    []
+  );
+  const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState<string | null>(
+    null
+  );
+  const [showAiSuggestions, setShowAiSuggestions] = useState(true);
+  const [suggestionsAccepted, setSuggestionsAccepted] = useState(false);
+  const [hasTriggeredSuggestions, setHasTriggeredSuggestions] = useState(false);
+  const [creatingCategories, setCreatingCategories] = useState<string[]>([]);
+
   const steps = [
     "Basic Info",
     "Timing",
@@ -240,6 +302,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const [isNotificationDayOpen, setIsNotificationDayOpen] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLocalCategories(categories);
+  }, [categories]);
 
   useEffect(() => {
     const checkMobileView = () => {
@@ -269,6 +335,214 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const theme = getThemeColors();
 
+  const handleStepChange = (newStep: number) => {
+    if (onStepChange) {
+      onStepChange(newStep);
+    } else {
+      setInternalCurrentStep(newStep);
+    }
+  };
+
+  const handleCategoryCreated = async () => {
+    try {
+      setIsCreateCategoryModalOpen(false);
+
+      if (onCategoryCreated) {
+        await onCategoryCreated();
+      }
+
+      console.log("Category created and categories refreshed");
+    } catch (error) {
+      console.error("Error handling category creation:", error);
+    }
+  };
+
+  const createNewCategory = async (categoryName: string) => {
+    try {
+      setCreatingCategories((prev) => [...prev, categoryName]);
+
+      const response = await fetch(
+        "http://localhost:3000/categories/createUserCategory",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId,
+            categoryName,
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to create category");
+      }
+
+      const result = await response.json();
+
+      const newCategory = { id: result.id || Date.now(), name: categoryName };
+      setLocalCategories((prev) => [...prev, newCategory]);
+
+      setFormData((prev) => ({
+        ...prev,
+        categoriesId: [...prev.categoriesId, newCategory.id],
+      }));
+
+      if (onCategoryCreated) {
+        await onCategoryCreated();
+      }
+
+      console.log("✅ Category created successfully:", categoryName);
+      return result;
+    } catch (error) {
+      console.error("❌ Error creating category:", error);
+      throw error;
+    } finally {
+      setCreatingCategories((prev) =>
+        prev.filter((name) => name !== categoryName)
+      );
+    }
+  };
+
+  const fetchAICategorySuggestions = async () => {
+    if (!formData.name || !formData.amount || !token) {
+      return;
+    }
+
+    setAiSuggestionsLoading(true);
+    setAiSuggestionsError(null);
+
+    try {
+      console.log("🤖 Fetching enhanced AI category suggestions...");
+
+      const response = await fetch(
+        "http://localhost:3000/ai/aiCategorySuggestion",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            userId,
+            paymentName: formData.name,
+            paymentAmount: parseFloat(formData.amount),
+            paymentType: formData.type,
+            currency: formData.currency,
+            description: formData.description || "",
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.suggestions && Array.isArray(data.suggestions)) {
+        console.log("✅ Received enhanced AI suggestions:", data.suggestions);
+        setAiSuggestions(data.suggestions);
+        setHasTriggeredSuggestions(true);
+      } else {
+        throw new Error(data.error || "Failed to get AI suggestions");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching enhanced AI suggestions:", error);
+      setAiSuggestionsError("Failed to get AI suggestions. Please try again.");
+      setHasTriggeredSuggestions(true);
+    } finally {
+      setAiSuggestionsLoading(false);
+    }
+  };
+
+  const acceptAISuggestion = async (suggestion: AICategorySuggestion) => {
+    try {
+      if (suggestion.type === "existing") {
+        if (!formData.categoriesId.includes(suggestion.categoryId)) {
+          setFormData((prev) => ({
+            ...prev,
+            categoriesId: [...prev.categoriesId, suggestion.categoryId],
+          }));
+        }
+      } else if (suggestion.type === "new") {
+        await createNewCategory(suggestion.categoryName);
+      }
+    } catch (error) {
+      console.error("Error accepting suggestion:", error);
+      setAiSuggestionsError("Failed to process suggestion. Please try again.");
+    }
+  };
+
+  const acceptAllAISuggestions = async () => {
+    try {
+      for (const suggestion of aiSuggestions) {
+        if (suggestion.type === "existing") {
+          if (!formData.categoriesId.includes(suggestion.categoryId)) {
+            setFormData((prev) => ({
+              ...prev,
+              categoriesId: [...prev.categoriesId, suggestion.categoryId],
+            }));
+          }
+        } else if (suggestion.type === "new") {
+          await createNewCategory(suggestion.categoryName);
+        }
+      }
+      setSuggestionsAccepted(true);
+    } catch (error) {
+      console.error("Error accepting all suggestions:", error);
+      setAiSuggestionsError(
+        "Failed to process some suggestions. Please try individually."
+      );
+    }
+  };
+
+  const retryAISuggestions = () => {
+    setHasTriggeredSuggestions(false);
+    setAiSuggestions([]);
+    setAiSuggestionsError(null);
+    fetchAICategorySuggestions();
+  };
+
+  const dismissAISuggestions = () => {
+    setShowAiSuggestions(false);
+    setSuggestionsAccepted(true);
+  };
+
+  useEffect(() => {
+    console.log("Checking AI suggestions trigger:", {
+      currentStep,
+      isEditMode,
+      showAiSuggestions,
+      hasTriggeredSuggestions,
+      name: formData.name,
+      nameValid: formData.name.trim(),
+      amount: formData.amount,
+      amountValid: parseFloat(formData.amount) > 0,
+    });
+    if (
+      currentStep === 3 &&
+      !isEditMode &&
+      showAiSuggestions &&
+      !hasTriggeredSuggestions &&
+      formData.name.trim() &&
+      formData.amount &&
+      parseFloat(formData.amount) > 0
+    ) {
+      console.log("🚀 Triggering AI suggestions...");
+      fetchAICategorySuggestions();
+    }
+  }, [
+    currentStep,
+    formData.name,
+    formData.amount,
+    isEditMode,
+    showAiSuggestions,
+    hasTriggeredSuggestions,
+  ]);
+
   useEffect(() => {
     const loadExchangeRates = async () => {
       try {
@@ -289,10 +563,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
       const categoryIds =
         editPayment.categories && editPayment.categories.length > 0
-          ? categories
+          ? localCategories
               .filter((cat) => editPayment.categories!.includes(cat.name))
               .map((cat) => cat.id)
-          : categories
+          : localCategories
               .filter((cat) => cat.name === editPayment.category)
               .map((cat) => cat.id);
 
@@ -313,12 +587,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         startDate:
           editPayment.nextExecution || new Date().toISOString().split("T")[0],
       });
-    } else if (!editPayment && isOpen) {
-      setIsEditMode(false);
-      setOriginalCurrency("");
-      resetForm();
     }
-  }, [editPayment, isOpen, accounts, categories, defaultType]);
+  }, [editPayment, isOpen, accounts, localCategories, defaultType]);
 
   const convertCurrency = (
     amount: number,
@@ -430,6 +700,12 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setError(null);
+
+    if ((field === "name" || field === "amount") && !isEditMode) {
+      setHasTriggeredSuggestions(false);
+      setAiSuggestions([]);
+      setAiSuggestionsError(null);
+    }
   };
 
   const handleCategoryToggle = (categoryId: number) => {
@@ -453,7 +729,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   };
 
   const handleCategorySelect = (categoryName: string) => {
-    const selectedCategory = categories.find(
+    const selectedCategory = localCategories.find(
       (cat) => cat.name === categoryName
     );
     if (selectedCategory) {
@@ -465,13 +741,13 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     acc.name.toLowerCase().includes(accountSearchTerm.toLowerCase())
   );
 
-  const filteredCategories = categories.filter((cat) =>
+  const filteredCategories = localCategories.filter((cat) =>
     cat.name.toLowerCase().includes(categorySearchTerm.toLowerCase())
   );
 
   const accountSuggestions = filteredAccounts.map((acc) => acc.name);
   const categorySuggestions = filteredCategories.map((cat) => cat.name);
-  const selectedCategoryNames = categories
+  const selectedCategoryNames = localCategories
     .filter((cat) => formData.categoriesId.includes(cat.id))
     .map((cat) => cat.name);
 
@@ -496,13 +772,13 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   const nextStep = () => {
     if (canProceed() && currentStep < 5) {
-      setCurrentStep(currentStep + 1);
+      handleStepChange(currentStep + 1);
     }
   };
 
   const prevStep = () => {
     if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+      handleStepChange(currentStep - 1);
     }
   };
 
@@ -544,9 +820,13 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   };
 
   const resetForm = () => {
-    setCurrentStep(1);
     setIsEditMode(false);
     setOriginalCurrency("");
+    setSuggestionsAccepted(false);
+    setShowAiSuggestions(true);
+    setHasTriggeredSuggestions(false);
+    setAiSuggestions([]);
+    setAiSuggestionsError(null);
     setFormData({
       name: "",
       amount: "",
@@ -729,8 +1009,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
             {formData.amount && formData.startDate && (
               <div className="space-y-3">
-               
-
                 <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
                   <div className="flex items-center gap-2 mb-2">
                     <Calendar size={14} className="text-blue-600" />
@@ -810,10 +1088,223 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
+            {!isEditMode && showAiSuggestions && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Brain size={16} className="text-purple-600" />
+                    <label className="text-sm font-medium text-gray-700">
+                      AI Category Suggestions
+                    </label>
+                  </div>
+                  {aiSuggestions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={retryAISuggestions}
+                      className="flex items-center gap-1 px-2 py-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                      title="Get new suggestions"
+                    >
+                      <RefreshCw size={12} />
+                      Refresh
+                    </button>
+                  )}
+                </div>
+
+                {aiSuggestionsLoading && (
+                  <div className="flex items-center justify-center p-4 bg-purple-50 rounded-xl border border-purple-200">
+                    <Loader
+                      className="animate-spin text-purple-600 mr-2"
+                      size={16}
+                    />
+                    <span className="text-sm text-purple-700">
+                      AI is analyzing your payment for the best categories...
+                    </span>
+                  </div>
+                )}
+
+                {aiSuggestionsError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle size={14} className="text-red-600" />
+                        <span className="text-sm text-red-700">
+                          {aiSuggestionsError}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={retryAISuggestions}
+                        className="text-xs text-red-600 hover:text-red-800 underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {aiSuggestions.length > 0 && !aiSuggestionsLoading && (
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-2">
+                        <Sparkles size={14} className="text-purple-600" />
+                        <span className="text-sm font-medium text-purple-800">
+                          Suggested for "{formData.name}"
+                        </span>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={acceptAllAISuggestions}
+                          disabled={creatingCategories.length > 0}
+                          className="px-3 py-1 bg-purple-600 text-white text-xs rounded-lg hover:bg-purple-700 transition-colors flex items-center gap-1 disabled:opacity-50"
+                        >
+                          <ThumbsUp size={12} />
+                          Accept All
+                        </button>
+                        <button
+                          type="button"
+                          onClick={dismissAISuggestions}
+                          className="px-3 py-1 bg-gray-100 text-gray-600 text-xs rounded-lg hover:bg-gray-200 transition-colors flex items-center gap-1"
+                        >
+                          <ThumbsDown size={12} />
+                          Skip
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      {aiSuggestions.map((suggestion, index) => (
+                        <motion.div
+                          key={`${suggestion.type}-${suggestion.categoryName}-${index}`}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-100 shadow-sm"
+                        >
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-sm font-medium text-gray-800">
+                                {suggestion.categoryName}
+                              </span>
+                              <span
+                                className={`text-xs px-1.5 py-0.5 rounded-full ${
+                                  suggestion.type === "new"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-purple-100 text-purple-700"
+                                }`}
+                              >
+                                {suggestion.type === "new" ? "New" : "Existing"}{" "}
+                                • {Math.round(suggestion.confidence * 100)}%
+                                match
+                              </span>
+                            </div>
+                            <p className="text-xs text-gray-600">
+                              {suggestion.reason}
+                            </p>
+                            {suggestion.type === "new" &&
+                              suggestion.description && (
+                                <p className="text-xs text-gray-500 mt-1 italic">
+                                  {suggestion.description}
+                                </p>
+                              )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => acceptAISuggestion(suggestion)}
+                            disabled={
+                              (suggestion.type === "existing" &&
+                                formData.categoriesId.includes(
+                                  suggestion.categoryId
+                                )) ||
+                              (suggestion.type === "new" &&
+                                creatingCategories.includes(
+                                  suggestion.categoryName
+                                )) ||
+                              (suggestion.type === "new" &&
+                                localCategories.some(
+                                  (cat) =>
+                                    cat.name.toLowerCase() ===
+                                    suggestion.categoryName.toLowerCase()
+                                ))
+                            }
+                            className={`ml-3 p-2 rounded-lg text-xs transition-colors ${
+                              (suggestion.type === "existing" &&
+                                formData.categoriesId.includes(
+                                  suggestion.categoryId
+                                )) ||
+                              (suggestion.type === "new" &&
+                                localCategories.some(
+                                  (cat) =>
+                                    cat.name.toLowerCase() ===
+                                    suggestion.categoryName.toLowerCase()
+                                ))
+                                ? "bg-green-100 text-green-700 cursor-default"
+                                : creatingCategories.includes(
+                                      suggestion.categoryName
+                                    )
+                                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                  : suggestion.type === "new"
+                                    ? "bg-green-600 text-white hover:bg-green-700"
+                                    : "bg-purple-600 text-white hover:bg-purple-700"
+                            }`}
+                          >
+                            {(suggestion.type === "existing" &&
+                              formData.categoriesId.includes(
+                                suggestion.categoryId
+                              )) ||
+                            (suggestion.type === "new" &&
+                              localCategories.some(
+                                (cat) =>
+                                  cat.name.toLowerCase() ===
+                                  suggestion.categoryName.toLowerCase()
+                              )) ? (
+                              <Check size={12} />
+                            ) : creatingCategories.includes(
+                                suggestion.categoryName
+                              ) ? (
+                              <Loader size={12} className="animate-spin" />
+                            ) : (
+                              <Plus size={12} />
+                            )}
+                          </button>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {!aiSuggestionsLoading &&
+                  !aiSuggestionsError &&
+                  aiSuggestions.length === 0 &&
+                  hasTriggeredSuggestions && (
+                    <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
+                      <p className="text-sm text-gray-600">
+                        No specific category suggestions found. Please select
+                        categories manually.
+                      </p>
+                    </div>
+                  )}
+              </div>
+            )}
+
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categories
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Categories{" "}
+                  {!showAiSuggestions || suggestionsAccepted
+                    ? ""
+                    : "(or select manually)"}
+                </label>
+                <motion.button
+                  type="button"
+                  onClick={() => setIsCreateCategoryModalOpen(true)}
+                  className="flex items-center gap-1 px-2 py-1 bg-blue-600 text-white text-xs rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                >
+                  <Plus size={12} />
+                  Add New
+                </motion.button>
+              </div>
               <SearchWithSuggestions
                 placeholder="Search and select categories..."
                 onSearch={setCategorySearchTerm}
@@ -853,7 +1344,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Notification timing
                   </label>
-                  <div className="relative">
+                  <div className="relative" ref={notificationRef}>
                     <button
                       type="button"
                       onClick={() =>
@@ -940,7 +1431,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         const selectedAccount = accounts.find(
           (acc) => acc.id.toString() === formData.accountId
         );
-        const selectedCategories = categories.filter((cat) =>
+        const selectedCategories = localCategories.filter((cat) =>
           formData.categoriesId.includes(cat.id)
         );
 
@@ -993,9 +1484,16 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   </div>
                 </div>
               )}
-            </div>
 
-           
+              {formData.description && (
+                <div className="mt-3">
+                  <span className="text-gray-600 text-sm">Description: </span>
+                  <p className="text-sm text-gray-800 mt-1">
+                    {formData.description}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
         );
 
@@ -1011,7 +1509,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0  flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
           onClick={onClose}
         >
           <motion.div
@@ -1025,11 +1523,9 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/*Header */}
             <div
               className={`relative overflow-hidden ${theme.gradient} text-white`}
             >
-              {/* Background elements */}
               <div
                 className={`absolute top-0 right-0 bg-white/20 rounded-full ${
                   isMobileView
@@ -1086,7 +1582,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                     </div>
                   </div>
                   <motion.button
-                    onClick={onClose}
+                    onClick={() => {
+                      onClose();
+                      resetForm();
+                    }}
                     className="text-white/80 hover:text-white transition-colors"
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.95 }}
@@ -1095,7 +1594,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   </motion.button>
                 </div>
 
-                {/* Progress */}
                 <div className="flex gap-1">
                   {steps.map((_, index) => (
                     <div
@@ -1109,19 +1607,23 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               </div>
             </div>
 
-            {/* Content */}
-            <div className={`${isMobileView ? "p-3" : "p-4"} min-h-[300px]`}>
+            <div
+              className={`${isMobileView ? "p-3" : "p-4"} min-h-[300px] overflow-y-auto`}
+            >
               {error && (
-                <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm"
+                >
                   <AlertCircle size={16} />
                   {error}
-                </div>
+                </motion.div>
               )}
 
               {renderStepContent()}
             </div>
 
-            {/* Footer */}
             <div
               className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex justify-between`}
             >
@@ -1174,6 +1676,13 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
           </motion.div>
+
+          <CreateCategoryModal
+            isOpen={isCreateCategoryModalOpen}
+            onClose={() => setIsCreateCategoryModalOpen(false)}
+            onSuccess={handleCategoryCreated}
+            userId={userId}
+          />
         </motion.div>
       )}
     </AnimatePresence>

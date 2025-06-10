@@ -217,14 +217,13 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
                           }}
                           ref={(el: HTMLDivElement | null) => {
                             if (el) {
-                              // Position the dropdown relative to the button
                               const button = document.querySelector(`[data-account-id="${account.id}"]`);
                               if (button) {
                                 const rect = button.getBoundingClientRect();
                                 const scrollY = window.scrollY || window.pageYOffset;
                                 const scrollX = window.scrollX || window.pageXOffset;
                                 const windowHeight = window.innerHeight;
-                                const dropdownHeight = 120; // approximate height
+                                const dropdownHeight = 120; 
                                 
                                 const spaceBelow = windowHeight - rect.bottom;
                                 
@@ -234,7 +233,7 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
                                   el.style.top = `${rect.bottom + scrollY + 8}px`;
                                 }
                                 
-                                el.style.left = `${rect.right + scrollX - 192}px`; // 192px = w-48
+                                el.style.left = `${rect.right + scrollX - 192}px`; 
                               }
                             }
                           }}

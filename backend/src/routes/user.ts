@@ -5,7 +5,6 @@ import bcrypt from "bcrypt";
 const users = new Hono();
 const userRepository = new UserRepository();
 
-// Get user by ID
 users.post("/getUser", async (c) => {
   try {
     const body = await c.req.json();
@@ -26,7 +25,6 @@ users.post("/getUser", async (c) => {
       return c.json({ error: "User not found" }, 404);
     }
 
-    // Return user without password
     const { password, ...userWithoutPassword } = user;
     return c.json({ user: userWithoutPassword }, 200);
     
@@ -39,7 +37,6 @@ users.post("/getUser", async (c) => {
   }
 });
 
-// Edit user profile
 users.post("/editUser", async (c) => {
   try {
     const body = await c.req.json();
@@ -54,7 +51,6 @@ users.post("/editUser", async (c) => {
       );
     }
 
-    // Validate required fields
     if (!firstName || !lastName || !username) {
       return c.json(
         {
@@ -64,12 +60,12 @@ users.post("/editUser", async (c) => {
       );
     }
 
-    // Validate email format if provided
+  
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return c.json({ error: "Invalid email format" }, 400);
     }
 
-    // Hash password if provided
+  
     let hashedPassword;
     if (password) {
       if (password.length < 6) {
@@ -102,7 +98,7 @@ users.post("/editUser", async (c) => {
   }
 });
 
-// Change password only
+
 users.post("/changePassword", async (c) => {
   try {
     const body = await c.req.json();
@@ -121,22 +117,22 @@ users.post("/changePassword", async (c) => {
       return c.json({ error: "New password must be at least 6 characters long" }, 400);
     }
 
-    // Get current user to verify password
+ 
     const user = await userRepository.findById(userId);
     if (!user) {
       return c.json({ error: "User not found" }, 404);
     }
 
-    // Verify current password
+  
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
       return c.json({ error: "Current password is incorrect" }, 400);
     }
 
-    // Hash new password
+    
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-    // Update password
+    
     const result = await userRepository.changePassword(userId, hashedNewPassword);
     
     return c.json(result, 200);
@@ -150,7 +146,7 @@ users.post("/changePassword", async (c) => {
   }
 });
 
-// Check username/email availability for editing
+
 users.post("/checkAvailability", async (c) => {
   try {
     const body = await c.req.json();

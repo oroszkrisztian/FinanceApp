@@ -857,7 +857,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                             )}
                         </motion.div>
                       ) : (
-                        // Empty state - no amount entered
                         <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 text-center">
                           <p className="text-sm text-gray-500">
                             Enter an amount to see transaction details

@@ -1,11 +1,8 @@
-// Update your ai.ts file with this enhanced version
-
 import { Hono } from "hono";
 import { verifyToken } from "../middleware/auth";
 
 const ai = new Hono();
 
-// Initialize Gemini AI lazily to handle potential import issues
 let GoogleGenerativeAI: any = null;
 let genAI: any = null;
 
@@ -16,7 +13,6 @@ const initializeGemini = async () => {
     }
 
     if (!GoogleGenerativeAI) {
-      // Dynamic import to handle potential module issues
       const module = await import("@google/generative-ai");
       GoogleGenerativeAI = module.GoogleGenerativeAI;
       genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -30,7 +26,6 @@ const initializeGemini = async () => {
   }
 };
 
-// Middleware to verify authentication
 ai.use("*", verifyToken);
 
 interface AIBudgetRecommendation {
@@ -41,6 +36,74 @@ interface AIBudgetRecommendation {
   currency?: string;
   categoryIds?: number[];
   reason?: string;
+}
+
+interface AIExistingCategorySuggestion {
+  type: 'existing';
+  categoryId: number;
+  categoryName: string;
+  confidence: number;
+  reason: string;
+}
+
+interface AINewCategorySuggestion {
+  type: 'new';
+  categoryName: string;
+  confidence: number;
+  reason: string;
+  description?: string;
+}
+
+type AICategorySuggestion = AIExistingCategorySuggestion | AINewCategorySuggestion;
+
+async function createCategory(userId: number, categoryName: string) {
+  const response = await fetch(
+    `http://localhost:3000/categories/createUserCategory`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId,
+        categoryName,
+      }),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to create ai category user");
+  return response.json();
+}
+
+async function getAllCategoriesForUser(userId: number) {
+  const response = await fetch(
+    "http://localhost:3000/categories/getAllCategoriesForUser",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ userId }),
+    }
+  );
+  if (!response.ok) throw new Error("Failed to get all categories ai for user");
+  return response.json();
+}
+
+async function getUserBudgets(userId: number) {
+  try {
+    const response = await fetch(
+      `http://localhost:3000/budget/getUserBudgets`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      }
+    );
+    if (!response.ok) throw new Error("Failed to get user budgets");
+    const data = await response.json();
+    return data.budgets || data || [];
+  } catch (error) {
+    console.error("Error fetching user budgets:", error);
+    return [];
+  }
 }
 
 async function createUserBudgetWithCategories(
@@ -108,7 +171,6 @@ async function deleteUserBudget(userId: number, budgetId: number) {
   return response.json();
 }
 
-// Test Gemini connection
 ai.get("/test", async (c) => {
   try {
     console.log("🧪 Testing Gemini AI connection...");
@@ -133,7 +195,7 @@ ai.get("/test", async (c) => {
     return c.json(
       {
         success: false,
-        error: "Failed to connect to Gemini API",
+        error: "Failed to connect to Gemini AI",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       500
@@ -141,7 +203,6 @@ ai.get("/test", async (c) => {
   }
 });
 
-// AI Chat endpoint (keep existing)
 ai.post("/chat", async (c) => {
   try {
     const body = await c.req.json();
@@ -153,12 +214,14 @@ ai.post("/chat", async (c) => {
       futureIncomingPayments,
       budgets,
     } = body;
+
     if (!question || typeof question !== "string") {
       return c.json(
         { success: false, error: "Missing or invalid question" },
         400
       );
     }
+
     const { genAI: geminiClient } = await initializeGemini();
     const model = geminiClient.getGenerativeModel({
       model: "gemini-2.5-flash-preview-05-20",
@@ -177,7 +240,244 @@ ai.post("/chat", async (c) => {
   }
 });
 
-// Enhanced AI Budget Edit endpoint with CRUD operations
+ai.post("/aiCategorySuggestion", async (c) => {
+  try {
+    const body = await c.req.json();
+    const {
+      userId,
+      paymentName,
+      paymentAmount,
+      paymentType,
+      currency,
+      description,
+    } = body;
+
+    if (!userId || !paymentName || !paymentAmount || !paymentType) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing required fields: userId, paymentName, paymentAmount, paymentType",
+        },
+        400
+      );
+    }
+
+    console.log("🧪 Processing enhanced AI category suggestions for payment:", paymentName);
+
+    const categoriesData = await getAllCategoriesForUser(userId);
+    if (!categoriesData || !Array.isArray(categoriesData)) {
+      return c.json(
+        {
+          success: false,
+          error: "Failed to fetch user categories",
+        },
+        500
+      );
+    }
+
+    const userBudgets = await getUserBudgets(userId);
+
+    const { genAI: geminiClient } = await initializeGemini();
+    const model = geminiClient.getGenerativeModel({
+      model: "gemini-2.5-flash-preview-05-20",
+    });
+
+    const prompt = `You are a financial categorization AI that can suggest both existing categories and recommend creating new ones.
+
+Payment Details:
+- Name: "${paymentName}"
+- Amount: ${paymentAmount} ${currency}
+- Type: ${paymentType}
+- Description: ${description || "No description"}
+
+Existing Categories:
+${categoriesData.map((cat: any) => `- ID: ${cat.id}, Name: "${cat.name}"`).join('\n')}
+
+User's Current Budgets (for context):
+${userBudgets && userBudgets.length > 0 
+  ? userBudgets.map((budget: any) => 
+      `- Budget: "${budget.name}" (${budget.limitAmount} ${budget.currency}) - Categories: ${budget.categoryIds?.join(', ') || 'None'}`
+    ).join('\n')
+  : 'No existing budgets'}
+
+Analysis Guidelines:
+1. First, analyze if any existing categories fit well (confidence 0.7+)
+2. If no existing categories fit well, suggest creating new, more specific categories
+3. Consider the payment name and type for categorization
+4. Look at existing budget patterns for consistency
+5. For expenses: categorize based on what is being purchased/paid for
+6. For income: categorize based on the source of income
+7. Suggest 1-4 total suggestions (mix of existing and new)
+8. Be conservative with confidence scores
+
+Instructions:
+- For existing categories: use "existing" type with categoryId
+- For new categories: use "new" type with suggested categoryName
+- Provide practical reasoning for each suggestion
+- Order by confidence (highest first)
+- Only suggest creating new categories if they would be significantly more specific/useful than existing ones
+
+Return ONLY a valid JSON array in this exact format:
+[
+  {
+    "type": "existing",
+    "categoryId": 123,
+    "categoryName": "Category Name",
+    "confidence": 0.85,
+    "reason": "Brief explanation why this existing category fits"
+  },
+  {
+    "type": "new",
+    "categoryName": "Suggested New Category Name",
+    "confidence": 0.75,
+    "reason": "Brief explanation why creating this new category would be beneficial",
+    "description": "Optional: Brief description of what this category would include"
+  }
+]
+
+Important: Return only the JSON array, no other text or formatting.`;
+
+    console.log("🤖 Sending enhanced category suggestion prompt to Gemini AI...");
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log("🤖 Raw AI Response:", text);
+
+    try {
+      let cleanedText = text.trim();
+      
+      cleanedText = cleanedText
+        .replace(/```json\s*/g, "")
+        .replace(/```\s*/g, "");
+
+      const jsonMatch = cleanedText.match(/\[[\s\S]*?\]/);
+      if (jsonMatch) {
+        cleanedText = jsonMatch[0];
+      }
+
+      const suggestions = JSON.parse(cleanedText);
+
+      const validSuggestions = suggestions
+        .filter((suggestion: any) => {
+          if (!suggestion.type || !suggestion.categoryName || !suggestion.reason) {
+            return false;
+          }
+
+          if (suggestion.type === 'existing') {
+            return (
+              suggestion.categoryId &&
+              typeof suggestion.confidence === 'number' &&
+              suggestion.confidence >= 0.1 &&
+              suggestion.confidence <= 1.0 &&
+              categoriesData.some((cat: any) => cat.id === suggestion.categoryId)
+            );
+          } else if (suggestion.type === 'new') {
+            return (
+              typeof suggestion.confidence === 'number' &&
+              suggestion.confidence >= 0.1 &&
+              suggestion.confidence <= 1.0 &&
+              suggestion.categoryName.trim().length > 0
+            );
+          }
+
+          return false;
+        })
+        .slice(0, 4)
+        .map((suggestion: any) => ({
+          type: suggestion.type,
+          categoryId: suggestion.type === 'existing' ? suggestion.categoryId : undefined,
+          categoryName: suggestion.categoryName.trim(),
+          confidence: Math.round(suggestion.confidence * 100) / 100,
+          reason: suggestion.reason.trim(),
+          description: suggestion.type === 'new' ? suggestion.description?.trim() : undefined
+        }));
+
+      console.log(`✅ Generated ${validSuggestions.length} valid enhanced category suggestions`);
+
+      return c.json({
+        success: true,
+        suggestions: validSuggestions,
+      });
+
+    } catch (parseError) {
+      console.error("❌ Failed to parse AI enhanced category suggestions:", parseError);
+      console.error("Raw response was:", text);
+
+      const fallbackSuggestions: AICategorySuggestion[] = [];
+      const paymentNameLower = paymentName.toLowerCase();
+      const descriptionLower = (description || "").toLowerCase();
+      const searchText = `${paymentNameLower} ${descriptionLower}`.trim();
+
+      for (const category of categoriesData) {
+        const categoryNameLower = category.name.toLowerCase();
+        let confidence = 0;
+        let reason = '';
+
+        if (searchText.includes(categoryNameLower) || categoryNameLower.includes(paymentNameLower)) {
+          confidence = 0.8;
+          reason = 'Direct name match with payment';
+        }
+
+        if (confidence > 0) {
+          fallbackSuggestions.push({
+            type: 'existing',
+            categoryId: category.id,
+            categoryName: category.name,
+            confidence,
+            reason
+          });
+        }
+      }
+
+      if (userBudgets && userBudgets.length > 0) {
+        for (const budget of userBudgets) {
+          if (budget.categoryIds && budget.categoryIds.length > 0) {
+            for (const categoryId of budget.categoryIds) {
+              const category = categoriesData.find((cat: any) => cat.id === categoryId);
+              if (category && !fallbackSuggestions.some(s => s.type === 'existing' && s.categoryId === categoryId)) {
+                const budgetNameLower = budget.name.toLowerCase();
+                if (
+                  paymentNameLower.includes(budgetNameLower) ||
+                  budgetNameLower.includes(paymentNameLower)
+                ) {
+                  fallbackSuggestions.push({
+                    type: 'existing',
+                    categoryId: category.id,
+                    categoryName: category.name,
+                    confidence: 0.75,
+                    reason: `Used in existing budget: ${budget.name}`
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      const finalSuggestions = fallbackSuggestions
+        .sort((a, b) => b.confidence - a.confidence)
+        .slice(0, 3);
+
+      return c.json({
+        success: true,
+        suggestions: finalSuggestions,
+      });
+    }
+
+  } catch (error) {
+    console.error("❌ AI Category Suggestions Error:", error);
+    return c.json(
+      {
+        success: false,
+        error: "Failed to generate category suggestions",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
+      500
+    );
+  }
+});
+
 ai.post("/budgetEdit", async (c) => {
   try {
     const body = await c.req.json();
@@ -201,10 +501,7 @@ ai.post("/budgetEdit", async (c) => {
       model: "gemini-2.5-flash-preview-05-20",
     });
 
-    // Extract available category IDs from categories array
     const availableCategoryIds = categories?.map((cat: any) => cat.id) || [];
-
-    // Extract existing budget info
     const existingBudgetIds = budgets?.map((b: any) => b.id) || [];
 
     const prompt = `You are a financial advisor AI. Analyze the user's financial data and provide budget recommendations with CRUD operations.
@@ -264,15 +561,12 @@ Return ONLY valid JSON, no additional text.`;
     console.log("🤖 Raw AI Response:", text);
 
     try {
-      // Clean and parse the AI response
       let cleanedText = text.trim();
 
-      // Remove any markdown code blocks if present
       cleanedText = cleanedText
         .replace(/```json\s*/g, "")
         .replace(/```\s*/g, "");
 
-      // Try to find JSON in the response
       const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         cleanedText = jsonMatch[0];
@@ -282,9 +576,7 @@ Return ONLY valid JSON, no additional text.`;
 
       console.log("✅ Parsed AI Response:", aiResponse);
 
-      // Validate the response structure
       if (aiResponse && Array.isArray(aiResponse.recommendations)) {
-        // Filter out invalid recommendations
         const validRecommendations = aiResponse.recommendations.filter(
           (rec: AIBudgetRecommendation) => {
             if (
@@ -357,7 +649,6 @@ Return ONLY valid JSON, no additional text.`;
   }
 });
 
-// New endpoint to apply AI recommendations (performs actual CRUD operations)
 ai.post("/applyRecommendations", async (c) => {
   try {
     const body = await c.req.json();
