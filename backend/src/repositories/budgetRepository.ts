@@ -18,6 +18,9 @@ export class BudgetRepository {
       },
       include: {
         budgetCategories: {
+          where: {
+            deletedAt: null,
+          },
           select: {
             customCategory: {
               select: {
@@ -35,75 +38,92 @@ export class BudgetRepository {
     const currentYear = new Date().getFullYear();
     const rates = await this.transactionRepo.getExchangeRates();
 
+    const updatedBudgets = [];
+
     for (const budget of allBudgets) {
       try {
         const budgetCategoryIds = budget.budgetCategories.map(
           (bc) => bc.customCategory.id
         );
 
-        if (budgetCategoryIds.length === 0) {
-          await this.prisma.budget.update({
-            where: { id: budget.id },
-            data: { currentSpent: 0 },
+        let totalSpent = 0;
+
+        if (budgetCategoryIds.length > 0) {
+          const transactions = await this.prisma.transaction.findMany({
+            where: {
+              userId: userId,
+              type: "EXPENSE",
+              deletedAt: null,
+              date: {
+                gte: new Date(currentYear, currentMonth, 1),
+                lt: new Date(currentYear, currentMonth + 1, 1),
+              },
+              transactionCategories: {
+                some: {
+                  customCategoryId: {
+                    in: budgetCategoryIds,
+                  },
+                  deletedAt: null,
+                },
+              },
+            },
+            select: {
+              amount: true,
+              currency: true,
+            },
           });
-          budget.currentSpent = 0;
-          continue;
+
+          for (const transaction of transactions) {
+            let transactionAmount = Math.abs(transaction.amount);
+
+            if (transaction.currency !== budget.currency) {
+              if (rates[transaction.currency] && rates[budget.currency]) {
+                transactionAmount =
+                  transactionAmount *
+                  (rates[transaction.currency] / rates[budget.currency]);
+              }
+            }
+
+            totalSpent += transactionAmount;
+          }
         }
 
-        const transactions = await this.prisma.transaction.findMany({
-          where: {
-            userId: userId,
-            type: "EXPENSE",
-            deletedAt: null,
-            date: {
-              gte: new Date(currentYear, currentMonth, 1),
-              lt: new Date(currentYear, currentMonth + 1, 1),
-            },
-            transactionCategories: {
-              some: {
-                customCategoryId: {
-                  in: budgetCategoryIds,
-                },
+        const updatedBudget = await this.prisma.budget.update({
+          where: { id: budget.id },
+          data: { currentSpent: totalSpent },
+          include: {
+            budgetCategories: {
+              where: {
                 deletedAt: null,
+              },
+              select: {
+                customCategory: {
+                  select: {
+                    id: true,
+                    name: true,
+                    type: true,
+                  },
+                },
               },
             },
           },
-          select: {
-            amount: true,
-            currency: true,
-          },
         });
 
-        let totalSpent = 0;
-        for (const transaction of transactions) {
-          let transactionAmount = Math.abs(transaction.amount);
-
-          if (transaction.currency !== budget.currency) {
-            if (rates[transaction.currency] && rates[budget.currency]) {
-              transactionAmount =
-                transactionAmount *
-                (rates[transaction.currency] / rates[budget.currency]);
-            }
-          }
-
-          totalSpent += transactionAmount;
-        }
-
-        await this.prisma.budget.update({
-          where: { id: budget.id },
-          data: { currentSpent: totalSpent },
+        updatedBudgets.push({
+          ...updatedBudget,
+          customCategories: updatedBudget.budgetCategories.map((bc) => bc.customCategory),
         });
 
-        budget.currentSpent = totalSpent;
       } catch (error) {
         console.error(`Error calculating spent for budget ${budget.id}:`, error);
+        updatedBudgets.push({
+          ...budget,
+          customCategories: budget.budgetCategories.map((bc) => bc.customCategory),
+        });
       }
     }
 
-    return allBudgets.map((budget) => ({
-      ...budget,
-      customCategories: budget.budgetCategories.map((bc) => bc.customCategory),
-    }));
+    return updatedBudgets;
   }
 
   async createUserBudgetWithCategories(
@@ -190,6 +210,9 @@ export class BudgetRepository {
       where: { id: budget.id },
       include: {
         budgetCategories: {
+          where: {
+            deletedAt: null,
+          },
           select: {
             customCategory: {
               select: {
@@ -228,6 +251,7 @@ export class BudgetRepository {
       where: {
         id: budgetId,
         userId: userId,
+        deletedAt: null,
       },
     });
 
@@ -340,6 +364,9 @@ export class BudgetRepository {
       where: { id: updatedBudget.id },
       include: {
         budgetCategories: {
+          where: {
+            deletedAt: null,
+          },
           select: {
             customCategory: {
               select: {

@@ -151,7 +151,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       totalGoalsCount: savingsAccountsWithGoals.length,
       overallProgress,
     };
-  }, [accounts]); 
+  }, [accounts]);
 
   const budgetData = useMemo(() => {
     if (!budgets || budgets.length === 0) {
@@ -165,36 +165,8 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       };
     }
 
-    const currentMonth = new Date().getMonth();
-    const currentYear = new Date().getFullYear();
-
     const budgetsWithProgress = budgets.map((budget) => {
-      const budgetCategoryIds = budget.customCategories
-        ? budget.customCategories.map((cat: any) => String(cat.id))
-        : budget.categoryIds
-          ? budget.categoryIds.map((id: any) => String(id))
-          : [];
-
-      const budgetTransactions = transactions.filter((transaction) => {
-        const transactionDate = new Date(transaction.date);
-        const isCurrentMonth =
-          transactionDate.getMonth() === currentMonth &&
-          transactionDate.getFullYear() === currentYear;
-
-        const isExpense = transaction.type === "EXPENSE";
-
-        const matchesCategory = transaction.transactionCategories?.some(
-          (tc: any) => budgetCategoryIds.includes(String(tc.customCategoryId))
-        );
-
-        return isCurrentMonth && isExpense && matchesCategory;
-      });
-
-      const spent = budgetTransactions.reduce((total, transaction) => {
-        let transactionAmount = Math.abs(transaction.amount);
-        return total + transactionAmount;
-      }, 0);
-
+      const spent = budget.currentSpent || 0;
       const limitAmount = budget.limitAmount || 0;
       const progressPercentage =
         limitAmount > 0 ? Math.min((spent / limitAmount) * 100, 100) : 0;
@@ -207,7 +179,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
         progressPercentage,
         isCompleted,
         remaining: Math.max(limitAmount - spent, 0),
-        transactionCount: budgetTransactions.length,
       };
     });
 
@@ -233,7 +204,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       totalBudgetsCount: budgetsWithProgress.length,
       overallProgress,
     };
-  }, [budgets, transactions]); 
+  }, [budgets]);
 
   const openPreview = (item: any, type: "budget" | "savings") => {
     setPreviewItem(item);
@@ -291,7 +262,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
           overflowX: "hidden",
         }}
       >
-        {/* Mobile-optimized background elements */}
         <div
           className={`absolute top-0 right-0 bg-gradient-to-br from-pink-300 to-purple-400 rounded-full opacity-20 ${
             isMobileView
@@ -399,7 +369,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
           overflowX: "hidden",
         }}
       >
-        {/* Mobile-optimized background elements */}
         <div
           className={`absolute top-0 right-0 bg-gradient-to-br from-pink-300 to-purple-400 rounded-full opacity-20 ${
             isMobileView
@@ -507,7 +476,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
         position: "relative",
       }}
     >
-      {/* Mobile-optimized background elements */}
       <div
         className={`absolute top-0 right-0 bg-gradient-to-br from-pink-300 to-purple-400 rounded-full opacity-20 ${
           isMobileView
@@ -536,9 +504,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
       ></div>
 
       <div className="relative z-10 h-full flex flex-col">
-        {/* Mobile Header */}
         <div className={`flex-shrink-0 ${isMobileView ? "mb-3" : "mb-6"}`}>
-          {/* Title Section - Always on top for mobile */}
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center space-x-3">
               <motion.div
@@ -608,7 +574,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
               </div>
             </div>
 
-            {/* Currency Selector */}
             <div className="relative" ref={currencyRef}>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -663,7 +628,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
             </div>
           </div>
 
-          {/*Mobile Tab System */}
           <div className="relative">
             <div
               className={`flex ${isMobileView ? "space-x-1" : "space-x-1"} bg-gradient-to-r from-gray-100 to-gray-200 rounded-xl p-1 shadow-inner`}
@@ -725,7 +689,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
           </div>
         </div>
 
-        {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0">
           <div className="pr-2" style={{ paddingBottom: "1rem" }}>
             <AnimatePresence mode="wait">
@@ -1069,7 +1032,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
         </div>
       </div>
 
-      {/* Preview Popup */}
       <AnimatePresence>
         {previewItem && previewType && (
           <motion.div
@@ -1094,7 +1056,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
               }`}
               onClick={(e) => e.stopPropagation()}
             >
-              {/* Header */}
               <div
                 className={`bg-gradient-to-r ${
                   previewType === "budget"
@@ -1167,11 +1128,9 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                 </div>
               </div>
 
-              {/* Content */}
               <div className="p-6 space-y-4">
                 {previewType === "budget" ? (
                   <>
-                    {/* Budget Stats */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-xl p-3">
                         <p className="text-xs text-gray-500 font-medium">
@@ -1205,7 +1164,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       </div>
                     </div>
 
-                    {/* Progress */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-gray-700">
@@ -1232,7 +1190,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       </div>
                     </div>
 
-                    {/* Additional Info */}
                     <div className="grid grid-cols-2 gap-4 pt-2">
                       <div className="text-center">
                         <p className="text-xs text-gray-500">Days Left</p>
@@ -1258,7 +1215,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       </div>
                     </div>
 
-                    {/* Categories */}
                     {previewItem.customCategories &&
                       previewItem.customCategories.length > 0 && (
                         <div>
@@ -1287,7 +1243,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                   </>
                 ) : (
                   <>
-                    {/* Savings Stats */}
                     <div className="grid grid-cols-2 gap-4">
                       <div className="bg-gray-50 rounded-xl p-3">
                         <p className="text-xs text-gray-500 font-medium">
@@ -1321,7 +1276,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       </div>
                     </div>
 
-                    {/* Progress */}
                     <div>
                       <div className="flex justify-between items-center mb-2">
                         <span className="text-sm font-medium text-gray-700">
@@ -1346,7 +1300,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       </div>
                     </div>
 
-                    {/* Additional Info */}
                     <div className="text-center pt-2">
                       <p className="text-xs text-gray-500">Amount Needed</p>
                       <p className="text-lg font-bold text-gray-900">
@@ -1365,7 +1318,6 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       </p>
                     </div>
 
-                    {/* Status */}
                     <div className="text-center">
                       {previewItem.isCompleted ? (
                         <div className="flex items-center justify-center space-x-1 text-emerald-600">
