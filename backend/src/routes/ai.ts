@@ -281,7 +281,8 @@ ai.post("/aiCategorySuggestion", async (c) => {
         400
       );
     }
-
+    
+    console.log("passing userid from aicategoriesSuggestions: ", userId);
     const categoriesData = await getAllCategoriesForUser(userId);
     if (!categoriesData || !Array.isArray(categoriesData)) {
       return c.json(
