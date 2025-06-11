@@ -104,7 +104,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   isSmallScreen = false,
   onAccountsUpdate,
 }) => {
-  const { user } = useAuth();
 
   const [selectedRange, setSelectedRange] =
     useState<DateRangeOption>("current_month");
@@ -201,7 +200,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
         const { startDate, endDate } = currentDateRange;
         const accountsData = await fetchAllAccounts(
-          user.id,
           startDate,
           endDate
         );
@@ -221,7 +219,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     };
 
     fetchAccountsData();
-  }, [user?.id, onAccountsUpdate, currentDateRange]);
+  }, [onAccountsUpdate, currentDateRange]);
 
   const getDateRangeText = () => {
     const { startDate, endDate } = currentDateRange;
