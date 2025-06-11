@@ -1,7 +1,6 @@
 import bcrypt from "bcryptjs";
-import { sign } from "jsonwebtoken";
+import { sign, verify } from "jsonwebtoken";
 import 'dotenv/config';
-
 import { LoginCredentials, RegisterData, User } from "../types/user";
 import { UserRepository } from "../repositories/userRepository";
 
@@ -14,7 +13,6 @@ export class AuthService {
 
   async login(credentials: LoginCredentials) {
     const user = await this.userRepository.findByUsername(credentials.username);
-
     if (!user) {
       throw new Error("Invalid username or password");
     }
@@ -23,14 +21,12 @@ export class AuthService {
       credentials.password,
       user.password
     );
-
     if (!isValidPassword) {
       throw new Error("Invalid username or password");
     }
 
     const token = this.generateToken(user);
     const { password: _, ...userWithoutPassword } = user;
-
     return {
       user: userWithoutPassword,
       token,
@@ -43,7 +39,7 @@ export class AuthService {
       !data.lastName ||
       !data.username ||
       !data.email ||
-      !data.password 
+      !data.password
     ) {
       throw new Error("All fields are required");
     }
@@ -52,7 +48,6 @@ export class AuthService {
       data.username,
       data.email
     );
-
     if (existingUser) {
       if (existingUser.username === data.username) {
         throw new Error("Username is already taken");
@@ -63,7 +58,6 @@ export class AuthService {
     }
 
     const hashedPassword = await bcrypt.hash(data.password, 10);
-
     const newUser = await this.userRepository.create({
       ...data,
       password: hashedPassword,
@@ -71,15 +65,34 @@ export class AuthService {
 
     const token = this.generateToken(newUser);
     const { password: _, ...userWithoutPassword } = newUser;
-
     return {
       user: userWithoutPassword,
       token,
     };
   }
 
+  async refreshToken(oldToken: string) {
+    try {
+      const decoded = verify(oldToken, process.env.JWT_SECRET || "your-secret-key") as any;
+      const user = await this.userRepository.findById(decoded.userId);
+      
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      const newToken = this.generateToken(user);
+      const { password: _, ...userWithoutPassword } = user;
+      
+      return {
+        user: userWithoutPassword,
+        token: newToken,
+      };
+    } catch (error) {
+      throw new Error("Invalid token");
+    }
+  }
+
   private generateToken(user: User) {
-    console.log("genereating token with " + process.env.JWT_SECRET)
     return sign(
       { userId: user.id, username: user.username },
       process.env.JWT_SECRET || "your-secret-key",

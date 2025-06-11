@@ -16,12 +16,10 @@ const initializeGemini = async () => {
       const module = await import("@google/generative-ai");
       GoogleGenerativeAI = module.GoogleGenerativeAI;
       genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      console.log("✅ Gemini AI initialized successfully");
     }
 
     return { GoogleGenerativeAI, genAI };
   } catch (error) {
-    console.error("❌ Failed to initialize Gemini AI:", error);
     throw error;
   }
 };
@@ -103,7 +101,6 @@ async function getUserBudgets(userId: number) {
     const data = await response.json();
     return data.budgets || data || [];
   } catch (error) {
-    console.error("Error fetching user budgets:", error);
     return [];
   }
 }
@@ -133,20 +130,18 @@ async function createUserBudgetWithCategories(
   return response.json();
 }
 
-// async function getExchangerates() {
-//   try {
-//     const response = await fetch("https://www.bnr.ro/nbrfxrates.xml");
-//     if (!response.ok) {
-//       throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
-//     }
-//     const xmlText = await response.text();
-//     return xmlText, 200, {
-//       "Content-Type": "application/xml",
-//     };
-//   } catch (error) {
-//     console.error("Proxy error exhange rates:", error);
-//   }
-// }
+async function getExchangeRates() {
+  try {
+    const response = await fetch("https://www.bnr.ro/nbrfxrates.xml");
+    if (!response.ok) {
+      throw new Error(`Failed to fetch exchange rates: ${response.statusText}`);
+    }
+    const xmlText = await response.text();
+    return xmlText;
+  } catch (error) {
+    return null;
+  }
+}
 
 async function updateUserBudget(
   userId: number,
@@ -190,8 +185,6 @@ async function deleteUserBudget(userId: number, budgetId: number) {
 
 ai.get("/test", async (c) => {
   try {
-    console.log("🧪 Testing Gemini AI connection...");
-
     const { genAI: geminiClient } = await initializeGemini();
     const model = geminiClient.getGenerativeModel({ model: "gemini-pro" });
     const result = await model.generateContent(
@@ -200,15 +193,12 @@ ai.get("/test", async (c) => {
     const response = await result.response;
     const text = response.text();
 
-    console.log("✅ Gemini test successful");
-
     return c.json({
       success: true,
       message: "Gemini AI connection successful",
       response: text,
     });
   } catch (error) {
-    console.error("❌ Gemini API Test Error:", error);
     return c.json(
       {
         success: false,
@@ -239,12 +229,14 @@ ai.post("/chat", async (c) => {
       );
     }
 
+    const exchangeRates = await getExchangeRates();
+
     const { genAI: geminiClient } = await initializeGemini();
     const model = geminiClient.getGenerativeModel({
       model: "gemini-2.5-flash-preview-05-20",
     });
 
-    const prompt = `You are a financial assistant and only can answer about the sent data, any other random questions are prohibited. The user asked: "${question}".\n\nHere is the user's financial data for the current month (use the original currencies as provided in the data, do not convert or summarize in a different currency):\nAccounts: ${JSON.stringify(accounts)}\nTransactions: ${JSON.stringify(transactions)}\nFuture Outgoing Payments: ${JSON.stringify(futureOutgoingPayments)}\nFuture Incoming Payments: ${JSON.stringify(futureIncomingPayments)}\nBudgets: ${JSON.stringify(budgets)}\n\nWhen asked about total spending, always list the total for each currency and also list all individual spending names and their amounts, grouped by currency.\n\nAlways format your response in clear, visually appealing Markdown. Use headings for sections, bullet points or tables for lists, and bold/italic for emphasis. Make the response easy to read and nice to look at.\n\nAnswer the user's question in a concise, friendly, and helpful way. If you don't have enough data, say so.`;
+    const prompt = `You are a financial assistant and only can answer about the sent data, any other random questions are prohibited. The user asked: "${question}".\n\nHere is the user's financial data for the current month (use the original currencies as provided in the data, do not convert or summarize in a different currency):\nAccounts: ${JSON.stringify(accounts)}\nTransactions: ${JSON.stringify(transactions)}\nFuture Outgoing Payments: ${JSON.stringify(futureOutgoingPayments)}\nFuture Incoming Payments: ${JSON.stringify(futureIncomingPayments)}\nBudgets: ${JSON.stringify(budgets)}\n\nExchange Rates (Romanian Central Bank): ${exchangeRates || "Not available"}\n\nWhen asked about total spending, always list the total for each currency and also list all individual spending names and their amounts, grouped by currency.\n\nAlways format your response in clear, visually appealing Markdown. Use headings for sections, bullet points or tables for lists, and bold/italic for emphasis. Make the response easy to read and nice to look at.\n\nAnswer the user's question in a concise, friendly, and helpful way. If you don't have enough data, say so.`;
 
     const result = await model.generateContent(prompt);
     const response = await result.response;
@@ -252,16 +244,26 @@ ai.post("/chat", async (c) => {
 
     return c.json({ success: true, answer: text });
   } catch (error) {
-    console.error("❌ AI Chat Error:", error);
     return c.json({ success: false, error: "Failed to get AI response" }, 500);
   }
 });
 
 ai.post("/aiCategorySuggestion", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
+    
+    if (!userId) {
+      return c.json(
+        {
+          success: false,
+          error: "User ID not found in token",
+        },
+        401
+      );
+    }
+
     const body = await c.req.json();
     const {
-      userId,
       paymentName,
       paymentAmount,
       paymentType,
@@ -269,21 +271,16 @@ ai.post("/aiCategorySuggestion", async (c) => {
       description,
     } = body;
 
-    if (!userId || !paymentName || !paymentAmount || !paymentType) {
+    if (!paymentName || !paymentAmount || !paymentType) {
       return c.json(
         {
           success: false,
           error:
-            "Missing required fields: userId, paymentName, paymentAmount, paymentType",
+            "Missing required fields: paymentName, paymentAmount, paymentType",
         },
         400
       );
     }
-
-    console.log(
-      "🧪 Processing enhanced AI category suggestions for payment:",
-      paymentName
-    );
 
     const categoriesData = await getAllCategoriesForUser(userId);
     if (!categoriesData || !Array.isArray(categoriesData)) {
@@ -363,14 +360,9 @@ Return ONLY a valid JSON array in this exact format:
 
 Important: Return only the JSON array, no other text or formatting.`;
 
-    console.log(
-      "🤖 Sending enhanced category suggestion prompt to Gemini AI..."
-    );
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
-    console.log("🤖 Raw AI Response:", text);
 
     try {
       let cleanedText = text.trim();
@@ -431,21 +423,11 @@ Important: Return only the JSON array, no other text or formatting.`;
               : undefined,
         }));
 
-      console.log(
-        `✅ Generated ${validSuggestions.length} valid enhanced category suggestions`
-      );
-
       return c.json({
         success: true,
         suggestions: validSuggestions,
       });
     } catch (parseError) {
-      console.error(
-        "❌ Failed to parse AI enhanced category suggestions:",
-        parseError
-      );
-      console.error("Raw response was:", text);
-
       const fallbackSuggestions: AICategorySuggestion[] = [];
       const paymentNameLower = paymentName.toLowerCase();
       const descriptionLower = (description || "").toLowerCase();
@@ -517,7 +499,6 @@ Important: Return only the JSON array, no other text or formatting.`;
       });
     }
   } catch (error) {
-    console.error("❌ AI Category Suggestions Error:", error);
     return c.json(
       {
         success: false,
@@ -531,21 +512,26 @@ Important: Return only the JSON array, no other text or formatting.`;
 
 ai.post("/budgetEdit", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
+    
+    if (!userId) {
+      return c.json(
+        {
+          success: false,
+          error: "User ID not found in token",
+        },
+        401
+      );
+    }
+
     const body = await c.req.json();
     const {
-      userId,
       transactions,
       categories,
       budgets,
       futureOutgoingPayments,
       futureIncomingPayments,
     } = body;
-
-    if (!userId) {
-      return c.json({ success: false, error: "Missing userId" }, 400);
-    }
-
-    console.log("🧪 Processing AI budget recommendations for user:", userId);
 
     const { genAI: geminiClient } = await initializeGemini();
     const model = geminiClient.getGenerativeModel({
@@ -604,12 +590,9 @@ Deletion criteria:
 
 Return ONLY valid JSON, no additional text.`;
 
-    console.log("🤖 Sending prompt to Gemini AI...");
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
-
-    console.log("🤖 Raw AI Response:", text);
 
     try {
       let cleanedText = text.trim();
@@ -624,8 +607,6 @@ Return ONLY valid JSON, no additional text.`;
       }
 
       const aiResponse = JSON.parse(cleanedText);
-
-      console.log("✅ Parsed AI Response:", aiResponse);
 
       if (aiResponse && Array.isArray(aiResponse.recommendations)) {
         const validRecommendations = aiResponse.recommendations.filter(
@@ -663,32 +644,23 @@ Return ONLY valid JSON, no additional text.`;
           }
         );
 
-        console.log(
-          `✅ Validated ${validRecommendations.length} recommendations`
-        );
-
         return c.json({
           success: true,
           recommendations: validRecommendations,
         });
       } else {
-        console.warn("⚠️ AI response doesn't have expected structure");
         return c.json({
           success: true,
           recommendations: [],
         });
       }
     } catch (parseError) {
-      console.error("❌ Failed to parse AI response as JSON:", parseError);
-      console.error("Raw response was:", text);
-
       return c.json({
         success: true,
         recommendations: [],
       });
     }
   } catch (error) {
-    console.error("❌ AI Budget Edit Error:", error);
     return c.json(
       {
         success: false,
@@ -702,23 +674,30 @@ Return ONLY valid JSON, no additional text.`;
 
 ai.post("/applyRecommendations", async (c) => {
   try {
-    const body = await c.req.json();
-    const { userId, recommendations } = body;
-
-    if (!userId || !Array.isArray(recommendations)) {
+    const userId = (c as any).get("userId") as number;
+    
+    if (!userId) {
       return c.json(
         {
           success: false,
-          error: "Missing userId or recommendations",
+          error: "User ID not found in token",
+        },
+        401
+      );
+    }
+
+    const body = await c.req.json();
+    const { recommendations } = body;
+
+    if (!Array.isArray(recommendations)) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing or invalid recommendations array",
         },
         400
       );
     }
-
-    console.log(
-      `🤖 Applying ${recommendations.length} budget recommendations for user:`,
-      userId
-    );
 
     const results = [];
 
@@ -741,7 +720,6 @@ ai.post("/applyRecommendations", async (c) => {
               name: rec.name,
               details: result,
             });
-            console.log(`✅ Created budget: ${rec.name}`);
             break;
 
           case "update":
@@ -760,7 +738,6 @@ ai.post("/applyRecommendations", async (c) => {
               budgetId: rec.budgetId,
               details: result,
             });
-            console.log(`✅ Updated budget: ${rec.name} (ID: ${rec.budgetId})`);
             break;
 
           case "delete":
@@ -773,7 +750,6 @@ ai.post("/applyRecommendations", async (c) => {
               reason: rec.reason,
               details: result,
             });
-            console.log(`✅ Deleted budget: ${rec.name} (ID: ${rec.budgetId})`);
             break;
 
           default:
@@ -785,7 +761,6 @@ ai.post("/applyRecommendations", async (c) => {
             });
         }
       } catch (error) {
-        console.error(`❌ Failed to ${rec.action} budget ${rec.name}:`, error);
         results.push({
           success: false,
           action: rec.action,
@@ -798,11 +773,6 @@ ai.post("/applyRecommendations", async (c) => {
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
-    console.log(`✅ Applied ${successful.length} recommendations successfully`);
-    if (failed.length > 0) {
-      console.error(`❌ Failed to apply ${failed.length} recommendations`);
-    }
-
     return c.json({
       success: true,
       applied: successful.length,
@@ -810,7 +780,6 @@ ai.post("/applyRecommendations", async (c) => {
       results: results,
     });
   } catch (error) {
-    console.error("❌ Apply Recommendations Error:", error);
     return c.json(
       {
         success: false,

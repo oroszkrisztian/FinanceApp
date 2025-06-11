@@ -1,6 +1,14 @@
 import { useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Plus, CreditCard, DollarSign, MoreHorizontal, Edit, Trash2, Wallet } from "lucide-react";
+import {
+  Plus,
+  CreditCard,
+  DollarSign,
+  MoreHorizontal,
+  Edit,
+  Trash2,
+  Wallet,
+} from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { AccountType } from "../../interfaces/enums";
 import CreateDefaultAccountPopup from "../accounts/CreateDefaultAccountPopup";
@@ -13,12 +21,15 @@ interface AccountsSectionProps {
   loading: boolean;
   onRefresh: () => void;
   onDeleteRequest: (accountId: string | number, accountName: string) => void;
+  onEditRequest: (accountId: string | number) => void;
+  forceCloseDropdowns?: number;
 }
 
 const AccountsSection: React.FC<AccountsSectionProps> = ({
   accounts,
   loading,
   onRefresh,
+  onEditRequest,
   onDeleteRequest,
 }) => {
   const [isMobileView, setIsMobileView] = useState(false);
@@ -72,10 +83,10 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
     if (accountToEdit) {
       setCurrentAccount(accountToEdit);
       setIsEditModalOpen(true);
+      onEditRequest(accountId); 
     }
     setActiveMenu(null);
   };
-
   const handleAccountCreated = (): void => {
     setIsModalOpen(false);
     onRefresh();
@@ -105,10 +116,14 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
         className={`flex items-center justify-between ${isMobileView ? "mb-4" : "mb-6"}`}
       >
         <div>
-          <h2 className={`font-bold text-gray-900 ${isMobileView ? "text-lg" : "text-2xl"}`}>
+          <h2
+            className={`font-bold text-gray-900 ${isMobileView ? "text-lg" : "text-2xl"}`}
+          >
             My Accounts
           </h2>
-          <p className={`text-gray-600 ${isMobileView ? "text-sm mt-0.5" : "mt-1"}`}>
+          <p
+            className={`text-gray-600 ${isMobileView ? "text-sm mt-0.5" : "mt-1"}`}
+          >
             Manage your financial accounts
           </p>
         </div>
@@ -127,7 +142,9 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
       </motion.div>
 
       {/* Accounts Grid */}
-      <div className={`grid ${isMobileView ? "grid-cols-1 gap-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}`}>
+      <div
+        className={`grid ${isMobileView ? "grid-cols-1 gap-3" : "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"}`}
+      >
         <AnimatePresence>
           {defaultAccounts.map((account, index) => (
             <motion.div
@@ -140,17 +157,27 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
               {/* Card Header */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-700 text-white relative overflow-hidden">
                 {/* Background decorative elements */}
-                <div className={`absolute top-0 right-0 bg-white/20 rounded-full ${isMobileView ? "w-6 h-6 -translate-y-3 translate-x-3" : "w-8 h-8 -translate-y-4 translate-x-4"}`}></div>
-                <div className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${isMobileView ? "w-4 h-4 translate-y-2 -translate-x-2" : "w-6 h-6 translate-y-3 -translate-x-3"}`}></div>
-                
-                <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
+                <div
+                  className={`absolute top-0 right-0 bg-white/20 rounded-full ${isMobileView ? "w-6 h-6 -translate-y-3 translate-x-3" : "w-8 h-8 -translate-y-4 translate-x-4"}`}
+                ></div>
+                <div
+                  className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${isMobileView ? "w-4 h-4 translate-y-2 -translate-x-2" : "w-6 h-6 translate-y-3 -translate-x-3"}`}
+                ></div>
+
+                <div
+                  className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}
+                >
                   <div className="flex justify-between items-center">
-                    <h3 className={`font-bold truncate ${isMobileView ? "text-base" : "text-lg"}`}>
+                    <h3
+                      className={`font-bold truncate ${isMobileView ? "text-base" : "text-lg"}`}
+                    >
                       {account.name}
                     </h3>
                     <div className="flex items-center gap-1 text-white/80">
                       <CreditCard size={isMobileView ? 12 : 14} />
-                      <span className={`${isMobileView ? "text-xs" : "text-sm"}`}>
+                      <span
+                        className={`${isMobileView ? "text-xs" : "text-sm"}`}
+                      >
                         {account.currency}
                       </span>
                     </div>
@@ -161,16 +188,23 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
               {/* Card Body */}
               <div className={`${isMobileView ? "p-3" : "p-4"}`}>
                 <div className="space-y-3">
-                  <p className={`text-gray-600 ${isMobileView ? "text-sm" : "text-sm"}`}>
+                  <p
+                    className={`text-gray-600 ${isMobileView ? "text-sm" : "text-sm"}`}
+                  >
                     {account.description || "No description available"}
                   </p>
 
                   {/* Account Amount */}
                   <div className="flex items-center gap-2 text-gray-900">
                     <div className="bg-green-100 rounded-lg p-1.5">
-                      <DollarSign size={isMobileView ? 12 : 14} className="text-green-600" />
+                      <DollarSign
+                        size={isMobileView ? 12 : 14}
+                        className="text-green-600"
+                      />
                     </div>
-                    <span className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                    <span
+                      className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}
+                    >
                       {account.amount.toFixed(2)} {account.currency}
                     </span>
                   </div>
@@ -187,7 +221,7 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
                     >
                       Add Funds
                     </motion.button>
-                    
+
                     <div className="relative">
                       <motion.button
                         whileHover={{ scale: 1.05 }}
@@ -211,29 +245,36 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
                           exit={{ opacity: 0, y: -10 }}
                           id={`menu-${account.id}`}
                           className="fixed w-48 bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
-                          style={{ 
+                          style={{
                             zIndex: 9999,
-                            transformOrigin: "top right"
+                            transformOrigin: "top right",
                           }}
                           ref={(el: HTMLDivElement | null) => {
                             if (el) {
-                              const button = document.querySelector(`[data-account-id="${account.id}"]`);
+                              const button = document.querySelector(
+                                `[data-account-id="${account.id}"]`
+                              );
                               if (button) {
                                 const rect = button.getBoundingClientRect();
-                                const scrollY = window.scrollY || window.pageYOffset;
-                                const scrollX = window.scrollX || window.pageXOffset;
+                                const scrollY =
+                                  window.scrollY || window.pageYOffset;
+                                const scrollX =
+                                  window.scrollX || window.pageXOffset;
                                 const windowHeight = window.innerHeight;
-                                const dropdownHeight = 120; 
-                                
+                                const dropdownHeight = 120;
+
                                 const spaceBelow = windowHeight - rect.bottom;
-                                
-                                if (spaceBelow < dropdownHeight && rect.top > dropdownHeight) {
+
+                                if (
+                                  spaceBelow < dropdownHeight &&
+                                  rect.top > dropdownHeight
+                                ) {
                                   el.style.top = `${rect.top + scrollY - dropdownHeight - 8}px`;
                                 } else {
                                   el.style.top = `${rect.bottom + scrollY + 8}px`;
                                 }
-                                
-                                el.style.left = `${rect.right + scrollX - 192}px`; 
+
+                                el.style.left = `${rect.right + scrollX - 192}px`;
                               }
                             }
                           }}
@@ -251,7 +292,9 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
                           <div className="border-t border-gray-100"></div>
                           <button
                             className="flex items-center w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                            onClick={() => onDeleteRequest(account.id, account.name)}
+                            onClick={() =>
+                              onDeleteRequest(account.id, account.name)
+                            }
                           >
                             <Trash2 size={14} className="mr-3 text-red-500" />
                             Delete Account
@@ -282,8 +325,12 @@ const AccountsSection: React.FC<AccountsSectionProps> = ({
             <Wallet size={48} className="text-blue-600" />
           </motion.div>
           <div>
-            <h3 className="font-semibold text-gray-900 mb-1">No Accounts Found</h3>
-            <p className="text-gray-600 mb-4">You don't have any accounts yet.</p>
+            <h3 className="font-semibold text-gray-900 mb-1">
+              No Accounts Found
+            </h3>
+            <p className="text-gray-600 mb-4">
+              You don't have any accounts yet.
+            </p>
           </div>
           <motion.button
             className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl hover:shadow-lg transition-all shadow-md"

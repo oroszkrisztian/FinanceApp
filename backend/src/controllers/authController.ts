@@ -1,7 +1,6 @@
 import { Context } from "hono";
 import { AuthService } from "../services/authService";
 
-
 class AuthError extends Error {
   constructor(message: string) {
     super(message);
@@ -45,6 +44,25 @@ export class AuthController {
       console.error("Registration error:", error);
       if (error instanceof AuthError || error instanceof Error) {
         return c.json({ error: error.message }, 400);
+      }
+      return c.json({ error: "Internal server error" }, 500);
+    }
+  }
+
+  async refresh(c: Context) {
+    try {
+      const { token } = await c.req.json();
+      
+      if (!token) {
+        return c.json({ error: "Token is required" }, 400);
+      }
+
+      const result = await this.authService.refreshToken(token);
+      return c.json(result);
+    } catch (error) {
+      console.error("Token refresh error:", error);
+      if (error instanceof AuthError || error instanceof Error) {
+        return c.json({ error: error.message }, 401);
       }
       return c.json({ error: "Internal server error" }, 500);
     }
