@@ -1300,7 +1300,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         transition={{ duration: 0.2 }}
         className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10 w-full max-w-md mx-auto"
         style={{
-          //height: isMobileView ? "60vh" : "50vh",
+          minHeight: isMobileView ? "60vh" : "50vh",
           maxHeight: isMobileView ? "90vh" : "85vh",
         }}
       >

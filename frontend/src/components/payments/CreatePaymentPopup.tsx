@@ -39,7 +39,6 @@ interface CreatePaymentPopupProps {
   onClose: () => void;
   onSuccess: () => void;
   onCategoryCreated?: () => void;
-  userId: number;
   accounts: Array<{
     id: number;
     name: string;
@@ -229,7 +228,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   onClose,
   onSuccess,
   onCategoryCreated,
-  userId,
   accounts,
   categories,
   defaultType = PaymentType.EXPENSE,
@@ -374,7 +372,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId,
             categoryName,
           }),
         }
@@ -430,7 +427,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId,
             paymentName: formData.name,
             paymentAmount: parseFloat(formData.amount),
             paymentType: formData.type,
@@ -515,7 +511,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setSuggestionsAccepted(true);
   };
 
-  // Trigger AI suggestions when entering step 3
   useEffect(() => {
     console.log("Checking AI suggestions trigger:", {
       currentStep,
@@ -708,14 +703,12 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
     setError(null);
 
-    // Reset AI suggestions if payment details change
     if ((field === "name" || field === "amount") && !isEditMode) {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
       setAiSuggestionsError(null);
     }
 
-    // Update theme when type changes
     if (field === "type") {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
@@ -809,7 +802,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
     try {
       await createPayment({
-        userId,
         name: formData.name,
         amount: parseFloat(formData.amount),
         description: formData.description || undefined,
@@ -881,7 +873,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       case 1:
         return (
           <div className="space-y-4 sm:space-y-3">
-            {/* Name Field */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                 <span className={`${theme.textColor} mr-1`}>🏷️</span>
@@ -897,7 +888,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               />
             </div>
 
-            {/* Amount and Currency */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-2">
               <div className="sm:col-span-1">
                 <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
@@ -992,7 +982,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                 <span className={`${theme.textColor} mr-1`}>📝</span>
@@ -1019,13 +1008,18 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 <span className={`${theme.textColor} mr-1`}>📅</span>
                 Start Date<span className={theme.textColor}>*</span>
               </label>
-              <input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => handleInputChange("startDate", e.target.value)}
-                className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm`}
-                required
-              />
+              <div className="relative">
+                <input
+                  type="date"
+                  value={formData.startDate}
+                  onChange={(e) => handleInputChange("startDate", e.target.value)}
+                  className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm relative z-[100]`}
+                  style={{ 
+                    colorScheme: 'light'
+                  }}
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -1089,7 +1083,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       case 3:
         return (
           <div className="space-y-5 sm:space-y-4">
-            {/* Account Selection */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-3 sm:mb-1 flex items-center">
                 <span className={`${theme.textColor} mr-1`}>💳</span>
@@ -1152,7 +1145,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
-            {/* Categories Selection */}
             <div>
               <div className="flex items-center justify-between mb-3 sm:mb-1">
                 <label className="block text-sm sm:text-xs font-medium text-gray-700 flex items-center">
@@ -1184,7 +1176,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               />
             </div>
 
-            {/* AI Category Suggestions */}
             {!isEditMode && showAiSuggestions && (
               <div className="space-y-4 sm:space-y-3">
                 <div className="flex items-center justify-between">
@@ -1400,7 +1391,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       case 4:
         return (
           <div className="space-y-4 sm:space-y-3">
-            {/* Email Notifications */}
             <div
               className={`p-4 sm:p-3 border ${theme.borderColor} rounded-xl hover:border-gray-300 shadow-sm transition-colors`}
             >
@@ -1493,7 +1483,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               )}
             </div>
 
-            {/* Automatic Processing */}
             <div
               className={`p-4 sm:p-3 border ${theme.borderColor} rounded-xl hover:border-gray-300 transition-colors shadow-sm`}
             >
@@ -1525,7 +1514,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
         return (
           <div className="space-y-4 sm:space-y-3">
-            {/* Payment Summary */}
             <div
               className={`p-4 sm:p-3 ${theme.bgColor} backdrop-blur-sm border ${theme.borderColor.replace("-200", "-200/50")} rounded-xl shadow-sm`}
             >
@@ -1610,7 +1598,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 </div>
               )}
 
-              {/* Settings Summary */}
               {(formData.emailNotification || formData.automaticPayment) && (
                 <div
                   className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
@@ -1647,24 +1634,20 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 " onClick={handleClose} />
 
-      {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ duration: 0.2 }}
-        className="relative bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col z-10 w-full max-w-md mx-auto"
+        className="relative bg-white rounded-2xl shadow-2xl flex flex-col z-50 w-full max-w-md mx-auto"
         style={{
           maxHeight: isMobileView ? "90vh" : "65vh",
         }}
       >
-        {/* Enhanced Header */}
         <div
-          className={`${theme.gradient} relative overflow-hidden flex-shrink-0`}
+          className={`${theme.gradient} relative overflow-hidden flex-shrink-0 rounded-t-2xl`}
         >
-          {/* Background decorations */}
           <div className="absolute top-0 right-0 bg-white/20 rounded-full w-16 h-16 sm:w-12 sm:h-12 -translate-y-8 translate-x-8 sm:-translate-y-6 sm:translate-x-6"></div>
           <div className="absolute bottom-0 left-0 bg-white/10 rounded-full w-10 h-10 sm:w-8 sm:h-8 translate-y-5 -translate-x-5 sm:translate-y-4 sm:-translate-x-4"></div>
           <div className="absolute bg-white/15 rounded-full w-8 h-8 sm:w-6 sm:h-6 top-2 left-20 sm:top-1 sm:left-14"></div>
@@ -1695,7 +1678,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             </motion.button>
           </div>
 
-          {/* Progress */}
           <div className="relative z-10 px-5 pb-4 sm:px-4 sm:pb-3">
             <div className="flex gap-1">
               {steps.map((_, index) => (
@@ -1710,8 +1692,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 min-h-0">
+        <div className="flex-1 px-5 py-4 sm:px-4 sm:py-3 min-h-0" style={{ overflowY: currentStep === 2 ? 'visible' : 'auto' }}>
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -1726,8 +1707,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           {renderStepContent()}
         </div>
 
-        {/* Footer */}
-        <div className="border-t bg-gray-50/50 backdrop-blur-sm flex justify-between px-5 py-4 sm:px-4 sm:py-3 flex-shrink-0">
+        <div className="border-t bg-gray-50/50 backdrop-blur-sm flex justify-between px-5 py-4 sm:px-4 sm:py-3 flex-shrink-0 rounded-b-2xl">
           <motion.button
             onClick={prevStep}
             disabled={currentStep === 1}
@@ -1781,12 +1761,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         </div>
       </motion.div>
 
-      {/* Create Category Modal */}
       <CreateCategoryModal
         isOpen={isCreateCategoryModalOpen}
         onClose={() => setIsCreateCategoryModalOpen(false)}
         onSuccess={handleCategoryCreated}
-        userId={userId}
       />
     </div>
   );

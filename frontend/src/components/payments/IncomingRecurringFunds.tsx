@@ -47,7 +47,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   onPaymentCreated,
   onCategoryCreated,
 }) => {
-  const { user, token } = useAuth();
   const [rates, setRates] = useState<ExchangeRates>({});
   const [displayCurrency, setDisplayCurrency] = useState<string>(
     CurrencyType.RON
@@ -346,7 +345,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   };
 
   const handleConfirmGetIncome = async () => {
-    if (incomeToExecute && user?.id) {
+    if (incomeToExecute) {
       try {
         const account = accounts.find(
           (acc) => acc.name === incomeToExecute.account
@@ -364,7 +363,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
             : null;
 
         await executeRecurringIncome(
-          user.id,
           incomeToExecute.id,
           incomeToExecute.amount,
           incomeToExecute.currency,
@@ -1051,26 +1049,23 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         )}
       </AnimatePresence>
 
-      {user && (
-        <CreatePaymentPopup
-          isOpen={isCreatePopupOpen}
-          onClose={handleCloseCreatePopup}
-          onSuccess={handlePaymentSuccess}
-          onCategoryCreated={onCategoryCreated}
-          userId={user.id}
-          accounts={accounts.map((acc) => ({
-            id: acc.id,
-            name: acc.name,
-            currency: acc.currency,
-            amount: acc.amount,
-          }))}
-          categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
-          defaultType={PaymentType.INCOME}
-          editPayment={editingPayment}
-          currentStep={currentPopupStep}
-          onStepChange={setCurrentPopupStep}
-        />
-      )}
+      <CreatePaymentPopup
+        isOpen={isCreatePopupOpen}
+        onClose={handleCloseCreatePopup}
+        onSuccess={handlePaymentSuccess}
+        onCategoryCreated={onCategoryCreated}
+        accounts={accounts.map((acc) => ({
+          id: acc.id,
+          name: acc.name,
+          currency: acc.currency,
+          amount: acc.amount,
+        }))}
+        categories={categories.map((cat) => ({ id: cat.id, name: cat.name }))}
+        defaultType={PaymentType.INCOME}
+        editPayment={editingPayment}
+        currentStep={currentPopupStep}
+        onStepChange={setCurrentPopupStep}
+      />
 
       <PaymentDetailsPopup
         isOpen={isDetailsOpen}
@@ -1079,10 +1074,9 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         onEdit={handleEditPayment}
         onDelete={async (id) => {
           try {
-            if (user?.id) {
-              await deletePayment(user.id, id);
-              onPaymentCreated();
-            }
+            await deletePayment(id);
+            onPaymentCreated();
+
             setIsDetailsOpen(false);
           } catch (error) {
             console.error("Failed to delete payment:", error);
