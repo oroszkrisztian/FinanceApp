@@ -189,10 +189,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   }
   useEffect(() => {
     const fetchAccountsData = async () => {
-      if (!user?.id) {
-        console.log("No user ID available for account fetching");
-        return;
-      }
+      
 
       try {
         setAccountsLoading(true);
