@@ -25,7 +25,6 @@ const Savings: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [savingsExist, setSavingsExist] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
@@ -92,10 +91,9 @@ const Savings: React.FC = () => {
 
   // Check if any savings exist
   const checkSavingsExist = async (): Promise<void> => {
-    if (!user?.id) return;
     setLoading(true);
     try {
-      const data: Account[] = await fetchSavings(user.id);
+      const data: Account[] = await fetchSavings();
       setSavingsExist(data.length > 0);
       setLoading(false);
     } catch (err) {
@@ -109,9 +107,8 @@ const Savings: React.FC = () => {
   };
 
   const fetchDefaultAccountsFr = async (): Promise<void> => {
-    if (!user?.id) return;
     try {
-      const data: Account[] = await fetchDefaultAccounts(user.id);
+      const data: Account[] = await fetchDefaultAccounts();
       setDefaultAccounts(data);
     } catch (err) {
       console.error("Failed to fetch default accounts:", err);
@@ -121,7 +118,7 @@ const Savings: React.FC = () => {
   useEffect(() => {
     checkSavingsExist();
     fetchDefaultAccountsFr();
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -186,9 +183,8 @@ const Savings: React.FC = () => {
 
   useEffect(() => {
     const fetchSavingsAccounts = async () => {
-      if (!user?.id) return;
       try {
-        const data: Account[] = await fetchSavings(user.id);
+        const data: Account[] = await fetchSavings();
         setSavingsAccounts(data);
       } catch (err) {
         console.error("Failed to fetch savings accounts:", err);
@@ -196,7 +192,7 @@ const Savings: React.FC = () => {
     };
 
     fetchSavingsAccounts();
-  }, [user?.id]);
+  }, []);
 
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -241,14 +237,13 @@ const Savings: React.FC = () => {
   };
 
   const handleEdit = async (accountId: number): Promise<void> => {
-    if (!user?.id) return;
     setActiveMenu(null);
     setIsCreateModalOpen(false);
     setIsAddFundsModalOpen(false);
     setIsTransferModalOpen(false);
     setIsDeleteModalOpen(false);
     try {
-      const allAccounts = await fetchSavings(user.id);
+      const allAccounts = await fetchSavings();
       const accountToEdit = allAccounts.find((acc) => acc.id === accountId);
 
       if (accountToEdit) {
@@ -273,12 +268,10 @@ const Savings: React.FC = () => {
   };
 
   const handleAddFunds = async (accountId: number): Promise<void> => {
-    if (!user?.id) return;
     setActiveMenu(null);
 
     try {
-      // Fetch the full account data before opening the add funds modal
-      const allAccounts = await fetchSavings(user.id);
+      const allAccounts = await fetchSavings();
       const accountToEdit = allAccounts.find((acc) => acc.id === accountId);
 
       if (accountToEdit) {
@@ -293,12 +286,10 @@ const Savings: React.FC = () => {
   };
 
   const handleTransfer = async (accountId: number): Promise<void> => {
-    if (!user?.id) return;
     setActiveMenu(null);
 
     try {
-      // Fetch the full account data before opening the transfer modal
-      const allAccounts = await fetchSavings(user.id);
+      const allAccounts = await fetchSavings();
       const accountToTransfer = allAccounts.find((acc) => acc.id === accountId);
 
       if (accountToTransfer) {
@@ -330,11 +321,9 @@ const Savings: React.FC = () => {
       fetchDefaultAccountsFr();
     }
 
-    // Fetch savings again
     const fetchSavingsAccounts = async () => {
-      if (!user?.id) return;
       try {
-        const data: Account[] = await fetchSavings(user.id);
+        const data: Account[] = await fetchSavings();
         setSavingsAccounts(data);
       } catch (err) {
         console.error("Failed to fetch savings accounts:", err);
@@ -866,23 +855,20 @@ const Savings: React.FC = () => {
                   Active Goals
                 </h2>
 
-                {user?.id && (
-                  <ActiveSavingsGrid
-                    userId={user.id}
-                    filterOption={filterOption}
-                    searchInput={searchInput}
-                    selectedSearchResult={selectedSearchResult}
-                    sortOrder={sortOrder}
-                    sortType={sortType}
-                    activeMenu={activeMenu}
-                    setActiveMenu={setActiveMenu}
-                    onAddFunds={handleAddFunds}
-                    onTransfer={handleTransfer}
-                    onEdit={handleEdit}
-                    onDelete={handleDelete}
-                    updatedAccountId={updatedSavingId}
-                  />
-                )}
+                <ActiveSavingsGrid
+                  filterOption={filterOption}
+                  searchInput={searchInput}
+                  selectedSearchResult={selectedSearchResult}
+                  sortOrder={sortOrder}
+                  sortType={sortType}
+                  activeMenu={activeMenu}
+                  setActiveMenu={setActiveMenu}
+                  onAddFunds={handleAddFunds}
+                  onTransfer={handleTransfer}
+                  onEdit={handleEdit}
+                  onDelete={handleDelete}
+                  updatedAccountId={updatedSavingId}
+                />
               </div>
             )}
 
@@ -892,15 +878,15 @@ const Savings: React.FC = () => {
                   Completed Goals
                 </h2>
 
-                {user?.id && (
+                
                   <CompletedSavingsGrid
-                    userId={user.id}
+                    
                     filterOption={filterOption}
                     searchInput={searchInput}
                     selectedSearchResult={selectedSearchResult}
                     onDelete={handleDelete}
                   />
-                )}
+                
               </div>
             )}
           </div>
@@ -938,7 +924,7 @@ const Savings: React.FC = () => {
         <DeleteSavingAccountModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
-          accounts={savingsAccounts} 
+          accounts={savingsAccounts}
           defaultAccounts={defaultAccounts}
           accountId={selectedAccount.id}
           accountName={selectedAccount.name}

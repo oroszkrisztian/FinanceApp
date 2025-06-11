@@ -1,60 +1,68 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-interface User {
-  id: number;
-  firstName: string;
-  lastName: string;
+interface TokenPayload {
+  userId: number;
   username: string;
-  email: string;
-  createdAt: Date;
-}
-
-interface StoredUser extends Omit<User, 'createdAt'> {
-  id: number;
-  firstName: string;
-  lastName: string;
-  username: string;
-  email: string;
-  createdAt: string;
+  iat: number;
+  exp: number;
 }
 
 interface AuthContextType {
-  user: User | null;
-  setUser: (user: StoredUser | null) => void;
   userId: number | null;
+  username: string | null;
   isAuthenticated: boolean;
-  logout: () => void;
   token: string | null;
-  setAuthData: (user: StoredUser, token: string, remember?: boolean) => void;
+  login: (token: string, remember?: boolean) => void;
+  logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const decodeToken = (token: string): TokenPayload | null => {
+  try {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(
+      atob(base64)
+        .split('')
+        .map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+        .join('')
+    );
+    return JSON.parse(jsonPayload);
+  } catch (error) {
+    console.error('Error decoding token:', error);
+    return null;
+  }
+};
+
+const isTokenExpired = (token: string): boolean => {
+  const payload = decodeToken(token);
+  if (!payload) return true;
+  
+  const currentTime = Date.now() / 1000;
+  return payload.exp < currentTime;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const [userId, setUserId] = useState<number | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
 
   useEffect(() => {
     const loadStoredAuth = () => {
-     
       const storedToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-      const userStr = localStorage.getItem('user') || sessionStorage.getItem('user');
-
-      if (storedToken && userStr) {
-        try {
-          const userData: StoredUser = JSON.parse(userStr);
-          setToken(storedToken);
-          
-          setUser({
-            ...userData,
-            createdAt: new Date(userData.createdAt)
-          });
-        } catch (error) {
-          console.error('Error parsing stored auth data:', error);
       
-          localStorage.removeItem('user');
+      if (storedToken) {
+        if (!isTokenExpired(storedToken)) {
+          const payload = decodeToken(storedToken);
+          if (payload) {
+            setToken(storedToken);
+            setUserId(payload.userId);
+            setUsername(payload.username);
+          }
+        } else {
+          console.log('Token expired, clearing auth data');
           localStorage.removeItem('token');
-          sessionStorage.removeItem('user');
           sessionStorage.removeItem('token');
         }
       }
@@ -63,53 +71,45 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loadStoredAuth();
   }, []);
 
-  const setAuthData = (userData: StoredUser, newToken: string, remember: boolean = true) => {
+  const login = (newToken: string, remember: boolean = true) => {
     const storage = remember ? localStorage : sessionStorage;
-    
-    
     const otherStorage = remember ? sessionStorage : localStorage;
-    otherStorage.removeItem('token');
-    otherStorage.removeItem('user');
-
     
+    otherStorage.removeItem('token');
     storage.setItem('token', newToken);
-    storage.setItem('user', JSON.stringify(userData));
-
+    
+    const payload = decodeToken(newToken);
     setToken(newToken);
-    setUser({
-      ...userData,
-      createdAt: new Date(userData.createdAt)
-    });
+    
+    if (payload) {
+      setUserId(payload.userId);
+      setUsername(payload.username);
+    }
   };
 
   const logout = () => {
-    setUser(null);
     setToken(null);
+    setUserId(null);
+    setUsername(null);
     
-    
-    localStorage.removeItem('user');
     localStorage.removeItem('token');
-    sessionStorage.removeItem('user');
     sessionStorage.removeItem('token');
   };
 
+  const isTokenValid = (): boolean => {
+    if (!token) return false;
+    return !isTokenExpired(token);
+  };
+
+  const isAuthenticated = !!token && !!userId && isTokenValid();
+
   const value = {
-    user,
-    setUser: (userData: StoredUser | null) => {
-      if (userData) {
-        setUser({
-          ...userData,
-          createdAt: new Date(userData.createdAt)
-        });
-      } else {
-        setUser(null);
-      }
-    },
-    userId: user?.id || null,
-    isAuthenticated: !!user && !!token,
+    userId,
+    username,
+    isAuthenticated,
     token,
-    logout,
-    setAuthData
+    login,
+    logout
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

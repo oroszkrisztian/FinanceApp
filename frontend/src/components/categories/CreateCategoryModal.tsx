@@ -11,14 +11,12 @@ interface CreateCategoryModalProps {
   onClose: () => void;
   onSuccess: (categoryName?: string) => void;
 
-  userId: number;
 }
 
 const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
   isOpen,
   onClose,
   onSuccess,
-  userId,
 }) => {
   const [categoryName, setCategoryName] = useState("");
   const [loading, setLoading] = useState(false);
@@ -42,11 +40,11 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
       setCategoryName("");
       setError(null);
     }
-  }, [isOpen, userId]);
+  }, [isOpen]);
 
   const loadExistingCategories = async () => {
     try {
-      const categories = await getAllCategoriesForUser(userId);
+      const categories = await getAllCategoriesForUser();
       const categoryNames = categories.map((cat: any) =>
         cat.name.toLowerCase()
       );
@@ -84,7 +82,7 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
     setError(null);
 
     try {
-      await createUserCategory(userId, categoryName.trim());
+      await createUserCategory( categoryName.trim());
       onSuccess();
       onClose();
       setCategoryName("");

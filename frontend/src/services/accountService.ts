@@ -1,9 +1,8 @@
-// accountService.ts
 import { AccountType } from "../interfaces/enums";
 import { Account } from "../interfaces/Account";
+import { getAuthHeaders, handleApiResponse } from "./apiHelpers";
 
 interface CreateDefaultAccountParams {
-  userId: number;
   accountType: AccountType;
   currencyType: string;
   name: string;
@@ -11,7 +10,6 @@ interface CreateDefaultAccountParams {
 }
 
 export const createDefaultAccount = async ({
-  userId,
   accountType,
   currencyType,
   name,
@@ -19,12 +17,10 @@ export const createDefaultAccount = async ({
 }: CreateDefaultAccountParams) => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/insertDefault?userId=${userId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/insertDefault`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           accountType,
           currencyType,
@@ -34,13 +30,7 @@ export const createDefaultAccount = async ({
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to create account");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error creating account:", err);
     throw err;
@@ -48,7 +38,6 @@ export const createDefaultAccount = async ({
 };
 
 export const createSavingAccount = async (
-  userId: number,
   accountType: AccountType,
   currencyType: string,
   name: string,
@@ -58,12 +47,10 @@ export const createSavingAccount = async (
 ) => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.comaccounts/insertSaving?userId=${userId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/insertSaving`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           accountType,
           currencyType,
@@ -75,13 +62,7 @@ export const createSavingAccount = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to create account");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error creating account:", err);
     throw err;
@@ -89,20 +70,14 @@ export const createSavingAccount = async (
 };
 
 export const fetchAllAccounts = async (
-  userId: number,
   startDate?: Date,
   endDate?: Date,
   signal?: AbortSignal
 ): Promise<Account[]> => {
   try {
-    // Build query parameters
-    const queryParams = new URLSearchParams({
-      userId: userId.toString(),
-    });
+    const queryParams = new URLSearchParams();
 
-    // Add date parameters if both are provided
     if (startDate && endDate) {
-      // Create timezone-adjusted dates to ensure correct local dates in UTC
       const adjustedStartDate = new Date(
         startDate.getTime() - startDate.getTimezoneOffset() * 60000
       );
@@ -114,17 +89,16 @@ export const fetchAllAccounts = async (
       queryParams.append("endDate", adjustedEndDate.toISOString());
     }
 
-    const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/getAllAccounts?${queryParams.toString()}`,
-      { signal }
-    );
+    const url = `https://financeapp-bg0k.onrender.com/accounts/getAllAccounts${
+      queryParams.toString() ? `?${queryParams.toString()}` : ''
+    }`;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch accounts: ${errorText}`);
-    }
+    const response = await fetch(url, { 
+      headers: getAuthHeaders(),
+      signal 
+    });
 
-    const data = await response.json();
+    const data = await handleApiResponse(response);
     console.log("Fetched accounts:", data);
 
     if (!Array.isArray(data)) {
@@ -139,27 +113,24 @@ export const fetchAllAccounts = async (
 };
 
 export const fetchDefaultAccounts = async (
-  userId: number,
   signal?: AbortSignal
 ): Promise<Account[]> => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/getDefault?userId=${userId}`,
-      { signal }
+      `https://financeapp-bg0k.onrender.com/accounts/getDefault`,
+      { 
+        headers: getAuthHeaders(),
+        signal 
+      }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch accounts: ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await handleApiResponse(response);
     console.log("Fetched accounts:", data);
 
     if (!Array.isArray(data)) {
       throw new Error("Invalid response format: Expected an array");
     }
-    console.log("Fetched accounts:", data);
+    
     return data;
   } catch (error) {
     console.error("Error fetching accounts:", error);
@@ -168,27 +139,24 @@ export const fetchDefaultAccounts = async (
 };
 
 export const fetchSavings = async (
-  userId: number,
   signal?: AbortSignal
 ): Promise<Account[]> => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/getSavings?userId=${userId}`,
-      { signal }
+      `https://financeapp-bg0k.onrender.com/accounts/getSavings`,
+      { 
+        headers: getAuthHeaders(),
+        signal 
+      }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to fetch savings: ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await handleApiResponse(response);
     console.log("Fetched savings:", data);
 
     if (!Array.isArray(data)) {
       throw new Error("Invalid response format: Expected an array");
     }
-    console.log("Fetched savings:", data);
+    
     return data;
   } catch (error) {
     console.error("Error fetching savings:", error);
@@ -197,22 +165,19 @@ export const fetchSavings = async (
 };
 
 export const searchAccount = async (
-  userId: number,
   search: string,
   signal?: AbortSignal
 ): Promise<Account[]> => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/searchAccount?userId=${userId}&search=${search}`,
-      { signal }
+      `https://financeapp-bg0k.onrender.com/accounts/searchAccount?search=${search}`,
+      { 
+        headers: getAuthHeaders(),
+        signal 
+      }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Failed to search accounts: ${errorText}`);
-    }
-
-    const data = await response.json();
+    const data = await handleApiResponse(response);
     console.log("Backend response:", data);
     return data;
   } catch (error) {
@@ -221,51 +186,34 @@ export const searchAccount = async (
   }
 };
 
-export const deleteDefaultAccount = async (
-  userId: number,
-  accountId: number
-) => {
+export const deleteDefaultAccount = async (accountId: number) => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/deleteDefaultAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/deleteDefaultAccount?accountId=${accountId}`,
       {
         method: "DELETE",
+        headers: getAuthHeaders(),
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to delete account");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error deleting account:", err);
     throw err;
   }
 };
 
-export const deleteSavingAccount = async (
-  userId: number,
-  accountId: number,
-  p0: number | undefined
-) => {
+export const deleteSavingAccount = async (accountId: number) => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/deleteSavingAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/deleteSavingAccount?accountId=${accountId}`,
       {
         method: "DELETE",
+        headers: getAuthHeaders(),
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to delete account");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error deleting account:", err);
     throw err;
@@ -273,7 +221,6 @@ export const deleteSavingAccount = async (
 };
 
 export const editDefaultAccount = async (
-  userId: number,
   accountId: number,
   requestData: {
     name: string;
@@ -288,29 +235,21 @@ export const editDefaultAccount = async (
     const { name, description, currency, accountType, amount } = requestData;
 
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/editDefaultAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/editDefaultAccount?accountId=${accountId}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
           name,
           description,
           currency,
           accountType,
-
           ...(amount !== undefined && { amount }),
         }),
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to update account");
-    }
-
-    return await response.json();
+    return await handleApiResponse(response);
   } catch (error) {
     console.error("Error editing account:", error);
     throw error;
@@ -318,7 +257,6 @@ export const editDefaultAccount = async (
 };
 
 export const editSavingAccount = async (
-  userId: number,
   accountId: number,
   requestData: {
     name: string;
@@ -334,22 +272,15 @@ export const editSavingAccount = async (
 ) => {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/accounts/editSavingAccount?userId=${userId}&accountId=${accountId}`,
+      `https://financeapp-bg0k.onrender.com/accounts/editSavingAccount?accountId=${accountId}`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify(requestData),
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to update account");
-    }
-
-    return await response.json();
+    return await handleApiResponse(response);
   } catch (error) {
     console.error("Error editing account:", error);
     throw error;

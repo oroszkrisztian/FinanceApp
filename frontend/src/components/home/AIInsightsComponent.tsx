@@ -3,16 +3,7 @@ import { motion } from "framer-motion";
 import {
   Brain,
   Sparkles,
-  TrendingUp,
-  AlertCircle,
-  Lightbulb,
-  RefreshCw,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  DollarSign,
-  Target,
-  TrendingDown,
+ 
   Trash2,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
@@ -60,19 +51,6 @@ interface AIAlert {
   severity: "warning" | "critical";
 }
 
-interface AIResponse {
-  insights: AIInsight[];
-  recommendations: AIRecommendation[];
-  alerts: AIAlert[];
-  summary: {
-    financial_health_score: number;
-    key_metrics: {
-      savings_rate: string;
-      debt_to_income: string;
-      emergency_fund_months: number;
-    };
-  };
-}
 
 const AIInsightsComponent: React.FC<AIInsightsComponentProps> = ({
   accounts,

@@ -21,7 +21,6 @@ const EditDefaultAccountPopup = ({
   onAccountEdited,
   account,
 }: EditDefaultAccountPopupProps) => {
-  const { user } = useAuth();
   const [isMobileView, setIsMobileView] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -170,9 +169,7 @@ const EditDefaultAccountPopup = ({
     setError(null);
 
     try {
-      if (!user?.id) {
-        throw new Error("User not found. Please log in again.");
-      }
+      
 
       if (!formData.name.trim()) {
         throw new Error("Account name is required");
@@ -198,7 +195,7 @@ const EditDefaultAccountPopup = ({
         ...(updatedAmount !== undefined && { amount: updatedAmount }),
       };
 
-      await editDefaultAccount(user.id, account.id as number, requestBody);
+      await editDefaultAccount( account.id as number, requestBody);
 
       console.log("Account updated successfully");
 

@@ -19,7 +19,6 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
   onClose,
   onSuccess,
 }) => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClosing, setIsClosing] = useState(false);
@@ -82,12 +81,9 @@ const CreateSavingAccountPopup: React.FC<CreateSavingAccountPopupProps> = ({
     setError(null);
 
     try {
-      if (!user?.id) {
-        throw new Error("User not found. Please log in again.");
-      }
+      
 
       const data = await createSavingAccount(
-        user.id,
         formData.accountType,
         formData.currency,
         formData.name,

@@ -2,28 +2,21 @@ import { Hono } from "hono";
 import { CategoriesController } from "../controllers/categoriesController";
 import { TransactionRepository } from "../repositories/transactionRepository";
 import { CategoriesRepository } from "../repositories/categoriesRepository";
+import { verifyToken } from "../middleware/auth";
 
 const categories = new Hono();
 const categoriesController = new CategoriesController();
 const categoriesRepository = new CategoriesRepository();
 
+categories.use("*", verifyToken);
+
 categories.post("/getAllCategoriesForUser", async (c) => {
   try {
-    const body = await c.req.json();
-    const { userId } = body;
+    const userId = (c as any).get("userId") as number;
 
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /getAllCategoriesForUser",
-        },
-        400
-      );
-    }
-
-    const allcategories= await categoriesController.getAllCategoriesForUser(
+    const allcategories = await categoriesController.getAllCategoriesForUser(
       c,
-      Number(userId)
+      userId
     );
     return c.json(allcategories);
   } catch (error) {
@@ -34,17 +27,9 @@ categories.post("/getAllCategoriesForUser", async (c) => {
 
 categories.post("/createUserCategory", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, categoryName } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /createUserCategory",
-        },
-        400
-      );
-    }
+    const { categoryName } = body;
 
     const result = await categoriesController.createUserCategory(
       c,

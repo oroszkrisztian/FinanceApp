@@ -9,7 +9,6 @@ import { getAllCategoriesForUser } from "../services/categoriesService";
 import BudgetDashboard from "../components/budget/BudgetDashboard";
 
 const Budget: React.FC = () => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState<boolean>(true);
   const [budgets, setBudgets] = useState<BudgetType[]>([]);
   const [categories, setCategories] = useState<CustomCategory[]>([]);
@@ -17,12 +16,9 @@ const Budget: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   const fetchBudgets = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+    
     try {
-      const budgetData = await getAllBudgets(user.id);
+      const budgetData = await getAllBudgets();
       const activeBudgets = budgetData.filter(
         (budget: BudgetType) => !budget.deletedAt
       );
@@ -38,12 +34,9 @@ const Budget: React.FC = () => {
   };
 
   const fetchCategories = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+    
     try {
-      const categoriesData = await getAllCategoriesForUser(user!.id);
+      const categoriesData = await getAllCategoriesForUser();
       setCategories(Array.isArray(categoriesData) ? categoriesData : []);
     } catch (err) {
       console.error("Error fetching categories:", err);
@@ -63,7 +56,7 @@ const Budget: React.FC = () => {
       }
     };
     loadData();
-  }, [user?.id]);
+  }, []);
 
   const handleBudgetSuccess = (): void => {
     fetchBudgets();

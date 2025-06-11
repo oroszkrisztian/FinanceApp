@@ -18,7 +18,6 @@ const CreateDefaultAccountPopup = ({
   setIsModalOpen,
   onAccountCreated,
 }: CreateDefaultAccountPopupProps) => {
-  const { user } = useAuth();
   const [isMobileView, setIsMobileView] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
@@ -94,16 +93,12 @@ const CreateDefaultAccountPopup = ({
     setError(null);
 
     try {
-      if (!user?.id) {
-        throw new Error("User not found. Please log in again.");
-      }
-
+      
       if (!formData.name.trim()) {
         throw new Error("Account name is required");
       }
 
       const data = await createDefaultAccount({
-        userId: user.id,
         accountType: formData.accountType,
         currencyType: formData.currency,
         name: formData.name,

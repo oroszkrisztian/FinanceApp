@@ -1,39 +1,23 @@
 import { TransactionType } from "../interfaces/enums";
+import { getAuthHeaders, handleApiResponse } from "./apiHelpers";
 
-export const getUserAllTransactions = async (userId: number) => {
+export const getUserAllTransactions = async () => {
   try {
     const response = await fetch(
       "https://financeapp-bg0k.onrender.com/transaction/getUserAllTransactions",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
+        headers: getAuthHeaders(),
+        body: JSON.stringify({}),
       }
     );
 
     console.log("Response status:", response.status);
-    const responseText = await response.text();
-    console.log("Raw response text:", responseText);
-
-    let data;
-    try {
-      data = JSON.parse(responseText);
-      console.log("Parsed data type:", typeof data);
-      console.log("Is array:", Array.isArray(data));
-      console.log("Data length:", Array.isArray(data) ? data.length : "N/A");
-    } catch (parseError) {
-      console.error("Error parsing JSON:", parseError);
-      throw new Error("Failed to parse server response");
-    }
-
-    if (!response.ok) {
-      throw new Error(
-        (typeof data === "object" && data?.error) ||
-          "Failed to get all transactions"
-      );
-    }
+    const data = await handleApiResponse(response);
+    
+    console.log("Parsed data type:", typeof data);
+    console.log("Is array:", Array.isArray(data));
+    console.log("Data length:", Array.isArray(data) ? data.length : "N/A");
 
     return data;
   } catch (error) {
@@ -46,7 +30,6 @@ export const getUserAllTransactions = async (userId: number) => {
 };
 
 export const addFundsDefaultAccount = async (
-  userId: number,
   name: string | null,
   description: string | null,
   amount: number,
@@ -60,11 +43,8 @@ export const addFundsDefaultAccount = async (
       "https://financeapp-bg0k.onrender.com/transaction/addFundDefaultAccount",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           name,
           description,
           amount,
@@ -76,15 +56,7 @@ export const addFundsDefaultAccount = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || "Failed to add funds to default account"
-      );
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error adding funds to default account:", err);
     throw err;
@@ -92,7 +64,6 @@ export const addFundsDefaultAccount = async (
 };
 
 export const addFundsSaving = async (
-  userId: number,
   amount: number,
   fromAccountId: number,
   toSavingId: number,
@@ -104,11 +75,8 @@ export const addFundsSaving = async (
       "https://financeapp-bg0k.onrender.com/transaction/addFundSaving",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           amount,
           fromAccountId,
           toSavingId,
@@ -118,15 +86,7 @@ export const addFundsSaving = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || "Failed to add funds to savings account"
-      );
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error adding funds to savings account:", err);
     throw err;
@@ -134,7 +94,6 @@ export const addFundsSaving = async (
 };
 
 export const addFundsDefault = async (
-  userId: number,
   amount: number,
   fromSavingId: number,
   toAccountId: number,
@@ -146,11 +105,8 @@ export const addFundsDefault = async (
       "https://financeapp-bg0k.onrender.com/transaction/addFundDefault",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           amount,
           fromSavingId,
           toAccountId,
@@ -160,15 +116,7 @@ export const addFundsDefault = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || "Failed to add funds to default account"
-      );
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error adding funds to default account:", err);
     throw err;
@@ -176,7 +124,6 @@ export const addFundsDefault = async (
 };
 
 export const createExpense = async (
-  userId: number,
   name: string | null,
   amount: number,
   currency: string,
@@ -190,11 +137,8 @@ export const createExpense = async (
       "https://financeapp-bg0k.onrender.com/transaction/createExpense",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           name,
           amount,
           currency,
@@ -206,13 +150,7 @@ export const createExpense = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to create expense");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error creating expense:", err);
     throw err;
@@ -220,7 +158,6 @@ export const createExpense = async (
 };
 
 export const transferFundsDefault = async (
-  userId: number,
   amount: number,
   fromAccountId: number,
   toAccountId: number,
@@ -232,11 +169,8 @@ export const transferFundsDefault = async (
       "https://financeapp-bg0k.onrender.com/transaction/transferFundsDefault",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           amount,
           fromAccountId,
           toAccountId,
@@ -246,15 +180,7 @@ export const transferFundsDefault = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(
-        errorData.error || "Failed to transfer funds to default account"
-      );
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error transferring funds to default account:", err);
     throw err;
@@ -262,7 +188,6 @@ export const transferFundsDefault = async (
 };
 
 export const executeRecurringPayment = async (
-  userId: number,
   paymentId: number,
   amount: number,
   currency: string,
@@ -276,11 +201,8 @@ export const executeRecurringPayment = async (
       "https://financeapp-bg0k.onrender.com/transaction/executeRecurringPayment",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           paymentId,
           amount,
           currency,
@@ -292,13 +214,7 @@ export const executeRecurringPayment = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to execute recurring payment");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error executing recurring payment:", err);
     throw err;
@@ -306,7 +222,6 @@ export const executeRecurringPayment = async (
 };
 
 export const executeRecurringIncome = async (
-  userId: number,
   paymentId: number,
   amount: number,
   currency: string,
@@ -320,11 +235,8 @@ export const executeRecurringIncome = async (
       "https://financeapp-bg0k.onrender.com/transaction/executeRecurringIncome",
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           paymentId,
           amount,
           currency,
@@ -336,13 +248,7 @@ export const executeRecurringIncome = async (
       }
     );
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || "Failed to execute recurring income");
-    }
-
-    const data = await response.json();
-    return data;
+    return await handleApiResponse(response);
   } catch (err) {
     console.error("Error executing recurring income:", err);
     throw err;

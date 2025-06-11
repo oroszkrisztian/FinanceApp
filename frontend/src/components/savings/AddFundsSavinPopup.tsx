@@ -25,7 +25,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
   onSuccess,
   onClose,
 }) => {
-  const { user } = useAuth();
   const [amountTransfer, setAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,10 +64,9 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
 
   useEffect(() => {
     const loadAccounts = async () => {
-      if (!user?.id) return;
       setLoadingAccounts(true);
       try {
-        const accounts = await fetchDefaultAccounts(user.id);
+        const accounts = await fetchDefaultAccounts();
         setDefaultAccounts(accounts);
         setFilteredAccounts(accounts);
       } catch (err) {
@@ -79,7 +77,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       }
     };
     loadAccounts();
-  }, [user?.id]);
+  }, []);
 
   useEffect(() => {
     const loadExchangeRates = async () => {
@@ -268,9 +266,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
         throw new Error("Please select a source account.");
       }
 
-      if (!user) {
-        throw new Error("User not found");
-      }
+     
 
       const targetCheck = calculateTargetAmountExceed();
       if (targetCheck?.exceeded) {
@@ -287,7 +283,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
       );
 
       await addFundsSaving(
-        user.id,
         convertedAmount,
         sourceAccount.id,
         account.id,

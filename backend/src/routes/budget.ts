@@ -1,24 +1,17 @@
 import { Hono } from "hono";
 import { BudgetController } from "../controllers/budgetControllers";
+import { verifyToken } from "../middleware/auth";
 
 const budget = new Hono();
 const budgetController = new BudgetController();
 
+budget.use("*", verifyToken);
+
 budget.post("/getAllUserBudgets", async (c) => {
   try {
-    const body = await c.req.json();
-    const { userId } = body;
+    const userId = (c as any).get("userId") as number;
 
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /getAllUserBudgets",
-        },
-        400
-      );
-    }
-
-    const budgets = await budgetController.getAllBudgets(c, Number(userId));
+    const budgets = await budgetController.getAllBudgets(c, userId);
 
     console.log("Sending budgets to client:", budgets);
 
@@ -36,21 +29,13 @@ budget.post("/getAllUserBudgets", async (c) => {
 
 budget.post("/createUserBudgetWithCategories", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, name, limitAmount, currency, categoryIds } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /createUserBudgetWithCategories",
-        },
-        400
-      );
-    }
+    const { name, limitAmount, currency, categoryIds } = body;
 
     const budget = await budgetController.createUserBudgetWithCategories(
       c,
-      Number(userId),
+      userId,
       name,
       limitAmount,
       currency,
@@ -73,19 +58,13 @@ budget.post("/createUserBudgetWithCategories", async (c) => {
 
 budget.post("/deleteUserBudget", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, budgetId } = body;
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /deleteUserBudget",
-        },
-        400
-      );
-    }
+    const { budgetId } = body;
+
     const budget = await budgetController.deleteUserBudget(
       c,
-      Number(userId),
+      userId,
       Number(budgetId)
     );
     console.log("Sending deleted budget to client:", budget);
@@ -101,21 +80,13 @@ budget.post("/deleteUserBudget", async (c) => {
 
 budget.post("/updateUserBudget", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, budgetId, name, limitAmount, currency, categoryIds } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /updateUserBudget",
-        },
-        400
-      );
-    }
+    const { budgetId, name, limitAmount, currency, categoryIds } = body;
 
     const budget = await budgetController.updateUserBudget(
       c,
-      Number(userId),
+      userId,
       Number(budgetId),
       name,
       limitAmount,

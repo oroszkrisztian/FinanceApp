@@ -199,7 +199,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   currentStep: externalCurrentStep = 1,
   onStepChange,
 }) => {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const [internalCurrentStep, setInternalCurrentStep] = useState(1);
   const currentStep = onStepChange ? externalCurrentStep : internalCurrentStep;
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
@@ -331,7 +331,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId: user?.id,
           categoryName,
         }),
       });
@@ -363,7 +362,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   };
 
   const fetchAICategorySuggestions = async () => {
-    if (!formData.name || !formData.amount || !token || !user?.id) {
+    if (!formData.name || !formData.amount || !token ) {
       return;
     }
 
@@ -382,7 +381,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId: user.id,
             paymentName: formData.name,
             paymentAmount: formData.amount,
             paymentType: "INCOME",
@@ -728,11 +726,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     setIsLoading(true);
     setError(null);
 
-    if (!user) {
-      setError("User not found");
-      setIsLoading(false);
-      return;
-    }
+    
     if (!selectedAccount) {
       setError("No account selected");
       setIsLoading(false);
@@ -747,7 +741,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     try {
       const finalAmount = getTransactionAmount();
       await addFundsDefaultAccount(
-        user.id,
         formData.name,
         formData.description,
         finalAmount,
@@ -1422,7 +1415,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         isOpen={isCreateCategoryModalOpen}
         onClose={() => setIsCreateCategoryModalOpen(false)}
         onSuccess={handleCategoryCreated}
-        userId={user?.id || 0}
       />
     </div>
   );

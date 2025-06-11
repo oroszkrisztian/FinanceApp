@@ -41,7 +41,6 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
   accountName,
   onSuccess,
 }) => {
-  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
 
@@ -225,13 +224,13 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
   };
 
   const handleConfirmDelete = async () => {
-    if (!canProceed() || !accountId || !user?.id) return;
+    if (!canProceed() || !accountId ) return;
 
     setLoading(true);
 
     if (!hasAmount) {
       try {
-        await deleteSavingAccount(user.id, accountId, undefined);
+        await deleteSavingAccount( accountId);
         setLoading(false);
         onSuccess(accountId);
         handleClose();
@@ -270,7 +269,6 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
 
     try {
       await addFundsDefault(
-        user.id,
         transferAmount,
         accountId,
         selectedAccountId,
@@ -278,7 +276,7 @@ const DeleteSavingAccountModal: React.FC<DeleteSavingAccountModalProps> = ({
         selectedAccount.currency
       );
 
-      await deleteSavingAccount(user.id, accountId, undefined);
+      await deleteSavingAccount(accountId);
 
       setLoading(false);
       onSuccess(accountId);

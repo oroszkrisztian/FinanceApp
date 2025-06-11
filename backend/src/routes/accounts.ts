@@ -1,20 +1,18 @@
 import { Hono } from "hono";
 import { AccountsController } from "../controllers/accountsController";
+import { verifyToken } from "../middleware/auth";
 
 const accounts = new Hono();
 const accountsController = new AccountsController();
 
+accounts.use("*", verifyToken);
+
 accounts.get("/getAllAccounts", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const startDate = c.req.query("startDate");
     const endDate = c.req.query("endDate");
 
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
-
-   
     let parsedStartDate: Date | undefined;
     let parsedEndDate: Date | undefined;
 
@@ -23,7 +21,6 @@ accounts.get("/getAllAccounts", async (c) => {
         parsedStartDate = new Date(startDate);
         parsedEndDate = new Date(endDate);
 
-    
         if (
           isNaN(parsedStartDate.getTime()) ||
           isNaN(parsedEndDate.getTime())
@@ -31,7 +28,6 @@ accounts.get("/getAllAccounts", async (c) => {
           return c.json({ error: "Invalid date format" }, 400);
         }
 
-      
         if (parsedStartDate > parsedEndDate) {
           return c.json({ error: "startDate must be before endDate" }, 400);
         }
@@ -42,7 +38,7 @@ accounts.get("/getAllAccounts", async (c) => {
 
     return await accountsController.getAllAccounts(
       c,
-      Number(userId),
+      userId,
       parsedStartDate,
       parsedEndDate
     );
@@ -54,13 +50,8 @@ accounts.get("/getAllAccounts", async (c) => {
 
 accounts.get("/getDefault", async (c) => {
   try {
-    const userId = c.req.query("userId");
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
-
-    return await accountsController.getDefaultAccounts(c, Number(userId));
+    const userId = (c as any).get("userId") as number;
+    return await accountsController.getDefaultAccounts(c, userId);
   } catch (error) {
     console.error("Error in /getDefault route:", error);
     return c.json({ error: "Internal server error" }, 500);
@@ -69,13 +60,8 @@ accounts.get("/getDefault", async (c) => {
 
 accounts.get("/getSavings", async (c) => {
   try {
-    const userId = c.req.query("userId");
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
-
-    return await accountsController.getSavingAccounts(c, Number(userId));
+    const userId = (c as any).get("userId") as number;
+    return await accountsController.getSavingAccounts(c, userId);
   } catch (error) {
     console.error("Error in /getSavings route:", error);
     return c.json({ error: "Internal server error" }, 500);
@@ -84,13 +70,9 @@ accounts.get("/getSavings", async (c) => {
 
 accounts.post("/insertDefault", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
     const { accountType, currencyType, name, description } = body;
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
 
     if (!accountType || !currencyType || !name) {
       return c.json({ error: "Fill all necessary fields" }, 400);
@@ -98,7 +80,7 @@ accounts.post("/insertDefault", async (c) => {
 
     const account = await accountsController.createDefaultAccount(
       c,
-      Number(userId),
+      userId,
       accountType,
       currencyType,
       name,
@@ -120,7 +102,7 @@ accounts.post("/insertDefault", async (c) => {
 
 accounts.post("/insertSaving", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
     const {
       accountType,
@@ -131,17 +113,13 @@ accounts.post("/insertSaving", async (c) => {
       targetDate,
     } = body;
 
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
-
     if (!accountType || !currencyType || !name || !targetAmount) {
       return c.json({ error: "Fill all necessary fields" }, 400);
     }
 
     const account = await accountsController.createSavingAccount(
       c,
-      Number(userId),
+      userId,
       accountType,
       currencyType,
       name,
@@ -165,12 +143,8 @@ accounts.post("/insertSaving", async (c) => {
 
 accounts.get("/searchAccount", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const searchString = c.req.query("search");
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
 
     if (!searchString) {
       return c.json({ error: "Search string is required" }, 400);
@@ -178,7 +152,7 @@ accounts.get("/searchAccount", async (c) => {
 
     return await accountsController.searchAccountByString(
       c,
-      Number(userId),
+      userId,
       searchString
     );
   } catch (error) {
@@ -189,12 +163,8 @@ accounts.get("/searchAccount", async (c) => {
 
 accounts.delete("/deleteDefaultAccount", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const accountId = c.req.query("accountId");
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
 
     if (!accountId || isNaN(Number(accountId))) {
       return c.json({ error: "Invalid or missing accountId" }, 400);
@@ -202,7 +172,7 @@ accounts.delete("/deleteDefaultAccount", async (c) => {
 
     await accountsController.deleteDefaultAccount(
       c,
-      Number(userId),
+      userId,
       Number(accountId)
     );
 
@@ -215,12 +185,8 @@ accounts.delete("/deleteDefaultAccount", async (c) => {
 
 accounts.delete("/deleteSavingAccount", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const accountId = c.req.query("accountId");
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
 
     if (!accountId || isNaN(Number(accountId))) {
       return c.json({ error: "Invalid or missing accountId" }, 400);
@@ -228,7 +194,7 @@ accounts.delete("/deleteSavingAccount", async (c) => {
 
     await accountsController.deleteSavingAccount(
       c,
-      Number(userId),
+      userId,
       Number(accountId)
     );
 
@@ -241,14 +207,10 @@ accounts.delete("/deleteSavingAccount", async (c) => {
 
 accounts.post("/editDefaultAccount", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const accountId = c.req.query("accountId");
     const body = await c.req.json();
     const { name, description, currency, accountType, amount } = body;
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
 
     if (!accountId || isNaN(Number(accountId))) {
       return c.json({ error: "Invalid or missing accountId" }, 400);
@@ -260,7 +222,7 @@ accounts.post("/editDefaultAccount", async (c) => {
 
     await accountsController.editDefaultAccount(
       c,
-      Number(userId),
+      userId,
       Number(accountId),
       name,
       description || "",
@@ -278,7 +240,7 @@ accounts.post("/editDefaultAccount", async (c) => {
 
 accounts.post("/editSavingAccount", async (c) => {
   try {
-    const userId = c.req.query("userId");
+    const userId = (c as any).get("userId") as number;
     const accountId = c.req.query("accountId");
     const body = await c.req.json();
     console.log("Request Body:", body);
@@ -289,10 +251,6 @@ accounts.post("/editSavingAccount", async (c) => {
     const targetDate = body.savingAccount?.update?.targetDate;
 
     console.log("targetDate:", targetDate);
-
-    if (!userId || isNaN(Number(userId))) {
-      return c.json({ error: "Invalid or missing userId" }, 400);
-    }
 
     if (!accountId || isNaN(Number(accountId))) {
       return c.json({ error: "Invalid or missing accountId" }, 400);
@@ -308,7 +266,7 @@ accounts.post("/editSavingAccount", async (c) => {
 
     await accountsController.editSavingAccount(
       c,
-      Number(userId),
+      userId,
       Number(accountId),
       name,
       description || "",

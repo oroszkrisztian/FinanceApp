@@ -1,5 +1,4 @@
 import { Context } from "hono";
-
 import { CurrencyType, Frequency, PaymentType } from "@prisma/client";
 import { PaymentsService } from "../services/paymentService";
 
@@ -10,34 +9,25 @@ export class PaymentsController {
     this.paymentsService = new PaymentsService();
   }
 
-  async createPayment(c: Context) {
+  async createPayment(
+    c: Context,
+    userId: number,
+    name: string,
+    amount: number,
+    description: string,
+    accountId: number,
+    startDate: Date,
+    frequency: Frequency,
+    emailNotification: boolean,
+    notificationDay: number,
+    automaticPayment: boolean,
+    type: PaymentType,
+    currency: CurrencyType,
+    categoriesId?: number[],
+    paymentId?: number
+  ) {
     try {
-      const {
-        userId,
-        name,
-        amount,
-        description,
-        accountId,
-        startDate,
-        frequency,
-        emailNotification,
-        notificationDay,
-        automaticPayment,
-        type,
-        currency,
-        categoriesId,
-        paymentId
-      } = await c.req.json();
-
-      if (
-        !userId ||
-        !name ||
-        !amount ||
-        !accountId ||
-        !frequency ||
-        !type ||
-        !currency
-      ) {
+      if (!name || !amount || !accountId || !frequency || !type || !currency) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
 
@@ -58,7 +48,7 @@ export class PaymentsController {
         automaticPayment || false,
         type,
         currency,
-        categoriesId,
+        categoriesId || null,
         paymentId
       );
 
@@ -69,16 +59,13 @@ export class PaymentsController {
     }
   }
 
-  async getAllPayments(c: Context) {
+  async getAllPayments(c: Context, userId: number) {
     try {
-      const { userId } = await c.req.json();
-
       if (!userId) {
         return c.json({ error: "User id not found" }, 400);
       }
 
       const allPayments = await this.paymentsService.getAllPayments(userId);
-
       return c.json(allPayments);
     } catch (error) {
       console.error("Controller.getAllPayments:", error);
@@ -86,10 +73,8 @@ export class PaymentsController {
     }
   }
 
-  async deletePayment(c: Context) {
+  async deletePayment(c: Context, userId: number, paymentId: number) {
     try {
-      const { userId, paymentId } = await c.req.json();
-
       if (!userId || !paymentId) {
         return c.json({ error: "Missing userId or paymentId" }, 400);
       }
@@ -98,6 +83,7 @@ export class PaymentsController {
         userId,
         paymentId
       );
+
       return c.json({ success: true, data: deletedPayment });
     } catch (error) {
       console.error("Delete payment error:", error);

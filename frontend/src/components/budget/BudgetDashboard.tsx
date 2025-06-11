@@ -164,7 +164,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   deletedBudgets,
   onSuccess,
 }) => {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
 
   const [isMobileView, setIsMobileView] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -226,13 +226,10 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   }, []);
 
   const fetchTransactions = async () => {
-    if (!user?.id) {
-      setTransactionsLoading(false);
-      return;
-    }
+    
 
     try {
-      const data = await getUserAllTransactions(user.id);
+      const data = await getUserAllTransactions();
       let transactionsArray: Transaction[] = [];
 
       if (Array.isArray(data)) {
@@ -259,10 +256,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user?.id) {
-        setTransactionsLoading(false);
-        return;
-      }
+     
 
       setTransactionsLoading(true);
       setTransactionsError(null);
@@ -277,10 +271,10 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     };
 
     loadData();
-  }, [user]);
+  }, []);
 
   const editBudgetsAi = async () => {
-    if (!token || !user?.id) return;
+    if (!token ) return;
 
     setIsLoadingAI(true);
     setAiError(undefined);
@@ -294,7 +288,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          userId: user.id,
           transactions: transactions,
           categories,
           budgets: budgets,
@@ -330,7 +323,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   const handleApplyAIRecommendations = async (
     recommendations: AIBudgetRecommendation[]
   ) => {
-    if (!user?.id) return;
 
     const results = [];
 
@@ -339,7 +331,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
         if (rec.action === "create") {
           
           await createUserBudgetWithCategories(
-            user.id,
             rec.name,
             rec.limitAmount,
             rec.currency,
@@ -348,7 +339,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
           results.push({ success: true, action: "create", name: rec.name });
         } else if (rec.action === "update" && rec.budgetId) {
           await updateUserBudget(
-            user.id,
             rec.budgetId,
             rec.name,
             rec.limitAmount,

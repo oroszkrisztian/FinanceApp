@@ -201,7 +201,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   currentStep: externalCurrentStep = 1,
   onStepChange,
 }) => {
-  const { user, token } = useAuth();
+  const { token } = useAuth();
   const [internalCurrentStep, setInternalCurrentStep] = useState(1);
   const currentStep = onStepChange ? externalCurrentStep : internalCurrentStep;
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
@@ -329,7 +329,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId: user?.id,
             categoryName,
           }),
         }
@@ -369,7 +368,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   };
 
   const fetchAICategorySuggestions = async () => {
-    if (!formData.name || !formData.amount || !token || !user?.id) {
+    if (!formData.name || !formData.amount || !token ) {
       return;
     }
 
@@ -390,7 +389,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            userId: user.id,
             paymentName: formData.name,
             paymentAmount: formData.amount,
             paymentType: "EXPENSE",
@@ -780,17 +778,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     setIsLoading(true);
     setError(null);
 
-    if (user === null) {
-      setError("User not found");
-      setIsLoading(false);
-      return;
-    }
+    
 
     try {
-      const userId = user.id;
 
       await createExpense(
-        userId,
+        
         formData.name,
         formData.amount,
         formData.currency,
@@ -1547,7 +1540,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         isOpen={isCreateCategoryModalOpen}
         onClose={() => setIsCreateCategoryModalOpen(false)}
         onSuccess={handleCategoryCreated}
-        userId={user?.id || 0}
       />
     </div>
   );

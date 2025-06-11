@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
 import { motion } from "framer-motion";
+import { useAuth } from "../context/AuthContext";
+
 
 const LoginForm = () => {
   const navigate = useNavigate();
-  const { setAuthData } = useAuth();
+  const { login } = useAuth();
+
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -18,29 +20,24 @@ const LoginForm = () => {
     setError(null);
 
     try {
-      const response = await fetch("https://financeapp-bg0k.onrender.com/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          username,
-          password,
-        }),
-      });
+      const response = await fetch(
+        "https://financeapp-bg0k.onrender.com/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username,
+            password,
+          }),
+        }
+      );
 
       const data = await response.json();
 
-      if (response.ok && data.user && data.token) {
-        const user = {
-          ...data.user,
-          createdAt:
-            typeof data.user.createdAt === "string"
-              ? data.user.createdAt
-              : new Date(data.user.createdAt).toISOString(),
-        };
-
-        setAuthData(user, data.token, remember);
+      if (response.ok && data.token) {
+        login(data.token, remember);
 
         const location = window.location as any;
         const from = location.state?.from?.pathname || "/home";
@@ -58,7 +55,6 @@ const LoginForm = () => {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5 ">
-      {/* Error message */}
       {error && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -83,13 +79,11 @@ const LoginForm = () => {
         </motion.div>
       )}
 
-      {/* Username field */}
       <div>
         <label
           htmlFor="username"
           className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
         >
-
           Username
         </label>
         <div className="flex items-center border border-indigo-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all bg-indigo-50/50">
@@ -122,13 +116,11 @@ const LoginForm = () => {
         </div>
       </div>
 
-      {/* Password field */}
       <div>
         <label
           htmlFor="password"
           className="block text-sm font-medium text-gray-700 mb-1 flex items-center"
         >
-         
           Password
         </label>
         <div className="flex items-center border border-indigo-200 rounded-xl focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent transition-all bg-indigo-50/50">
@@ -161,7 +153,6 @@ const LoginForm = () => {
         </div>
       </div>
 
-      {/* Remember me and forgot password */}
       <div className="flex items-center justify-between pt-2">
         <div className="flex items-center">
           <input
@@ -187,7 +178,6 @@ const LoginForm = () => {
         </button>
       </div>
 
-      {/* Submit button */}
       <div className="pt-4">
         <motion.button
           whileHover={{
@@ -232,7 +222,6 @@ const LoginForm = () => {
         </motion.button>
       </div>
 
-      {/* Sign up link */}
       <div className="text-center pt-4">
         <span className="text-gray-600">Don't have an account?</span>{" "}
         <button

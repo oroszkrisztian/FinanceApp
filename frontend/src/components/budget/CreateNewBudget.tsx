@@ -161,7 +161,6 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
   categories,
   onSuccess,
 }) => {
-  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isMobileView, setIsMobileView] = useState(false);
   
@@ -334,11 +333,7 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
     setError(null);
     setLoading(true);
 
-    if (!user) {
-      setError("User not found");
-      setLoading(false);
-      return;
-    }
+    
 
     try {
       if (!formData.name.trim()) {
@@ -358,7 +353,6 @@ const CreateNewBudget: React.FC<CreateNewBudgetProps> = ({
       }
 
       await createUserBudgetWithCategories(
-        user.id,
         formData.name,
         Number(formData.limitAmount),
         formData.currency,

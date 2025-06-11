@@ -1,26 +1,17 @@
+import { getAuthHeaders, handleApiResponse } from "./apiHelpers";
 
-
-export const getAllBudgets = async (userId: number) => {
+export const getAllBudgets = async () => {
   try {
     const response = await fetch(
       `https://financeapp-bg0k.onrender.com/budget/getAllUserBudgets`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ userId }),
+        headers: getAuthHeaders(),
+        body: JSON.stringify({}),
       }
     );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(
-        `Failed to fetch budgets: ${response.status} ${errorText}`
-      );
-    }
-
-    const data = await response.json();
+    const data = await handleApiResponse(response);
     console.log("Budgets data:", data);
 
     if (!data || (typeof data === "object" && Object.keys(data).length === 0)) {
@@ -36,7 +27,6 @@ export const getAllBudgets = async (userId: number) => {
 };
 
 export const createUserBudgetWithCategories = async (
-  userId: number,
   name: string,
   limitAmount: number,
   currency: string,
@@ -47,11 +37,8 @@ export const createUserBudgetWithCategories = async (
       `https://financeapp-bg0k.onrender.com/budget/createUserBudgetWithCategories`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           name,
           limitAmount,
           currency,
@@ -59,39 +46,28 @@ export const createUserBudgetWithCategories = async (
         }),
       }
     );
-    if (!response.ok) {
-      throw new Error("Failed to create budget");
-    }
-    const data = await response.json();
 
-    return data;
+    return await handleApiResponse(response);
   } catch (error) {
     console.error("Error creating budget:", error);
     throw error;
   }
 };
 
-export const deleteUserBudget = async (userId: number, budgetId: number) => {
+export const deleteUserBudget = async (budgetId: number) => {
   try {
     const response = await fetch(
       `https://financeapp-bg0k.onrender.com/budget/deleteUserBudget`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           budgetId,
         }),
       }
     );
-    if (!response.ok) {
-      throw new Error("Failed to delete budget");
-    }
-    const data = await response.json();
 
-    return data;
+    return await handleApiResponse(response);
   } catch (error) {
     console.error("Error deleting budget:", error);
     throw error;
@@ -99,48 +75,37 @@ export const deleteUserBudget = async (userId: number, budgetId: number) => {
 };
 
 export const updateUserBudget = async (
-  userId: number,
   budgetId: number,
   name: string,
   limitAmount: number,
   currency: string,
-  categoryIds: number[],
+  categoryIds: number[]
 ) => {
-  
   console.log("Updating budget with data:", {
-    userId,
     budgetId,
     name,
     limitAmount,
     currency,
     categoryIds
-  
   });
+  
   try {
     const response = await fetch(
       `https://financeapp-bg0k.onrender.com/budget/updateUserBudget`,
       {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: getAuthHeaders(),
         body: JSON.stringify({
-          userId,
           budgetId,
           name,
           limitAmount,
           currency,
           categoryIds,
         }),
-        
       }
     );
-    if (!response.ok) {
-      throw new Error("Failed to update budget");
-    }
-  
-    return await response.json();
-   
+
+    return await handleApiResponse(response);
   } catch (error) {
     console.error("Error updating budget:", error);
     throw error;

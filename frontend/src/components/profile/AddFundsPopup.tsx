@@ -21,7 +21,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   setIsAddFundsModalOpen,
   onFundsAdded,
 }) => {
-  const { user } = useAuth();
   const [isMobileView, setIsMobileView] = useState(false);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
@@ -171,10 +170,7 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
 
-    if (!user?.id) {
-      setError("User not authenticated");
-      return;
-    }
+   
 
     if (!name || !amount) {
       setError("Name and amount are required");
@@ -198,7 +194,6 @@ const AddFundsPopup: React.FC<AddFundsPopupProps> = ({
           : numAmount;
 
       await addFundsDefaultAccount(
-        user.id,
         name,
         description,
         finalAmount,

@@ -1,23 +1,16 @@
 import { Hono } from "hono";
 import { UserRepository } from "../repositories/userRepository";
+import { verifyToken } from "../middleware/auth";
 import bcrypt from "bcrypt";
 
 const users = new Hono();
 const userRepository = new UserRepository();
 
+users.use("*", verifyToken);
+
 users.post("/getUser", async (c) => {
   try {
-    const body = await c.req.json();
-    const { userId } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /getUser",
-        },
-        400
-      );
-    }
+    const userId = (c as any).get("userId") as number;
 
     const user = await userRepository.findById(userId);
     
@@ -39,17 +32,9 @@ users.post("/getUser", async (c) => {
 
 users.post("/editUser", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, firstName, lastName, username, email, password } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing required field (userId)",
-        },
-        400
-      );
-    }
+    const { firstName, lastName, username, email, password } = body;
 
     if (!firstName || !lastName || !username) {
       return c.json(
@@ -60,12 +45,10 @@ users.post("/editUser", async (c) => {
       );
     }
 
-  
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return c.json({ error: "Invalid email format" }, 400);
     }
 
-  
     let hashedPassword;
     if (password) {
       if (password.length < 6) {
@@ -98,16 +81,16 @@ users.post("/editUser", async (c) => {
   }
 });
 
-
 users.post("/changePassword", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, currentPassword, newPassword } = body;
+    const { currentPassword, newPassword } = body;
 
-    if (!userId || !currentPassword || !newPassword) {
+    if (!currentPassword || !newPassword) {
       return c.json(
         {
-          error: "Missing required fields (userId, currentPassword, newPassword)",
+          error: "Missing required fields (currentPassword, newPassword)",
         },
         400
       );
@@ -117,22 +100,18 @@ users.post("/changePassword", async (c) => {
       return c.json({ error: "New password must be at least 6 characters long" }, 400);
     }
 
- 
     const user = await userRepository.findById(userId);
     if (!user) {
       return c.json({ error: "User not found" }, 404);
     }
 
-  
     const isValidPassword = await bcrypt.compare(currentPassword, user.password);
     if (!isValidPassword) {
       return c.json({ error: "Current password is incorrect" }, 400);
     }
 
-    
     const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-    
     const result = await userRepository.changePassword(userId, hashedNewPassword);
     
     return c.json(result, 200);
@@ -146,20 +125,11 @@ users.post("/changePassword", async (c) => {
   }
 });
 
-
 users.post("/checkAvailability", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, username, email } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /checkAvailability",
-        },
-        400
-      );
-    }
+    const { username, email } = body;
 
     if (!username && !email) {
       return c.json(

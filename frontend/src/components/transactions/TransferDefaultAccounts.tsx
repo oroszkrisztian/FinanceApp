@@ -134,7 +134,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   ratesError,
   fetchingRates,
 }) => {
-  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
   const [amountString, setAmountString] = useState("");
@@ -311,11 +310,7 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     setIsLoading(true);
     setError(null);
 
-    if (!user) {
-      setError("User not found");
-      setIsLoading(false);
-      return;
-    }
+   
     if (!selectedFromAccount || !selectedToAccount) {
       setError("Please select both accounts");
       setIsLoading(false);
@@ -339,7 +334,7 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
 
     try {
       await transferFundsDefault(
-        user.id,
+        
         formData.amount,
         selectedFromAccount.id,
         selectedToAccount.id,

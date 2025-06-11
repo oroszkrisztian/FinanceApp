@@ -1,16 +1,33 @@
 import { Hono } from "hono";
 import { PaymentsController } from "../controllers/paymentController";
+import { verifyToken } from "../middleware/auth";
 
 const payments = new Hono();
 const paymentsController = new PaymentsController();
 
+payments.use("*", verifyToken);
+
 payments.post("/createPayment", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, name, amount, accountId, startDate, frequency, type, currency, paymentId } = body;
+    const { 
+      name, 
+      amount, 
+      description,
+      accountId, 
+      startDate, 
+      frequency, 
+      emailNotification,
+      notificationDay,
+      automaticPayment,
+      type, 
+      currency, 
+      categoriesId,
+      paymentId 
+    } = body;
 
     if (
-      !userId ||
       !name ||
       !amount ||
       !accountId ||
@@ -22,7 +39,7 @@ payments.post("/createPayment", async (c) => {
       return c.json(
         {
           error:
-            "Missing required fields (userId, name, amount, accountId, frequency, type, currency)",
+            "Missing required fields (name, amount, accountId, frequency, type, currency)",
         },
         400
       );
@@ -32,11 +49,28 @@ payments.post("/createPayment", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    if (body.categoriesId && !Array.isArray(body.categoriesId)) {
+    if (categoriesId && !Array.isArray(categoriesId)) {
       return c.json({ error: "categoriesId must be an array" }, 400);
     }
 
-    const result = await paymentsController.createPayment(c);
+    const result = await paymentsController.createPayment(
+      c,
+      userId,
+      name,
+      amount,
+      description,
+      accountId,
+      new Date(startDate),
+      frequency,
+      emailNotification || false,
+      notificationDay || 0,
+      automaticPayment || false,
+      type,
+      currency,
+      categoriesId,
+      paymentId
+    );
+    
     return result;
   } catch (error) {
     console.error("Error in /createPayment route:", error);
@@ -49,20 +83,10 @@ payments.post("/createPayment", async (c) => {
 
 payments.post("/getAllPayments", async (c) => {
   try {
-    const body = await c.req.json();
-    const { userId } = body;
+    const userId = (c as any).get("userId") as number;
 
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /getAllPayments",
-        },
-        400
-      );
-    }
-
-    const payments = await paymentsController.getAllPayments(c);
-    return payments;
+    const result = await paymentsController.getAllPayments(c, userId);
+    return result;
   } catch (error) {
     console.error("Error in /getAllPayments route:", error);
     if (error instanceof Error) {
@@ -74,17 +98,18 @@ payments.post("/getAllPayments", async (c) => {
 
 payments.delete("/deletePayment", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, paymentId } = body;
+    const { paymentId } = body;
 
-    if (!userId || !paymentId) {
+    if (!paymentId) {
       return c.json(
-        { error: "Missing required fields (userId, paymentId)" },
+        { error: "Missing required field (paymentId)" },
         400
       );
     }
 
-    const result = await paymentsController.deletePayment(c);
+    const result = await paymentsController.deletePayment(c, userId, Number(paymentId));
     return result;
   } catch (error) {
     console.error("Error in /deletePayment route:", error);

@@ -5,7 +5,6 @@ import { fetchSavings } from "../../services/accountService";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ActiveSavingsGridProps {
-  userId: number;
   filterOption: string;
   searchInput: string;
   selectedSearchResult: Account | null;
@@ -21,7 +20,6 @@ interface ActiveSavingsGridProps {
 }
 
 const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
-  userId,
   filterOption,
   searchInput,
   selectedSearchResult,
@@ -49,10 +47,9 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
   };
 
   const fetchSavingAccounts = async (accountId?: number): Promise<void> => {
-    if (!userId) return;
     setLoading(true);
     try {
-      const data: Account[] = await fetchSavings(userId);
+      const data: Account[] = await fetchSavings();
 
       if (accountId && accounts.length > 0) {
         const updatedAccounts = accounts.map((acc) =>
@@ -78,7 +75,7 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
 
   useEffect(() => {
     fetchSavingAccounts();
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (updatedAccountId) {

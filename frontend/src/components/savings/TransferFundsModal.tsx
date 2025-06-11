@@ -26,7 +26,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
   accountsDefault,
   onSuccess,
 }) => {
-  const { user } = useAuth();
   const [amountTransfer, setAmount] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,7 +225,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
       if (!amountTransfer || parseNumberInput(amountTransfer) <= 0)
         throw new Error("Please enter a valid amount");
 
-      if (!user?.id) throw new Error("User id not found");
 
       if (!selectedTargetAccount)
         throw new Error("Please select a target account");
@@ -247,7 +245,6 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
       const depositAmount = getTargetAmount();
 
       await addFundsDefault(
-        user.id,
         depositAmount,
         selectedSaving.id,
         targetAccount.id,

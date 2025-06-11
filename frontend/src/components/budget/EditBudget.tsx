@@ -32,7 +32,6 @@ const EditBudget: React.FC<EditBudgetProps> = ({
   onSuccess,
   color,
 }) => {
-  const { user } = useAuth();
   const [name, setName] = useState(budget.name);
   const [limitAmount, setLimitAmount] = useState(budget.limitAmount.toString());
   const [currency, setCurrency] = useState<CurrencyType>(
@@ -230,10 +229,7 @@ const EditBudget: React.FC<EditBudgetProps> = ({
     setIsSearchOpen(false);
     setIsCurrencyOpen(false);
     
-    if (!user?.id) {
-      setError("User not authenticated");
-      return;
-    }
+   
 
     if (!name.trim()) {
       setError("Budget name is required");
@@ -251,7 +247,6 @@ const EditBudget: React.FC<EditBudgetProps> = ({
       setError(null);
 
       await updateUserBudget(
-        user.id,
         budget.id,
         name,
         limitAmountValue,

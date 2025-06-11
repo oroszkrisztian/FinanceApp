@@ -14,7 +14,6 @@ import UpcomingPaymentsSection from "../components/home/UpcomingPaymentsSection"
 import BudgetSavingsTabSection from "../components/home/BudgetSavingsTabSection";
 
 const HomePage: React.FC = () => {
-  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [budgets, setBudgets] = useState<any[]>([]);
@@ -31,15 +30,13 @@ const HomePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(false);
 
-  // Handle accounts update from chart component
   const handleAccountsUpdate = useCallback((accountsData: Account[]) => {
     setAccounts(accountsData);
   }, []);
 
-  // Check for mobile view
   useEffect(() => {
     const checkMobileView = () => {
-      setIsMobileView(window.innerWidth < 1280); // xl breakpoint
+      setIsMobileView(window.innerWidth < 1280); 
     };
 
     checkMobileView();
@@ -49,22 +46,16 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     const fetchAllData = async () => {
-      if (!user?.id) {
-        console.log("No user ID available");
-        return;
-      }
 
       try {
         setLoading(true);
         setError(null);
 
-        console.log("Fetching data for user:", user.id);
-
         const [transactionsData, budgetsData, paymentsData, ratesData] =
           await Promise.allSettled([
-            getUserAllTransactions(user.id),
-            getAllBudgets(user.id),
-            getAllPaymentsUser(user.id),
+            getUserAllTransactions(),
+            getAllBudgets(),
+            getAllPaymentsUser(),
             fetchExchangeRates(),
           ]);
 
@@ -129,7 +120,7 @@ const HomePage: React.FC = () => {
     };
 
     fetchAllData();
-  }, [user?.id]);
+  }, []);
 
   if (loading) {
     return (

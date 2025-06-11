@@ -1,22 +1,15 @@
 import { Hono } from "hono";
 import { TransactionController } from "../controllers/transactionController";
+import { verifyToken } from "../middleware/auth";
 
 const transaction = new Hono();
 const transactionController = new TransactionController();
 
+transaction.use("*", verifyToken);
+
 transaction.post("/getUserAllTransactions", async (c) => {
   try {
-    const body = await c.req.json();
-    const { userId } = body;
-
-    if (!userId) {
-      return c.json(
-        {
-          error: "Missing userId in /getUserAllTransactions",
-        },
-        400
-      );
-    }
+    const userId = (c as any).get("userId") as number;
 
     const transactions = await transactionController.getUserAllTransactions(c);
 
@@ -34,14 +27,15 @@ transaction.post("/getUserAllTransactions", async (c) => {
 
 transaction.post("/addFundDefaultAccount", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
+    const { name, amount, type, toAccountId, currency, customCategoriesId } = body;
 
-    const { userId, name, amount, type, toAccountId, currency, customCategoriesId } = body;
-    if (!userId || !name || !amount || !type || !toAccountId) {
+    if (!name || !amount || !type || !toAccountId) {
       return c.json(
         {
           error:
-            "Missing required fields (userId, name, amount, type, toAccountId)",
+            "Missing required fields (name, amount, type, toAccountId)",
         },
         400
       );
@@ -73,14 +67,15 @@ transaction.post("/addFundDefaultAccount", async (c) => {
 
 transaction.post("/addFundSaving", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, amount, fromAccountId, toSavingId, currency } = body;
+    const { amount, fromAccountId, toSavingId, currency } = body;
 
-    if (!userId || !fromAccountId || !toSavingId) {
+    if (!fromAccountId || !toSavingId) {
       return c.json(
         {
           error:
-            "Missing required fields (userId, name, amount, fromAccountId, toSavingId)",
+            "Missing required fields (amount, fromAccountId, toSavingId)",
         },
         400
       );
@@ -109,14 +104,15 @@ transaction.post("/addFundSaving", async (c) => {
 
 transaction.post("/addFundDefault", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, amount, fromSavingId, toAccountId, currency } = body;
+    const { amount, fromSavingId, toAccountId, currency } = body;
 
-    if (!userId || !fromSavingId || !toAccountId) {
+    if (!fromSavingId || !toAccountId) {
       return c.json(
         {
           error:
-            "Missing required fields (userId, amount, fromSavingId, toAccountId)",
+            "Missing required fields (amount, fromSavingId, toAccountId)",
         },
         400
       );
@@ -146,9 +142,9 @@ transaction.post("/addFundDefault", async (c) => {
 
 transaction.post("/createExpense", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
     const {
-      userId,
       amount,
       currency,
       fromAccountId,
@@ -156,10 +152,10 @@ transaction.post("/createExpense", async (c) => {
       customCategoriesId,
     } = body;
 
-    if (!userId || !amount || !fromAccountId) {
+    if (!amount || !fromAccountId) {
       return c.json(
         {
-          error: "Missing required fields (userId, amount, fromAccountId)",
+          error: "Missing required fields (amount, fromAccountId)",
         },
         400
       );
@@ -199,29 +195,34 @@ transaction.post("/createExpense", async (c) => {
 
 transaction.post("/transferFundsDefault", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { userId, amount, fromAccountId, toAccountId, type, currency } = body;
-    if (!userId || !fromAccountId || !toAccountId) {
+    const { amount, fromAccountId, toAccountId, type, currency } = body;
+
+    if (!fromAccountId || !toAccountId) {
       return c.json(
         {
           error:
-            "Missing required fields (userId, amount, fromAccountId, toAccountId)",
+            "Missing required fields (amount, fromAccountId, toAccountId)",
         },
         400
       );
     }
+
     if (!currency) {
       return c.json({
         error: "Missing currency",
       });
     }
+
     if (typeof amount !== "number" || amount <= 0) {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
+
     const result = await transactionController.transferFundsDefault(c);
     return result;
   } catch (error) {
-    console.error("Error in /trasnferFundsDefault route:", error);
+    console.error("Error in /transferFundsDefault route:", error);
     if (error instanceof Error) {
       return c.json({ error: error.message }, 500);
     }
@@ -231,6 +232,8 @@ transaction.post("/transferFundsDefault", async (c) => {
 
 transaction.post("/executeRecurringPayment", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
+
     const result = await transactionController.executeRecurringPayment(c);
     return result;
   } catch (error) {
@@ -244,6 +247,8 @@ transaction.post("/executeRecurringPayment", async (c) => {
 
 transaction.post("/executeRecurringIncome", async (c) => {
   try {
+    const userId = (c as any).get("userId") as number;
+
     const result = await transactionController.executeRecurringIncome(c);
     return result;
   } catch (error) {

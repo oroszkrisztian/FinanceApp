@@ -16,7 +16,6 @@ import { CustomCategory } from "../interfaces/CustomCategory";
 import { getAllCategoriesForUser } from "../services/categoriesService";
 
 const Payments: React.FC = () => {
-  const { user } = useAuth();
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [activeTab, setActiveTab] = useState<"income" | "expense">("income");
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -37,13 +36,10 @@ const Payments: React.FC = () => {
   }, []);
 
   const fetchAccounts = async () => {
-    if (!user?.id) {
-      throw new Error("User ID not available");
-    }
-
+   
     try {
-      console.log("Fetching accounts for user:", user.id);
-      const accountsData: Account[] = await fetchDefaultAccounts(user.id);
+     
+      const accountsData: Account[] = await fetchDefaultAccounts();
       console.log("Accounts fetched:", accountsData);
 
       if (!Array.isArray(accountsData)) {
@@ -59,13 +55,11 @@ const Payments: React.FC = () => {
   };
 
   const fetchCategories = async () => {
-    if (!user?.id) {
-      throw new Error("User ID not available");
-    }
+    
 
     try {
-      console.log("Fetching categories for user:", user.id);
-      const categoryData = await getAllCategoriesForUser(user.id);
+     
+      const categoryData = await getAllCategoriesForUser();
       console.log("Categories fetched:", categoryData);
 
       if (!Array.isArray(categoryData)) {
@@ -81,13 +75,10 @@ const Payments: React.FC = () => {
   };
 
   const fetchPayments = async () => {
-    if (!user?.id) {
-      throw new Error("User ID not available");
-    }
+    
 
     try {
-      console.log("Fetching payments for user:", user.id);
-      const fetchedPayments = await getAllPaymentsUser(user.id);
+      const fetchedPayments = await getAllPaymentsUser();
       console.log("Payments fetched:", fetchedPayments);
 
       const paymentsArray = Array.isArray(fetchedPayments)
@@ -128,18 +119,13 @@ const Payments: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        setDataLoaded(false);
-        return;
-      }
+      
 
       setLoading(true);
       setError(null);
       setDataLoaded(false);
 
       try {
-        console.log("Starting data load for user:", user.id);
 
         const [paymentsResult, accountsResult, categoriesResult] =
           await Promise.allSettled([
@@ -181,7 +167,7 @@ const Payments: React.FC = () => {
     };
 
     loadData();
-  }, [user?.id]);
+  }, []);
 
   const isDataReady = () => {
     return (
@@ -193,21 +179,7 @@ const Payments: React.FC = () => {
     );
   };
 
-  if (!user) {
-    return (
-      <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">
-        <div className="flex flex-col items-center gap-4">
-          <div className="bg-gray-100 p-4 rounded-full">
-            <Wallet size={32} className="text-gray-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-700">
-            Authentication Required
-          </h2>
-          <p className="text-gray-500">Please log in to view your payments.</p>
-        </div>
-      </div>
-    );
-  }
+  
 
   if (loading) {
     return (

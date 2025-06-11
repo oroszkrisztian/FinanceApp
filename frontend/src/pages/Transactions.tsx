@@ -31,7 +31,6 @@ import {
 } from "../services/exchangeRateService";
 
 const Transactions: React.FC = () => {
-  const { user } = useAuth();
   const [isSmallScreen, setIsSmallScreen] = useState(false);
   const [activeTab, setActiveTab] = useState<
     "income" | "expenses" | "transfers"
@@ -88,14 +87,11 @@ const Transactions: React.FC = () => {
   }, []);
 
   const fetchAccounts = async () => {
-    if (!user?.id) {
-      setAccountsLoading(false);
-      return;
-    }
+    
 
     setAccountsLoading(true);
     try {
-      const accountsData: Account[] = await fetchAllAccounts(user.id);
+      const accountsData: Account[] = await fetchAllAccounts();
       setAccounts(Array.isArray(accountsData) ? accountsData : []);
     } catch (err) {
       console.error("Error fetching accounts:", err);
@@ -107,7 +103,7 @@ const Transactions: React.FC = () => {
 
   const fetchCategories = async () => {
     try {
-      const categoryData = await getAllCategoriesForUser(user!.id);
+      const categoryData = await getAllCategoriesForUser();
       setCategories(categoryData);
     } catch (error) {
       console.error("Failed to fetch categories:", error);
@@ -115,10 +111,9 @@ const Transactions: React.FC = () => {
   };
 
   const fetchBudgets = async () => {
-    if (!user?.id) return;
 
     try {
-      const budgetData = await getAllBudgets(user.id);
+      const budgetData = await getAllBudgets();
       setBudgets(Array.isArray(budgetData) ? budgetData : []);
     } catch (err) {
       console.error("Error fetching budgets:", err);
@@ -126,13 +121,10 @@ const Transactions: React.FC = () => {
   };
 
   const fetchTransactions = async () => {
-    if (!user?.id) {
-      setLoading(false);
-      return;
-    }
+   
 
     try {
-      const data = await getUserAllTransactions(user.id);
+      const data = await getUserAllTransactions();
       let transactionsArray: Transaction[] = [];
 
       if (Array.isArray(data)) {
@@ -159,10 +151,7 @@ const Transactions: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      if (!user?.id) {
-        setLoading(false);
-        return;
-      }
+     
 
       setLoading(true);
       setError(null);
@@ -182,7 +171,7 @@ const Transactions: React.FC = () => {
     };
 
     loadData();
-  }, [user]);
+  }, []);
 
   const handleSuccess = () => {
     fetchTransactions();
@@ -211,7 +200,6 @@ const Transactions: React.FC = () => {
     (account) => account.type === AccountType.DEFAULT
   );
 
-  // Loading screen
   if (loading) {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">
@@ -226,7 +214,6 @@ const Transactions: React.FC = () => {
     );
   }
 
-  // Error screen
   if (error) {
     return (
       <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">

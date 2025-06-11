@@ -5,7 +5,6 @@ import { fetchSavings } from "../../services/accountService";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface CompletedSavingsGridProps {
-  userId: number;
   filterOption: string;
   searchInput: string;
   selectedSearchResult: Account | null;
@@ -13,7 +12,6 @@ interface CompletedSavingsGridProps {
 }
 
 const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
-  userId,
   filterOption,
   searchInput,
   selectedSearchResult,
@@ -25,10 +23,9 @@ const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const fetchCompletedAccounts = async (): Promise<void> => {
-    if (!userId) return;
     setLoading(true);
     try {
-      const data: Account[] = await fetchSavings(userId);
+      const data: Account[] = await fetchSavings();
       setAccounts(data);
       setLoading(false);
     } catch (err) {
@@ -43,7 +40,7 @@ const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
 
   useEffect(() => {
     fetchCompletedAccounts();
-  }, [userId]);
+  }, []);
 
   useEffect(() => {
     if (accounts.length === 0) {

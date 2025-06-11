@@ -14,7 +14,7 @@ interface SignupFormValues {
 
 const SignupForm = () => {
   const navigate = useNavigate();
-  const { setAuthData } = useAuth();
+  const { login } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -65,8 +65,8 @@ const SignupForm = () => {
 
       const data = await response.json();
 
-      if (response.ok && data.user) {
-        setAuthData(data.user, data.token, true);
+      if (response.ok && data.token) {
+        login(data.token, true);
         navigate("/home");
       } else {
         setError(data.error || "Registration failed");
@@ -106,7 +106,6 @@ const SignupForm = () => {
       )}
 
       <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
-        {/* Names */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label
@@ -158,7 +157,6 @@ const SignupForm = () => {
           </div>
         </div>
 
-        {/* Username */}
         <div>
           <label
             htmlFor="username"
@@ -200,7 +198,6 @@ const SignupForm = () => {
           </div>
         </div>
 
-        {/* Email */}
         <div>
           <label
             htmlFor="email"
@@ -241,7 +238,6 @@ const SignupForm = () => {
           </div>
         </div>
 
-        {/* Password Fields */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label
@@ -324,7 +320,6 @@ const SignupForm = () => {
           </div>
         </div>
 
-        {/* Submit Button */}
         <div className="pt-6 max-w-lg mx-auto w-full lg:px-20 px-10">
           <motion.button
             whileHover={{
@@ -364,7 +359,6 @@ const SignupForm = () => {
             )}
           </motion.button>
 
-          {/* Login Link */}
           <div className="text-center pt-4">
             <span className="text-gray-600">Already have an account?</span>{" "}
             <button

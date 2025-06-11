@@ -137,7 +137,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     if (!errors.username && formData.username !== user.username) {
       try {
         const availabilityResult = await checkAvailability({
-          userId: user.id,
           username: formData.username
         });
         if (!availabilityResult.usernameAvailable) {
@@ -151,7 +150,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     if (!errors.email && formData.email && formData.email !== (user.email || "")) {
       try {
         const availabilityResult = await checkAvailability({
-          userId: user.id,
           email: formData.email
         });
         if (!availabilityResult.emailAvailable) {
@@ -206,7 +204,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       }
 
       const updateData = {
-        userId: user.id,
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         username: formData.username.trim(),
@@ -259,7 +256,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       }
 
       const updateData = {
-        userId: user.id,
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword,
       };
@@ -355,9 +351,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
             }`}
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-              {/* Background elements */}
               <div className={`absolute top-0 right-0 bg-white/20 rounded-full ${isMobileView ? "w-12 h-12 -translate-y-6 translate-x-6" : "w-16 h-16 -translate-y-8 translate-x-8"}`}></div>
               <div className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${isMobileView ? "w-8 h-8 translate-y-4 -translate-x-4" : "w-12 h-12 translate-y-6 -translate-x-6"}`}></div>
               <div className={`absolute bg-white/15 rounded-full ${isMobileView ? "top-2 left-16 w-6 h-6" : "top-2 left-16 w-8 h-8"}`}></div>
@@ -388,7 +382,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                   </motion.button>
                 </div>
 
-                {/* Tab Navigation */}
                 <div className="flex mt-4 bg-white/10 rounded-lg p-1">
                   <button
                     onClick={() => setActiveTab('profile')}
@@ -420,7 +413,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
               </div>
             </div>
 
-            {/* Content */}
             <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
@@ -524,7 +516,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                     )}
                   </div>
 
-                  {/* Preview */}
                   <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                       <User size={14} className="text-blue-600" />
@@ -636,7 +627,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                     )}
                   </div>
 
-                  {/* Security Notice */}
                   <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <Shield size={14} className="text-amber-600" />
@@ -650,7 +640,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
               )}
             </div>
 
-            {/* Footer */}
             <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
               <button
                 type="button"
@@ -681,7 +670,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
             </div>
           </motion.div>
 
-          {/* Success Popup */}
           <AnimatePresence>
             {showSuccessPopup && (
               <motion.div
@@ -700,7 +688,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                   }`}
                   onClick={(e) => e.stopPropagation()}
                 >
-                  {/* Success Header */}
                   <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white p-4">
                     <div className="flex items-center gap-3">
                       <div className="bg-white text-green-600 rounded-full p-2 shadow-lg">
@@ -713,7 +700,6 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                     </div>
                   </div>
 
-                  {/* Success Content */}
                   <div className="p-4">
                     <p className="text-gray-700 text-sm mb-4">
                       Your password has been changed successfully. Your account is now more secure.

@@ -22,7 +22,6 @@ interface DeleteConfirmation {
 }
 
 const ProfilePage: React.FC = () => {
-  const { user } = useAuth();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,12 +47,12 @@ const ProfilePage: React.FC = () => {
   }, []);
 
   const fetchUserAccounts = async (): Promise<void> => {
-    if (!user?.id) return;
+    
     setLoading(true);
     setError(null);
     const startTime: number = Date.now();
     try {
-      const defaultAccountsData: Account[] = await fetchDefaultAccounts(user.id);
+      const defaultAccountsData: Account[] = await fetchDefaultAccounts();
       const elapsedTime: number = Date.now() - startTime;
       const remainingTime: number = Math.max(0, 300 - elapsedTime);
       setAccounts(defaultAccountsData);
@@ -73,7 +72,7 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     fetchUserAccounts();
-  }, [user?.id, refreshTrigger]);
+  }, [refreshTrigger]);
 
   const refreshAccounts = (): void => {
     setRefreshTrigger((prev) => prev + 1);
@@ -92,7 +91,7 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleConfirmDelete = async (): Promise<void> => {
-    if (!user?.id || !deleteConfirmation.accountId) return;
+    if (!deleteConfirmation.accountId) return;
 
     setLoading(true);
     setDeleteConfirmation({
@@ -103,7 +102,7 @@ const ProfilePage: React.FC = () => {
     });
 
     try {
-      await deleteDefaultAccount(user.id, Number(deleteConfirmation.accountId));
+      await deleteDefaultAccount(Number(deleteConfirmation.accountId));
       console.log(
         `Account with ID ${deleteConfirmation.accountId} deleted successfully.`
       );
