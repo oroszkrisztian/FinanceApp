@@ -1012,13 +1012,43 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                 <input
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => handleInputChange("startDate", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("startDate", e.target.value)
+                  }
                   className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm relative z-[100]`}
-                  style={{ 
-                    colorScheme: 'light'
+                  style={{
+                    colorScheme: "light",
+                    // Add these styles for mobile
+                    WebkitAppearance: "none",
+                    minHeight: "3rem", // Makes it easier to tap on mobile
+                  }}
+                  onClick={(e) => {
+                    if (isMobileView) {
+                      e.currentTarget.showPicker();
+                    }
+                  }}
+                  onTouchEnd={(e) => {
+                    if (isMobileView) {
+                      e.currentTarget.showPicker();
+                    }
                   }}
                   required
                 />
+                {/* Add a calendar icon that triggers the picker on mobile */}
+                {isMobileView && (
+                  <div
+                    className="absolute inset-0 flex items-center justify-end pr-4 pointer-events-none"
+                    onClick={(e) => {
+                      const input =
+                        e.currentTarget.parentElement?.querySelector(
+                          'input[type="date"]'
+                        );
+                      if (input) (input as HTMLInputElement).showPicker();
+                    }}
+                  >
+                    
+                  </div>
+                )}
               </div>
             </div>
 
@@ -1692,7 +1722,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 px-5 py-4 sm:px-4 sm:py-3 min-h-0" style={{ overflowY: currentStep === 2 ? 'visible' : 'auto' }}>
+        <div
+          className="flex-1 px-5 py-4 sm:px-4 sm:py-3 min-h-0"
+          style={{ overflowY: currentStep === 2 ? "visible" : "auto" }}
+        >
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}

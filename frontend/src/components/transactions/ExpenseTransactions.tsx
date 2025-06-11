@@ -137,12 +137,13 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
   const formatDate = (dateString: Date) => {
     if (!dateString) return "-";
     const date = new Date(dateString);
-    return date.toLocaleDateString(undefined, {
-      year: "numeric",
-      month: "short",
+    return date.toLocaleDateString("en-GB", {
       day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   };
+  
 
   const getAccountName = (accountId: number | undefined) => {
     if (!accountId) return "-";
