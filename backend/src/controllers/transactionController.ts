@@ -17,7 +17,7 @@ export class TransactionController {
       }
 
       const allTransactions = await this.transactionService.getUserAllTransactions(userId);
-      return allTransactions;
+      return c.json(allTransactions);
     } catch (error) {
       console.error("Controller.getUserAllTransactions:", error);
       throw error;

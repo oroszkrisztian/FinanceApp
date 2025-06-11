@@ -11,9 +11,7 @@ transaction.post("/getUserAllTransactions", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
 
-    const transactions = await transactionController.getUserAllTransactions(c, userId);
-
-    return c.json(transactions);
+    return await transactionController.getUserAllTransactions(c, userId);
   } catch (error) {
     console.error("Error in /getUserAllTransactions route:", error);
 
@@ -50,7 +48,7 @@ transaction.post("/addFundDefaultAccount", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.addFundsDefaultAccount(
+    return await transactionController.addFundsDefaultAccount(
       c,
       userId,
       name,
@@ -61,8 +59,6 @@ transaction.post("/addFundDefaultAccount", async (c) => {
       customCategoriesId || null,
       currency
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /addFundDefaultAccount route:", error);
 
@@ -99,7 +95,7 @@ transaction.post("/addFundSaving", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.addFundsSaving(
+    return await transactionController.addFundsSaving(
       c,
       userId,
       amount,
@@ -108,8 +104,6 @@ transaction.post("/addFundSaving", async (c) => {
       type,
       currency
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /addFundSaving route:", error);
     if (error instanceof Error) {
@@ -144,7 +138,7 @@ transaction.post("/addFundDefault", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.addFundsDefault(
+    return await transactionController.addFundsDefault(
       c,
       userId,
       amount,
@@ -153,8 +147,6 @@ transaction.post("/addFundDefault", async (c) => {
       type,
       currency
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /addFundDefault route:", error);
     if (error instanceof Error) {
@@ -208,7 +200,7 @@ transaction.post("/createExpense", async (c) => {
       return c.json({ error: "customCategoriesId must be an array" }, 400);
     }
 
-    const result = await transactionController.createExpense(
+    return await transactionController.createExpense(
       c,
       userId,
       name || null,
@@ -219,8 +211,6 @@ transaction.post("/createExpense", async (c) => {
       description || null,
       customCategoriesId || null
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /createExpense route:", error);
     if (error instanceof Error) {
@@ -255,7 +245,7 @@ transaction.post("/transferFundsDefault", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.transferFundsDefault(
+    return await transactionController.transferFundsDefault(
       c,
       userId,
       amount,
@@ -264,8 +254,6 @@ transaction.post("/transferFundsDefault", async (c) => {
       type,
       currency
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /transferFundsDefault route:", error);
     if (error instanceof Error) {
@@ -308,7 +296,7 @@ transaction.post("/executeRecurringPayment", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.executeRecurringPayment(
+    return await transactionController.executeRecurringPayment(
       c,
       userId,
       paymentId,
@@ -319,8 +307,6 @@ transaction.post("/executeRecurringPayment", async (c) => {
       description || null,
       customCategoriesId || null
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /executeRecurringPayment route:", error);
     if (error instanceof Error) {
@@ -363,7 +349,7 @@ transaction.post("/executeRecurringIncome", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.executeRecurringIncome(
+    return await transactionController.executeRecurringIncome(
       c,
       userId,
       paymentId,
@@ -374,8 +360,6 @@ transaction.post("/executeRecurringIncome", async (c) => {
       description || null,
       customCategoriesId || null
     );
-
-    return result;
   } catch (error) {
     console.error("Error in /executeRecurringIncome route:", error);
     if (error instanceof Error) {
