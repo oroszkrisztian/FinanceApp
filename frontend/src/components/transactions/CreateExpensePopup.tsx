@@ -284,7 +284,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     setLocalCategories(categories);
   }, [categories]);
 
-  // Trigger AI suggestions when entering step 2
   useEffect(() => {
     console.log("Checking AI suggestions trigger:", {
       currentStep,

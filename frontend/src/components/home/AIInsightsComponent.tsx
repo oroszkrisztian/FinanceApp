@@ -30,26 +30,7 @@ interface AIInsightsComponentProps {
   isSmallScreen?: boolean;
 }
 
-interface AIInsight {
-  type: string;
-  title: string;
-  description: string;
-  severity: "info" | "warning" | "critical";
-  actionable: boolean;
-}
 
-interface AIRecommendation {
-  title: string;
-  description: string;
-  priority: "high" | "medium" | "low";
-  category: "budget" | "savings" | "investment" | "spending";
-}
-
-interface AIAlert {
-  type: string;
-  message: string;
-  severity: "warning" | "critical";
-}
 
 
 const AIInsightsComponent: React.FC<AIInsightsComponentProps> = ({

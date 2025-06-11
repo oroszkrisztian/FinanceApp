@@ -56,44 +56,48 @@ type AICategorySuggestion =
   | AIExistingCategorySuggestion
   | AINewCategorySuggestion;
 
-async function createCategory(userId: number, categoryName: string) {
+async function createCategory(categoryName: string, token: string) {
   const response = await fetch(
     `https://financeapp-bg0k.onrender.com/categories/createUserCategory`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        userId,
-        categoryName,
-      }),
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ categoryName }),
     }
   );
   if (!response.ok) throw new Error("Failed to create ai category user");
   return response.json();
 }
 
-async function getAllCategoriesForUser(userId: number) {
+async function getAllCategoriesForUser(token: string) {
   const response = await fetch(
     "https://financeapp-bg0k.onrender.com/categories/getAllCategoriesForUser",
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ userId }),
+      body: JSON.stringify({}),
     }
   );
   if (!response.ok) throw new Error("Failed to get all categories ai for user");
   return response.json();
 }
 
-async function getUserBudgets(userId: number) {
+async function getUserBudgets(userId: number, token: string) {
   try {
     const response = await fetch(
       `https://financeapp-bg0k.onrender.com/budget/getUserBudgets`,
       {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({ userId }),
       }
     );
@@ -110,13 +114,17 @@ async function createUserBudgetWithCategories(
   name: string,
   limitAmount: number,
   currency: string,
-  categoryIds: number[]
+  categoryIds: number[],
+  token: string
 ) {
   const response = await fetch(
     `https://financeapp-bg0k.onrender.com/createUserBudgetWithCategories`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         userId,
         name,
@@ -149,13 +157,17 @@ async function updateUserBudget(
   name: string,
   limitAmount: number,
   currency: string,
-  categoryIds: number[]
+  categoryIds: number[],
+  token: string
 ) {
   const response = await fetch(
     `https://financeapp-bg0k.onrender.com/budget/updateUserBudget`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({
         userId,
         budgetId,
@@ -170,12 +182,15 @@ async function updateUserBudget(
   return response.json();
 }
 
-async function deleteUserBudget(userId: number, budgetId: number) {
+async function deleteUserBudget(userId: number, budgetId: number, token: string) {
   const response = await fetch(
     `https://financeapp-bg0k.onrender.com/budget/deleteUserBudget`,
     {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
       body: JSON.stringify({ userId, budgetId }),
     }
   );
@@ -282,8 +297,21 @@ ai.post("/aiCategorySuggestion", async (c) => {
       );
     }
     
+    const authHeader = c.req.header("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    
+    if (!token) {
+      return c.json(
+        {
+          success: false,
+          error: "Authorization token not found",
+        },
+        401
+      );
+    }
+    
     console.log("passing userid from aicategoriesSuggestions: ", userId);
-    const categoriesData = await getAllCategoriesForUser(userId);
+    const categoriesData = await getAllCategoriesForUser(token);
     if (!categoriesData || !Array.isArray(categoriesData)) {
       return c.json(
         {
@@ -294,7 +322,7 @@ ai.post("/aiCategorySuggestion", async (c) => {
       );
     }
 
-    const userBudgets = await getUserBudgets(userId);
+    const userBudgets = await getUserBudgets(userId, token);
 
     const { genAI: geminiClient } = await initializeGemini();
     const model = geminiClient.getGenerativeModel({
@@ -700,6 +728,19 @@ ai.post("/applyRecommendations", async (c) => {
       );
     }
 
+    const authHeader = c.req.header("Authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    
+    if (!token) {
+      return c.json(
+        {
+          success: false,
+          error: "Authorization token not found",
+        },
+        401
+      );
+    }
+
     const results = [];
 
     for (const rec of recommendations) {
@@ -713,7 +754,8 @@ ai.post("/applyRecommendations", async (c) => {
               rec.name,
               rec.limitAmount,
               rec.currency,
-              rec.categoryIds
+              rec.categoryIds,
+              token
             );
             results.push({
               success: true,
@@ -730,7 +772,8 @@ ai.post("/applyRecommendations", async (c) => {
               rec.name,
               rec.limitAmount,
               rec.currency,
-              rec.categoryIds
+              rec.categoryIds,
+              token
             );
             results.push({
               success: true,
@@ -742,7 +785,7 @@ ai.post("/applyRecommendations", async (c) => {
             break;
 
           case "delete":
-            result = await deleteUserBudget(userId, rec.budgetId);
+            result = await deleteUserBudget(userId, rec.budgetId, token);
             results.push({
               success: true,
               action: "delete",
