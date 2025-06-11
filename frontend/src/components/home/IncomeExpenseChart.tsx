@@ -184,9 +184,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     setIsDateDropdownOpen(false);
   };
 
-  {
-    /* Account fetching */
-  }
+  
   useEffect(() => {
     const fetchAccountsData = async () => {
       

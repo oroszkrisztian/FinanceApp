@@ -1,6 +1,7 @@
 import { Context } from "hono";
 import { TransactionService } from "../services/transactionService";
 import { TransactionType } from "@prisma/client";
+import { CurrencyType } from "../types/models";
 
 export class TransactionController {
   private transactionService: TransactionService;
@@ -9,16 +10,13 @@ export class TransactionController {
     this.transactionService = new TransactionService();
   }
 
-  async getUserAllTransactions(c: Context) {
+  async getUserAllTransactions(c: Context, userId: number) {
     try {
-      const { userId } = await c.req.json();
       if (!userId) {
         return c.json({ error: "User id not found" }, 400);
       }
 
-      const allTransactions =
-        await this.transactionService.getUserAllTransactions(userId);
-
+      const allTransactions = await this.transactionService.getUserAllTransactions(userId);
       return allTransactions;
     } catch (error) {
       console.error("Controller.getUserAllTransactions:", error);
@@ -26,34 +24,32 @@ export class TransactionController {
     }
   }
 
-  async addFundsDefaultAccount(c: Context) {
+  async addFundsDefaultAccount(
+    c: Context,
+    userId: number,
+    name: string,
+    description: string | null,
+    amount: number,
+    type: TransactionType,
+    toAccountId: number,
+    customCategoriesId: number[] | null,
+    currency: CurrencyType
+  ) {
     try {
-      const {
-        userId,
-        name,
-        description,
-        amount,
-        type,
-        toAccountId,
-        customCategoriesId,
-        currency,
-      } = await c.req.json();
-
       if (!userId || !name || !amount || !type || !toAccountId) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
 
-      const newFundAccount =
-        await this.transactionService.addFundsDefaultAccount(
-          userId,
-          name,
-          description,
-          amount,
-          type,
-          toAccountId,
-          customCategoriesId,
-          currency
-        );
+      const newFundAccount = await this.transactionService.addFundsDefaultAccount(
+        userId,
+        name,
+        description || '',
+        amount,
+        type,
+        toAccountId,
+        customCategoriesId,
+        currency
+      );
 
       return c.json(newFundAccount);
     } catch (error) {
@@ -62,11 +58,16 @@ export class TransactionController {
     }
   }
 
-  async addFundsSaving(c: Context) {
+  async addFundsSaving(
+    c: Context,
+    userId: number,
+    amount: number,
+    fromAccountId: number,
+    toSavingId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
     try {
-      const { userId, amount, fromAccountId, toSavingId, type, currency } =
-        await c.req.json();
-
       if (!userId || !fromAccountId || !toSavingId) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
@@ -91,11 +92,16 @@ export class TransactionController {
     }
   }
 
-  async addFundsDefault(c: Context) {
+  async addFundsDefault(
+    c: Context,
+    userId: number,
+    amount: number,
+    fromSavingId: number,
+    toAccountId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
     try {
-      const { userId, amount, fromSavingId, toAccountId, type, currency } =
-        await c.req.json();
-
       if (!userId || !fromSavingId || !toAccountId) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
@@ -120,19 +126,18 @@ export class TransactionController {
     }
   }
 
-  async createExpense(c: Context) {
+  async createExpense(
+    c: Context,
+    userId: number,
+    name: string | null,
+    amount: number,
+    currency: CurrencyType,
+    fromAccountId: number,
+    budgetId: number | null,
+    description: string | null,
+    customCategoriesId: number[] | null
+  ) {
     try {
-      const {
-        amount,
-        currency,
-        userId,
-        name,
-        fromAccountId,
-        budgetId,
-        description,
-        customCategoriesId,
-      } = await c.req.json();
-
       if (!userId || !amount || !fromAccountId) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
@@ -141,7 +146,7 @@ export class TransactionController {
         amount,
         currency,
         userId,
-        name,
+        name || '',
         fromAccountId,
         budgetId,
         description,
@@ -155,11 +160,16 @@ export class TransactionController {
     }
   }
 
-  async transferFundsDefault(c: Context) {
+  async transferFundsDefault(
+    c: Context,
+    userId: number,
+    amount: number,
+    fromAccountId: number,
+    toAccountId: number,
+    type: TransactionType,
+    currency: CurrencyType
+  ) {
     try {
-      const { userId, amount, fromAccountId, toAccountId, type, currency } =
-        await c.req.json();
-
       if (!userId || !fromAccountId || !toAccountId) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
@@ -168,15 +178,14 @@ export class TransactionController {
         return c.json({ error: "Amount must be greater than zero" }, 400);
       }
 
-      const defaultTransaction =
-        await this.transactionService.transferFundsDefault(
-          userId,
-          amount,
-          fromAccountId,
-          toAccountId,
-          type || TransactionType.TRANSFER,
-          currency
-        );
+      const defaultTransaction = await this.transactionService.transferFundsDefault(
+        userId,
+        amount,
+        fromAccountId,
+        toAccountId,
+        type || TransactionType.TRANSFER,
+        currency
+      );
 
       return c.json(defaultTransaction);
     } catch (error) {
@@ -187,19 +196,19 @@ export class TransactionController {
       );
     }
   }
-  async executeRecurringPayment(c: Context) {
-    try {
-      const {
-        userId,
-        paymentId,
-        amount,
-        currency,
-        fromAccountId,
-        name,
-        description,
-        customCategoriesId,
-      } = await c.req.json();
 
+  async executeRecurringPayment(
+    c: Context,
+    userId: number,
+    paymentId: number,
+    amount: number,
+    currency: CurrencyType,
+    fromAccountId: number,
+    name: string,
+    description: string | null,
+    customCategoriesId: number[] | null
+  ) {
+    try {
       if (!userId || !paymentId || !amount || !fromAccountId || !name) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
@@ -222,19 +231,18 @@ export class TransactionController {
     }
   }
 
-  async executeRecurringIncome(c: Context) {
+  async executeRecurringIncome(
+    c: Context,
+    userId: number,
+    paymentId: number,
+    amount: number,
+    currency: CurrencyType,
+    toAccountId: number,
+    name: string,
+    description: string | null,
+    customCategoriesId: number[] | null
+  ) {
     try {
-      const {
-        userId,
-        paymentId,
-        amount,
-        currency,
-        toAccountId,
-        name,
-        description,
-        customCategoriesId
-      } = await c.req.json();
-
       if (!userId || !paymentId || !amount || !toAccountId || !name) {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
@@ -247,7 +255,7 @@ export class TransactionController {
         toAccountId,
         name,
         description,
-        customCategoriesId,
+        customCategoriesId
       );
 
       return c.json(transaction);

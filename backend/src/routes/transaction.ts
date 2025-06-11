@@ -11,7 +11,7 @@ transaction.post("/getUserAllTransactions", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
 
-    const transactions = await transactionController.getUserAllTransactions(c);
+    const transactions = await transactionController.getUserAllTransactions(c, userId);
 
     return c.json(transactions);
   } catch (error) {
@@ -29,13 +29,12 @@ transaction.post("/addFundDefaultAccount", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { name, amount, type, toAccountId, currency, customCategoriesId } = body;
+    const { name, description, amount, type, toAccountId, currency, customCategoriesId } = body;
 
     if (!name || !amount || !type || !toAccountId) {
       return c.json(
         {
-          error:
-            "Missing required fields (name, amount, type, toAccountId)",
+          error: "Missing required fields (name, amount, type, toAccountId)",
         },
         400
       );
@@ -51,9 +50,19 @@ transaction.post("/addFundDefaultAccount", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.addFundsDefaultAccount(c);
+    const result = await transactionController.addFundsDefaultAccount(
+      c,
+      userId,
+      name,
+      description || null,
+      amount,
+      type,
+      toAccountId,
+      customCategoriesId || null,
+      currency
+    );
 
-    return c.json(result, 200);
+    return result;
   } catch (error) {
     console.error("Error in /addFundDefaultAccount route:", error);
 
@@ -69,13 +78,12 @@ transaction.post("/addFundSaving", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { amount, fromAccountId, toSavingId, currency } = body;
+    const { amount, fromAccountId, toSavingId, type, currency } = body;
 
     if (!fromAccountId || !toSavingId) {
       return c.json(
         {
-          error:
-            "Missing required fields (amount, fromAccountId, toSavingId)",
+          error: "Missing required fields (amount, fromAccountId, toSavingId)",
         },
         400
       );
@@ -91,7 +99,16 @@ transaction.post("/addFundSaving", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.addFundsSaving(c);
+    const result = await transactionController.addFundsSaving(
+      c,
+      userId,
+      amount,
+      fromAccountId,
+      toSavingId,
+      type,
+      currency
+    );
+
     return result;
   } catch (error) {
     console.error("Error in /addFundSaving route:", error);
@@ -106,13 +123,12 @@ transaction.post("/addFundDefault", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { amount, fromSavingId, toAccountId, currency } = body;
+    const { amount, fromSavingId, toAccountId, type, currency } = body;
 
     if (!fromSavingId || !toAccountId) {
       return c.json(
         {
-          error:
-            "Missing required fields (amount, fromSavingId, toAccountId)",
+          error: "Missing required fields (amount, fromSavingId, toAccountId)",
         },
         400
       );
@@ -128,7 +144,15 @@ transaction.post("/addFundDefault", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.addFundsDefault(c);
+    const result = await transactionController.addFundsDefault(
+      c,
+      userId,
+      amount,
+      fromSavingId,
+      toAccountId,
+      type,
+      currency
+    );
 
     return result;
   } catch (error) {
@@ -145,10 +169,12 @@ transaction.post("/createExpense", async (c) => {
     const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
     const {
+      name,
       amount,
       currency,
       fromAccountId,
       budgetId,
+      description,
       customCategoriesId,
     } = body;
 
@@ -182,7 +208,18 @@ transaction.post("/createExpense", async (c) => {
       return c.json({ error: "customCategoriesId must be an array" }, 400);
     }
 
-    const result = await transactionController.createExpense(c);
+    const result = await transactionController.createExpense(
+      c,
+      userId,
+      name || null,
+      amount,
+      currency,
+      fromAccountId,
+      budgetId || null,
+      description || null,
+      customCategoriesId || null
+    );
+
     return result;
   } catch (error) {
     console.error("Error in /createExpense route:", error);
@@ -202,8 +239,7 @@ transaction.post("/transferFundsDefault", async (c) => {
     if (!fromAccountId || !toAccountId) {
       return c.json(
         {
-          error:
-            "Missing required fields (amount, fromAccountId, toAccountId)",
+          error: "Missing required fields (amount, fromAccountId, toAccountId)",
         },
         400
       );
@@ -219,7 +255,16 @@ transaction.post("/transferFundsDefault", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    const result = await transactionController.transferFundsDefault(c);
+    const result = await transactionController.transferFundsDefault(
+      c,
+      userId,
+      amount,
+      fromAccountId,
+      toAccountId,
+      type,
+      currency
+    );
+
     return result;
   } catch (error) {
     console.error("Error in /transferFundsDefault route:", error);
@@ -233,8 +278,48 @@ transaction.post("/transferFundsDefault", async (c) => {
 transaction.post("/executeRecurringPayment", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
+    const body = await c.req.json();
+    const {
+      paymentId,
+      amount,
+      currency,
+      fromAccountId,
+      name,
+      description,
+      customCategoriesId,
+    } = body;
 
-    const result = await transactionController.executeRecurringPayment(c);
+    if (!paymentId || !amount || !fromAccountId || !name) {
+      return c.json(
+        {
+          error: "Missing required fields (paymentId, amount, fromAccountId, name)",
+        },
+        400
+      );
+    }
+
+    if (!currency) {
+      return c.json({
+        error: "Missing currency",
+      });
+    }
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return c.json({ error: "Amount must be a positive number" }, 400);
+    }
+
+    const result = await transactionController.executeRecurringPayment(
+      c,
+      userId,
+      paymentId,
+      amount,
+      currency,
+      fromAccountId,
+      name,
+      description || null,
+      customCategoriesId || null
+    );
+
     return result;
   } catch (error) {
     console.error("Error in /executeRecurringPayment route:", error);
@@ -248,8 +333,48 @@ transaction.post("/executeRecurringPayment", async (c) => {
 transaction.post("/executeRecurringIncome", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
+    const body = await c.req.json();
+    const {
+      paymentId,
+      amount,
+      currency,
+      toAccountId,
+      name,
+      description,
+      customCategoriesId,
+    } = body;
 
-    const result = await transactionController.executeRecurringIncome(c);
+    if (!paymentId || !amount || !toAccountId || !name) {
+      return c.json(
+        {
+          error: "Missing required fields (paymentId, amount, toAccountId, name)",
+        },
+        400
+      );
+    }
+
+    if (!currency) {
+      return c.json({
+        error: "Missing currency",
+      });
+    }
+
+    if (typeof amount !== "number" || amount <= 0) {
+      return c.json({ error: "Amount must be a positive number" }, 400);
+    }
+
+    const result = await transactionController.executeRecurringIncome(
+      c,
+      userId,
+      paymentId,
+      amount,
+      currency,
+      toAccountId,
+      name,
+      description || null,
+      customCategoriesId || null
+    );
+
     return result;
   } catch (error) {
     console.error("Error in /executeRecurringIncome route:", error);
