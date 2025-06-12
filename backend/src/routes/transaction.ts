@@ -165,7 +165,6 @@ transaction.post("/createExpense", async (c) => {
       amount,
       currency,
       fromAccountId,
-      budgetId,
       description,
       customCategoriesId,
     } = body;
@@ -189,13 +188,6 @@ transaction.post("/createExpense", async (c) => {
       return c.json({ error: "Amount must be a positive number" }, 400);
     }
 
-    if (budgetId && customCategoriesId) {
-      return c.json(
-        { error: "Cannot specify both budgetId and customCategoriesId" },
-        400
-      );
-    }
-
     if (customCategoriesId && !Array.isArray(customCategoriesId)) {
       return c.json({ error: "customCategoriesId must be an array" }, 400);
     }
@@ -207,7 +199,6 @@ transaction.post("/createExpense", async (c) => {
       amount,
       currency,
       fromAccountId,
-      budgetId || null,
       description || null,
       customCategoriesId || null
     );

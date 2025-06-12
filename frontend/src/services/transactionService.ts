@@ -128,7 +128,6 @@ export const createExpense = async (
   amount: number,
   currency: string,
   fromAccountId: number,
-  budgetId: number | null,
   description: string | null,
   customCategoriesId: number[] | null
 ) => {
@@ -143,7 +142,6 @@ export const createExpense = async (
           amount,
           currency,
           fromAccountId,
-          budgetId,
           description,
           customCategoriesId,
         }),

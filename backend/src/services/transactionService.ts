@@ -108,7 +108,6 @@ export class TransactionService {
     userId: number,
     name: string,
     fromAccountId: number,
-    budgetId: number | null,
     description: string | null,
     customCategoriesId: number[] | null
   ) {
@@ -119,7 +118,6 @@ export class TransactionService {
         userId,
         name,
         fromAccountId,
-        budgetId,
         description,
         customCategoriesId
       );

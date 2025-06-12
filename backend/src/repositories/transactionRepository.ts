@@ -120,13 +120,7 @@ export class TransactionRepository {
             currency: true,
           },
         },
-        budget: {
-          select: {
-            id: true,
-            name: true,
-            currency: true,
-          },
-        },
+        
       },
       orderBy: {
         createdAt: "desc",
@@ -546,7 +540,6 @@ export class TransactionRepository {
     userId: number,
     name: string,
     fromAccountId: number,
-    budgetId: number | null,
     description: string | null,
     customCategoriesId: number[] | null
   ) {
@@ -627,31 +620,6 @@ export class TransactionRepository {
             customCategoryId: categoryId,
           })),
         });
-      }
-
-      if (budgetId) {
-        const budget = await prisma.budget.findFirst({
-          where: {
-            id: budgetId,
-            userId: userId,
-            deletedAt: null,
-          },
-        });
-
-        if (budget) {
-          let budgetAmount = amount;
-          if (currency !== budget.currency && rates[budget.currency]) {
-            budgetAmount = amount * (rates[currency] / rates[budget.currency]);
-          }
-
-          await prisma.budget.update({
-            where: { id: budget.id },
-            data: {
-              currentSpent: { increment: budgetAmount },
-              transactions: { connect: { id: transaction.id } },
-            },
-          });
-        }
       }
 
       if (customCategoriesId && customCategoriesId.length > 0) {

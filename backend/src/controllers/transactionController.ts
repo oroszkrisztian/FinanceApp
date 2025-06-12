@@ -133,7 +133,6 @@ export class TransactionController {
     amount: number,
     currency: CurrencyType,
     fromAccountId: number,
-    budgetId: number | null,
     description: string | null,
     customCategoriesId: number[] | null
   ) {
@@ -148,7 +147,6 @@ export class TransactionController {
         userId,
         name || '',
         fromAccountId,
-        budgetId,
         description,
         customCategoriesId
       );
