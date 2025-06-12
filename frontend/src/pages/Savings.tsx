@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import CreateSavingAccountPopup from "../components/accounts/CreateSavingAccountPopup";
 import EditSavingAccountPopup from "../components/accounts/EditSavingAccountPopup";
 import ErrorState from "../components/ErrorState";
-import LoadingState from "../components/LoadingState";
 import AddFundsSavingPopup from "../components/savings/AddFundsSavinPopup";
 import DeleteSavingAccountModal from "../components/savings/DeletSavingPopup";
 import SavingsEmptyState from "../components/savings/SavingsEmptyState";
@@ -17,6 +16,7 @@ import {
   fetchDefaultAccounts,
   fetchSavings,
 } from "../services/accountService";
+import LoadingState from "../components/LoadingState";
 
 type SortOrder = "asc" | "desc" | "none";
 type FilterOption = "all" | "active" | "completed";
@@ -341,18 +341,6 @@ const Savings: React.FC = () => {
     setSearchInput("");
   };
 
-  // Ensure the dropdown is positioned correctly
-  const dropdownStyles = {
-    position: "absolute",
-    top: "100%",
-    left: 0,
-    width: "100%",
-    backgroundColor: "white",
-    border: "1px solid #ccc",
-    borderRadius: "4px",
-    zIndex: 1000,
-  };
-
   const renderSearchDropdown = () => {
     const searchResults = savingsAccounts.filter((account) =>
       account.name.toLowerCase().includes(searchInput.toLowerCase())
@@ -402,11 +390,39 @@ const Savings: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingState />;
+    return (
+      <LoadingState
+        title="Loading Savings"
+        message="Loading your savings goals..."
+        showDataStatus={true}
+        dataStatus={[
+          {
+            label: "Savings Accounts",
+            isLoaded: !loading && Array.isArray(savingsAccounts),
+          },
+
+          {
+            label: "Savings Check",
+            isLoaded: !loading && typeof savingsExist === "boolean",
+          },
+        ]}
+      />
+    );
   }
 
   if (error) {
-    return <ErrorState error={error} />;
+    return (
+      <ErrorState
+        error={error}
+        title="Savings Loading Error"
+        showHomeButton={true}
+        onRetry={() => {
+          setError(null);
+          checkSavingsExist();
+          fetchDefaultAccountsFr();
+        }}
+      />
+    );
   }
 
   return (
@@ -878,15 +894,12 @@ const Savings: React.FC = () => {
                   Completed Goals
                 </h2>
 
-                
-                  <CompletedSavingsGrid
-                    
-                    filterOption={filterOption}
-                    searchInput={searchInput}
-                    selectedSearchResult={selectedSearchResult}
-                    onDelete={handleDelete}
-                  />
-                
+                <CompletedSavingsGrid
+                  filterOption={filterOption}
+                  searchInput={searchInput}
+                  selectedSearchResult={selectedSearchResult}
+                  onDelete={handleDelete}
+                />
               </div>
             )}
           </div>

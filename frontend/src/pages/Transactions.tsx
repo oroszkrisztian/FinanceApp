@@ -29,6 +29,8 @@ import {
   ExchangeRates,
   fetchExchangeRates,
 } from "../services/exchangeRateService";
+import LoadingState from "../components/LoadingState";
+import ErrorState from "../components/ErrorState";
 
 const Transactions: React.FC = () => {
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -87,8 +89,6 @@ const Transactions: React.FC = () => {
   }, []);
 
   const fetchAccounts = async () => {
-    
-
     setAccountsLoading(true);
     try {
       const accountsData: Account[] = await fetchAllAccounts();
@@ -111,7 +111,6 @@ const Transactions: React.FC = () => {
   };
 
   const fetchBudgets = async () => {
-
     try {
       const budgetData = await getAllBudgets();
       setBudgets(Array.isArray(budgetData) ? budgetData : []);
@@ -121,8 +120,6 @@ const Transactions: React.FC = () => {
   };
 
   const fetchTransactions = async () => {
-   
-
     try {
       const data = await getUserAllTransactions();
       let transactionsArray: Transaction[] = [];
@@ -149,27 +146,25 @@ const Transactions: React.FC = () => {
     }
   };
 
+  const loadData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      await Promise.all([
+        fetchTransactions(),
+        fetchAccounts(),
+        fetchCategories(),
+        fetchBudgets(),
+      ]);
+    } catch (err) {
+      console.error("Error loading data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-     
-
-      setLoading(true);
-      setError(null);
-
-      try {
-        await Promise.all([
-          fetchTransactions(),
-          fetchAccounts(),
-          fetchCategories(),
-          fetchBudgets(),
-        ]);
-      } catch (err) {
-        console.error("Error loading data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadData();
   }, []);
 
@@ -202,37 +197,48 @@ const Transactions: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 size={48} className="animate-spin text-indigo-600" />
-          <h2 className="text-xl font-semibold text-gray-700">
-            Loading Transactions
-          </h2>
-          <p className="text-gray-500">Fetching your transaction data...</p>
-        </div>
-      </div>
+      <LoadingState
+        title="Loading Transactions"
+        message="Fetching your transaction data..."
+        showDataStatus={true}
+        dataStatus={[
+          {
+            label: "Transactions",
+            isLoaded: !loading && Array.isArray(transactions),
+          },
+          {
+            label: "Accounts",
+            isLoaded: !accountsLoading && Array.isArray(accounts),
+          },
+          {
+            label: "Categories",
+            isLoaded: !loading && Array.isArray(categories),
+          },
+          {
+            label: "Budgets",
+            isLoaded: !loading && Array.isArray(budgets),
+          },
+          {
+            label: "Exchange Rates",
+            isLoaded: !fetchingRates && rates && Object.keys(rates).length >= 0,
+          },
+        ]}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="bg-red-100 p-4 rounded-full">
-            <CreditCard size={32} className="text-red-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-700">
-            Error Loading Data
-          </h2>
-          <p className="text-gray-500 max-w-md">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-          >
-            Retry
-          </button>
-        </div>
-      </div>
+      <ErrorState
+        error={error}
+        title="Transaction Error"
+        showHomeButton={true}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          loadData();
+        }}
+      />
     );
   }
 

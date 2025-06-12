@@ -1,15 +1,13 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import { fetchDefaultAccounts } from "../services/accountService";
-import { AccountType } from "../interfaces/enums";
 import { motion } from "framer-motion";
 import "../globals.css";
-import LoadingState from "../components/LoadingState";
 import ErrorState from "../components/ErrorState";
 import { Account } from "../interfaces/Account";
 import UserProfileCard from "../components/profile/UserProfileCard";
 import AccountsSection from "../components/profile/AccountsSection";
 import DeleteDefaultAccountModal from "../components/profile/DeleteDefaultAccountModal";
+import LoadingState from "../components/LoadingState";
 
 interface DeleteRequest {
   isOpen: boolean;
@@ -95,7 +93,7 @@ const ProfilePage: React.FC = () => {
     accountId: string | number,
     accountName: string
   ): void => {
-    setForceCloseDropdowns(prev => prev + 1);
+    setForceCloseDropdowns((prev) => prev + 1);
     setPendingDeleteRequest({
       accountId: Number(accountId),
       accountName,
@@ -103,7 +101,7 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleEditRequest = (accountId: string | number): void => {
-    setForceCloseDropdowns(prev => prev + 1);
+    setForceCloseDropdowns((prev) => prev + 1);
   };
 
   const handleDeleteSuccess = (accountId?: number): void => {
@@ -125,26 +123,57 @@ const ProfilePage: React.FC = () => {
   };
 
   if (loading) {
-    return <LoadingState />;
+    return (
+      <LoadingState
+        title="Loading Profile"
+        message="Loading your profile information..."
+        showDataStatus={true}
+        dataStatus={[
+          {
+            label: "Accounts",
+            isLoaded: !loading && Array.isArray(accounts),
+          },
+          {
+            label: "User Profile",
+            isLoaded: !loading,
+          },
+        ]}
+      />
+    );
   }
 
   if (error) {
-    return <ErrorState error={error} />;
+    return (
+      <ErrorState
+        error={error}
+        title="Profile Loading Error"
+        showHomeButton={true}
+        onRetry={() => {
+          fetchUserAccounts();
+        }}
+      />
+    );
   }
 
   return (
     <>
-      <div className={`min-h-screen bg-gradient-to-r from-gray-50 to-gray-100 ${isMobileView ? "p-4 pb-20" : "p-8 pb-20"}`}>
+      <div
+        className={`min-h-screen bg-gradient-to-r from-gray-50 to-gray-100 ${isMobileView ? "p-4 pb-20" : "p-8 pb-20"}`}
+      >
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
           className={`${isMobileView ? "mb-4" : "mb-6"}`}
         >
-          <h1 className={`font-bold text-gray-900 bg-clip-text text-transparent bg-gradient-to-r from-black to-gray-700 ${isMobileView ? "text-2xl" : "text-3xl"}`}>
+          <h1
+            className={`font-bold text-gray-900 bg-clip-text text-transparent bg-gradient-to-r from-black to-gray-700 ${isMobileView ? "text-2xl" : "text-3xl"}`}
+          >
             My Profile
           </h1>
-          <p className={`text-gray-600 ${isMobileView ? "text-sm mt-1" : "mt-2"}`}>
+          <p
+            className={`text-gray-600 ${isMobileView ? "text-sm mt-1" : "mt-2"}`}
+          >
             Manage your personal information and accounts
           </p>
         </motion.div>

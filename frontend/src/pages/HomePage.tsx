@@ -12,6 +12,8 @@ import IncomeExpenseChart from "../components/home/IncomeExpenseChart";
 import AIInsightsComponent from "../components/home/AIInsightsComponent";
 import UpcomingPaymentsSection from "../components/home/UpcomingPaymentsSection";
 import BudgetSavingsTabSection from "../components/home/BudgetSavingsTabSection";
+import LoadingState from "../components/LoadingState";
+import ErrorState from "../components/ErrorState";
 
 const HomePage: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>([]);
@@ -36,7 +38,7 @@ const HomePage: React.FC = () => {
 
   useEffect(() => {
     const checkMobileView = () => {
-      setIsMobileView(window.innerWidth < 1280); 
+      setIsMobileView(window.innerWidth < 1280);
     };
 
     checkMobileView();
@@ -44,129 +46,122 @@ const HomePage: React.FC = () => {
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
-  useEffect(() => {
-    const fetchAllData = async () => {
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
 
-      try {
-        setLoading(true);
-        setError(null);
+      const [transactionsData, budgetsData, paymentsData, ratesData] =
+        await Promise.allSettled([
+          getUserAllTransactions(),
+          getAllBudgets(),
+          getAllPaymentsUser(),
+          fetchExchangeRates(),
+        ]);
 
-        const [transactionsData, budgetsData, paymentsData, ratesData] =
-          await Promise.allSettled([
-            getUserAllTransactions(),
-            getAllBudgets(),
-            getAllPaymentsUser(),
-            fetchExchangeRates(),
-          ]);
+      if (transactionsData.status === "fulfilled") {
+        console.log("Transactions loaded:", transactionsData.value);
+        setTransactions(
+          Array.isArray(transactionsData.value) ? transactionsData.value : []
+        );
+      } else {
+        console.error("Failed to load transactions:", transactionsData.reason);
+      }
 
-        if (transactionsData.status === "fulfilled") {
-          console.log("Transactions loaded:", transactionsData.value);
-          setTransactions(
-            Array.isArray(transactionsData.value) ? transactionsData.value : []
-          );
-        } else {
-          console.error(
-            "Failed to load transactions:",
-            transactionsData.reason
-          );
-        }
+      if (budgetsData.status === "fulfilled") {
+        console.log("Budgets loaded:", budgetsData.value);
+        setBudgets(Array.isArray(budgetsData.value) ? budgetsData.value : []);
+      } else {
+        console.error("Failed to load budgets:", budgetsData.reason);
+      }
 
-        if (budgetsData.status === "fulfilled") {
-          console.log("Budgets loaded:", budgetsData.value);
-          setBudgets(Array.isArray(budgetsData.value) ? budgetsData.value : []);
-        } else {
-          console.error("Failed to load budgets:", budgetsData.reason);
-        }
-
-        if (paymentsData.status === "fulfilled") {
-          console.log("Payments loaded:", paymentsData.value);
-          setPayments(
-            Array.isArray(paymentsData.value) ? paymentsData.value : []
-          );
-
-          const outgoingPayments = (paymentsData.value || []).filter(
-            (payment: any) => payment.type === "EXPENSE"
-          );
-          const incomingPayments = (paymentsData.value || []).filter(
-            (payment: any) => payment.type === "INCOME"
-          );
-
-          setFutureOutgoingPayments(outgoingPayments);
-          setFutureIncomingPayments(incomingPayments);
-        } else {
-          console.error("Failed to load payments:", paymentsData.reason);
-        }
-
-        if (ratesData.status === "fulfilled") {
-          console.log("Exchange rates loaded:", ratesData.value);
-          setRates(ratesData.value || {});
-        } else {
-          console.error("Failed to load exchange rates:", ratesData.reason);
-        }
-
-        const criticalFailures = [transactionsData].filter(
-          (result) => result.status === "rejected"
+      if (paymentsData.status === "fulfilled") {
+        console.log("Payments loaded:", paymentsData.value);
+        setPayments(
+          Array.isArray(paymentsData.value) ? paymentsData.value : []
         );
 
-        if (criticalFailures.length > 0) {
-          setError("Some data failed to load. Please refresh the page.");
-        }
-      } catch (err) {
-        console.error("Error fetching dashboard data:", err);
-        setError("Failed to load dashboard data. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+        const outgoingPayments = (paymentsData.value || []).filter(
+          (payment: any) => payment.type === "EXPENSE"
+        );
+        const incomingPayments = (paymentsData.value || []).filter(
+          (payment: any) => payment.type === "INCOME"
+        );
 
+        setFutureOutgoingPayments(outgoingPayments);
+        setFutureIncomingPayments(incomingPayments);
+      } else {
+        console.error("Failed to load payments:", paymentsData.reason);
+      }
+
+      if (ratesData.status === "fulfilled") {
+        console.log("Exchange rates loaded:", ratesData.value);
+        setRates(ratesData.value || {});
+      } else {
+        console.error("Failed to load exchange rates:", ratesData.reason);
+      }
+
+      const criticalFailures = [transactionsData].filter(
+        (result) => result.status === "rejected"
+      );
+
+      if (criticalFailures.length > 0) {
+        setError("Some data failed to load. Please refresh the page.");
+      }
+    } catch (err) {
+      console.error("Error fetching dashboard data:", err);
+      setError("Failed to load dashboard data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchAllData();
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin h-12 w-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your financial dashboard...</p>
-        </div>
-      </div>
+      <LoadingState
+        title="Loading Dashboard"
+        message="Loading your financial dashboard..."
+        showDataStatus={true}
+        dataStatus={[
+          {
+            label: "Transactions",
+            isLoaded: !loading && Array.isArray(transactions),
+          },
+          {
+            label: "Budgets",
+            isLoaded: !loading && Array.isArray(budgets),
+          },
+          {
+            label: "Payments",
+            isLoaded: !loading && Array.isArray(payments),
+          },
+          {
+            label: "Exchange Rates",
+            isLoaded: !loading && rates && Object.keys(rates).length >= 0,
+          },
+        ]}
+      />
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center bg-white p-8 rounded-lg shadow-sm border border-gray-200">
-          <div className="text-red-500 mb-4">
-            <svg
-              className="w-12 h-12 mx-auto"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L4.232 16.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            Error Loading Dashboard
-          </h3>
-          <p className="text-gray-600 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors"
-          >
-            Refresh Page
-          </button>
-        </div>
-      </div>
+      <ErrorState
+        error={error}
+        title="Dashboard Error"
+        showHomeButton={false}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          fetchAllData();
+        }}
+      />
     );
   }
-
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">

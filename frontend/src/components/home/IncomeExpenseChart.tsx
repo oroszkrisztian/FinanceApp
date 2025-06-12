@@ -104,7 +104,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   isSmallScreen = false,
   onAccountsUpdate,
 }) => {
-
   const [selectedRange, setSelectedRange] =
     useState<DateRangeOption>("current_month");
   const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
@@ -112,11 +111,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
   const [accounts, setAccounts] = useState<any[]>([]);
   const [accountsLoading, setAccountsLoading] = useState(true);
-
-  const defaultAccounts = useMemo(
-    () => accounts.filter((account) => account.type === AccountType.DEFAULT),
-    [accounts]
-  );
 
   const [includeUpcoming, setIncludeUpcoming] = useState(false);
   const [displayCurrency, setDisplayCurrency] = useState<string>(
@@ -184,20 +178,14 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     setIsDateDropdownOpen(false);
   };
 
-  
   useEffect(() => {
     const fetchAccountsData = async () => {
-      
-
       try {
         setAccountsLoading(true);
         console.log("Fetching accounts for chart component");
 
         const { startDate, endDate } = currentDateRange;
-        const accountsData = await fetchAllAccounts(
-          startDate,
-          endDate
-        );
+        const accountsData = await fetchAllAccounts(startDate, endDate);
 
         console.log("Accounts loaded in chart:", accountsData);
         setAccounts(accountsData || []);
@@ -214,7 +202,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     };
 
     fetchAccountsData();
-  }, [onAccountsUpdate, currentDateRange]);
+  }, [currentDateRange]);
 
   const getDateRangeText = () => {
     const { startDate, endDate } = currentDateRange;
@@ -234,28 +222,27 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   };
 
   const generateAccountColors = (numAccounts: number): string[] => {
-    const availableColors = [
-      "#3b82f6",
-      "#8b5cf6",
-      "#06b6d4",
-      "#84cc16",
-      "#f97316",
-      "#ec4899",
-      "#6366f1",
-      "#14b8a6",
-      "#a855f7",
-      "#22c55e",
-      "#fb7185",
-      "#fbbf24",
-      "#60a5fa",
-    ];
+    const colors: string[] = [];
 
-    return availableColors.slice(0, numAccounts);
+
+    const generateReadableColor = (): string => {
+      const hue = Math.floor(Math.random() * 360);
+      const saturation = Math.floor(Math.random() * 40) + 60; 
+      const lightness = Math.floor(Math.random() * 30) + 35; 
+
+      return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+    };
+
+    for (let i = 0; i < numAccounts; i++) {
+      colors.push(generateReadableColor());
+    }
+
+    return colors;
   };
 
   const accountColors = useMemo(() => {
-    return generateAccountColors(defaultAccounts.length);
-  }, [defaultAccounts.length]);
+    return generateAccountColors(accounts.length);
+  }, [accounts.length]);
 
   const handleOpenModal = (type: "income" | "expense" | "transfer" | "net") => {
     setModalType(type);
@@ -265,7 +252,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
-
 
   useEffect(() => {
     const checkMobileView = () => {
@@ -277,7 +263,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     return () => window.removeEventListener("resize", checkMobileView);
   }, []);
 
- 
   useEffect(() => {
     const loadExchangeRates = async () => {
       setFetchingRates(true);
@@ -294,7 +279,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     loadExchangeRates();
   }, []);
 
-  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -381,7 +365,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     return paymentDateOnly >= rangeStartOnly && paymentDateOnly <= rangeEndOnly;
   };
 
-
   const chartData = useMemo(() => {
     if (accountsLoading) {
       return { dataPoints: [], todayDay: 1 };
@@ -412,7 +395,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         ) + 1
       : totalDays + 1;
 
-    
     const accountBalancesByDay: Record<
       number,
       Record<
@@ -427,7 +409,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
           hasFuturePayment?: boolean;
         }
       >
-    > = defaultAccounts.reduce(
+    > = accounts.reduce(
       (acc, account) => {
         acc[account.id] = {};
 
@@ -562,7 +544,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
       >
     );
 
-    
     if (includeUpcoming) {
       const allFuturePayments = [
         ...futureIncomingPayments.map((p: any) => ({ ...p, type: "INCOME" })),
@@ -605,9 +586,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
         if (dayOfRange >= todayInRange) {
           const targetAccountId =
-            payment.accountId ||
-            payment.fromAccountId ||
-            defaultAccounts[0]?.id;
+            payment.accountId || payment.fromAccountId || accounts[0]?.id;
 
           if (targetAccountId && accountBalancesByDay[targetAccountId]) {
             const convertedAmount = convertToDisplayCurrency(
@@ -672,7 +651,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
       ? totalDays
       : Math.min(todayInRange, totalDays);
 
-  
     for (let day = 1; day <= lastDayToShow; day++) {
       const currentDate = new Date(
         startDate.getFullYear(),
@@ -790,7 +768,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         dayIndex: day,
       };
 
-      
       if (!isFuture) {
         dataPoint.income = actualIncome || 0;
         dataPoint.expenses = actualExpenses || 0;
@@ -809,15 +786,13 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         dataPoint.transfersFuture = dayUpcomingTransfers || 0;
       }
 
-     
       if (includeUpcoming && day === todayInRange) {
         dataPoint.incomeFuture = actualIncome || 0;
         dataPoint.expensesFuture = actualExpenses || 0;
         dataPoint.transfersFuture = actualTransfers || 0;
       }
 
-      
-      defaultAccounts.forEach((account: any) => {
+      accounts.forEach((account: any) => {
         const balanceData = accountBalancesByDay[account.id]?.[day];
         const balance =
           balanceData?.balance ||
@@ -856,7 +831,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
     return { dataPoints, todayDay: todayInRange };
   }, [
-    defaultAccounts,
+    accounts,
     transactions,
     futureIncomingPayments,
     futureOutgoingPayments,
@@ -931,16 +906,16 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
             </div>
           </div>
 
-          {defaultAccounts.length > 0 && (
+          {accounts.length > 0 && (
             <>
               <div className="my-1.5 h-px bg-gray-100" />
               <div className="space-y-1">
-                {defaultAccounts.map((account: any, index: number) => {
+                {accounts.map((account: any, index: number) => {
                   const balance =
                     data[`account_${account.id}`] ||
                     data[`account_${account.id}_future`] ||
                     0;
-                  const isProjected = includeUpcoming && data.isFuture;
+
                   return (
                     <div
                       key={`tooltip-account-${account.id}`}
@@ -978,7 +953,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     );
   };
 
-  
   const summaryStats = useMemo(() => {
     let totalActualIncome = 0;
     let totalActualExpenses = 0;
@@ -1070,7 +1044,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   return (
     <div
       className={`bg-white rounded-2xl shadow-lg border border-gray-100 relative overflow-hidden ${
-        isMobileView ? "p-3 mb-4 mx-2" : "p-6 mb-8"
+        isMobileView ? "p-2 mb-4 mx-2" : "p-6 mb-8"
       }`}
       style={{
         height: isMobileView ? "auto" : "500px",
@@ -1288,7 +1262,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
 
         {/* Chart */}
         <div
-          className={`${isMobileView ? "h-64 mb-3" : "flex-1 h-64 mb-4 min-h-0"}`}
+          className={`${isMobileView ? "h-64 mb-3 -mx-1" : "flex-1 h-64 mb-4 min-h-0"}`}
         >
           <ResponsiveContainer width="100%" height="100%">
             <LineChart
@@ -1296,8 +1270,8 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
               data={chartData.dataPoints}
               margin={{
                 top: 10,
-                right: isMobileView ? 10 : 20,
-                left: isMobileView ? 10 : 20,
+                right: isMobileView ? 30 : 20,
+                left: isMobileView ? 5 : 20,
                 bottom: 5,
               }}
             >
@@ -1306,14 +1280,10 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                 dataKey="day"
                 stroke="#6b7280"
                 fontSize={isMobileView ? 8 : 10}
-                interval={
-                  selectedRange === "current_month"
-                    ? isMobileView
-                      ? 2
-                      : "preserveStartEnd"
-                    : 5
-                }
+                interval="preserveStartEnd"
                 tick={{ fontSize: isMobileView ? 8 : 10 }}
+                angle={isMobileView ? -45 : 0}
+                textAnchor={isMobileView ? "end" : "middle"}
               />
               <YAxis
                 stroke="#6b7280"
@@ -1350,7 +1320,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                 )}
 
               {/* Account lines */}
-              {defaultAccounts.map((account: any, index: number) => (
+              {accounts.map((account: any, index: number) => (
                 <React.Fragment key={`account-lines-${account.id}`}>
                   <Line
                     key={`account-line-${account.id}`}
@@ -1571,35 +1541,33 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         {isMobileView && (
           <div className="flex-shrink-0 mt-2 bg-gray-50 rounded-lg p-1.5">
             <div className="flex justify-center space-x-2 text-xs flex-wrap gap-1">
-              {defaultAccounts
-                .slice(0, 2)
-                .map((account: any, index: number) => (
-                  <div
-                    key={`legend-account-${account.id}`}
-                    className="flex items-center space-x-1"
-                  >
-                    <div className="flex space-x-0.5">
+              {accounts.slice(0, 2).map((account: any, index: number) => (
+                <div
+                  key={`legend-account-${account.id}`}
+                  className="flex items-center space-x-1"
+                >
+                  <div className="flex space-x-0.5">
+                    <div
+                      className="w-1.5 h-0.5 rounded"
+                      style={{
+                        backgroundColor: accountColors[index] || "#6b7280",
+                      }}
+                    ></div>
+                    {includeUpcoming && (
                       <div
-                        className="w-1.5 h-0.5 rounded"
+                        className="w-1.5 h-0.5 rounded border-t border-dashed"
                         style={{
-                          backgroundColor: accountColors[index] || "#6b7280",
+                          backgroundColor: "transparent",
+                          borderColor: accountColors[index] || "#6b7280",
                         }}
                       ></div>
-                      {includeUpcoming && (
-                        <div
-                          className="w-1.5 h-0.5 rounded border-t border-dashed"
-                          style={{
-                            backgroundColor: "transparent",
-                            borderColor: accountColors[index] || "#6b7280",
-                          }}
-                        ></div>
-                      )}
-                    </div>
-                    <span className="text-gray-600 truncate max-w-10">
-                      {account.name || `Acc ${index + 1}`}
-                    </span>
+                    )}
                   </div>
-                ))}
+                  <span className="text-gray-600 truncate max-w-10">
+                    {account.name || `Acc ${index + 1}`}
+                  </span>
+                </div>
+              ))}
             </div>
             {includeUpcoming && (
               <div className="text-center text-xs text-gray-500 mt-0.5">
@@ -1635,7 +1603,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
                 />
               </motion.div>
             ) : (
-              
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

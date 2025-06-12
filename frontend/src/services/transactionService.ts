@@ -124,13 +124,7 @@ export const addFundsDefault = async (
 };
 
 export const createExpense = async (
-  name: string | null,
-  amount: number,
-  currency: string,
-  fromAccountId: number,
-  description: string | null,
-  customCategoriesId: number[] | null
-) => {
+name: string | null, amount: number, currency: string, fromAccountId: number, description: string | null,  customCategoriesId: number[] | null) => {
   try {
     const response = await fetch(
       "https://financeapp-bg0k.onrender.com/transaction/createExpense",

@@ -5,15 +5,12 @@ import { getAllPaymentsUser } from "../services/paymentService";
 import { Payments as PaymentsInterface } from "../interfaces/Payments";
 
 import { Wallet, CreditCard, Loader2 } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
 import { Account } from "../interfaces/Account";
-import { AccountType } from "../interfaces/enums";
-import {
-  fetchAllAccounts,
-  fetchDefaultAccounts,
-} from "../services/accountService";
+import { fetchDefaultAccounts } from "../services/accountService";
 import { CustomCategory } from "../interfaces/CustomCategory";
 import { getAllCategoriesForUser } from "../services/categoriesService";
+import LoadingState from "../components/LoadingState";
+import ErrorState from "../components/ErrorState";
 
 const Payments: React.FC = () => {
   const [isSmallScreen, setIsSmallScreen] = useState(false);
@@ -36,9 +33,7 @@ const Payments: React.FC = () => {
   }, []);
 
   const fetchAccounts = async () => {
-   
     try {
-     
       const accountsData: Account[] = await fetchDefaultAccounts();
       console.log("Accounts fetched:", accountsData);
 
@@ -55,10 +50,7 @@ const Payments: React.FC = () => {
   };
 
   const fetchCategories = async () => {
-    
-
     try {
-     
       const categoryData = await getAllCategoriesForUser();
       console.log("Categories fetched:", categoryData);
 
@@ -75,8 +67,6 @@ const Payments: React.FC = () => {
   };
 
   const fetchPayments = async () => {
-    
-
     try {
       const fetchedPayments = await getAllPaymentsUser();
       console.log("Payments fetched:", fetchedPayments);
@@ -119,14 +109,11 @@ const Payments: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      
-
       setLoading(true);
       setError(null);
       setDataLoaded(false);
 
       try {
-
         const [paymentsResult, accountsResult, categoriesResult] =
           await Promise.allSettled([
             fetchPayments(),
@@ -179,88 +166,57 @@ const Payments: React.FC = () => {
     );
   };
 
-  
-
   if (loading) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 size={48} className="animate-spin text-indigo-600" />
-          <h2 className="text-xl font-semibold text-gray-700">
-            Loading Payments
-          </h2>
-          <p className="text-gray-500">Fetching your payment data...</p>
-          <div className="text-xs text-gray-400 mt-2 space-y-1">
-            <div>
-              • Accounts:{" "}
-              {Array.isArray(accounts) && accounts.length > 0 ? "✓" : "⏳"}
-            </div>
-            <div>
-              • Categories:{" "}
-              {Array.isArray(categories) && categories.length >= 0 ? "✓" : "⏳"}
-            </div>
-            <div>
-              • Payments:{" "}
-              {Array.isArray(payments) && payments.length >= 0 ? "✓" : "⏳"}
-            </div>
-          </div>
-        </div>
-      </div>
+      <LoadingState
+        title="Loading Payments"
+        message="Fetching your payment data..."
+        showDataStatus={true}
+        dataStatus={[
+          {
+            label: "Accounts",
+            isLoaded: !loading && Array.isArray(accounts),
+          },
+          {
+            label: "Categories",
+            isLoaded: !loading && Array.isArray(categories),
+          },
+          {
+            label: "Payments",
+            isLoaded: !loading && Array.isArray(payments),
+          },
+        ]}
+      />
     );
   }
 
   if (error && !isDataReady()) {
     return (
-      <div className="flex flex-col h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-indigo-50">
-        <div className="flex flex-col items-center gap-4 text-center">
-          <div className="bg-red-100 p-4 rounded-full">
-            <CreditCard size={32} className="text-red-600" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-700">
-            Error Loading Data
-          </h2>
-          <p className="text-gray-500 max-w-md">{error}</p>
-          <div className="flex gap-2">
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              Retry
-            </button>
-            <button
-              onClick={() => {
-                setError(null);
-                setLoading(true);
-                setDataLoaded(false);
-                setTimeout(() => {
-                  const loadData = async () => {
-                    try {
-                      await Promise.all([
-                        fetchPayments(),
-                        fetchAccounts(),
-                        fetchCategories(),
-                      ]);
-                      setDataLoaded(true);
-                    } catch (err) {
-                      setError(
-                        err instanceof Error
-                          ? err.message
-                          : "Failed to reload data"
-                      );
-                    } finally {
-                      setLoading(false);
-                    }
-                  };
-                  loadData();
-                }, 100);
-              }}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-            >
-              Reload Data
-            </button>
-          </div>
-        </div>
-      </div>
+      <ErrorState
+        error={error}
+        title="Payment Data Error"
+        showHomeButton={true}
+        onRetry={() => {
+          setError(null);
+          setLoading(true);
+          setDataLoaded(false);
+          const loadData = async () => {
+            try {
+              await Promise.all([
+                fetchPayments(),
+                fetchAccounts(),
+                fetchCategories(),
+              ]);
+              setDataLoaded(true);
+            } catch (err) {
+              setError(err instanceof Error ? err.message : "Failed to reload data");
+            } finally {
+              setLoading(false);
+            }
+          };
+          loadData();
+        }}
+      />
     );
   }
 
@@ -342,7 +298,7 @@ const Payments: React.FC = () => {
                 accounts={accounts}
                 categories={categories}
                 onPaymentCreated={refreshPayments}
-                onCategoryCreated={refreshCategories} 
+                onCategoryCreated={refreshCategories}
               />
             ) : (
               <OutgoingRecurringBills
@@ -351,7 +307,7 @@ const Payments: React.FC = () => {
                 accounts={accounts}
                 categories={categories}
                 onPaymentCreated={refreshPayments}
-                onCategoryCreated={refreshCategories} 
+                onCategoryCreated={refreshCategories}
               />
             )}
           </div>
@@ -365,7 +321,7 @@ const Payments: React.FC = () => {
               accounts={accounts}
               categories={categories}
               onPaymentCreated={refreshPayments}
-              onCategoryCreated={refreshCategories} 
+              onCategoryCreated={refreshCategories}
             />
           </div>
           <div className="w-1/2 flex flex-col transform transition-all duration-300 hover:scale-[1.01]">
@@ -375,7 +331,7 @@ const Payments: React.FC = () => {
               accounts={accounts}
               categories={categories}
               onPaymentCreated={refreshPayments}
-              onCategoryCreated={refreshCategories} 
+              onCategoryCreated={refreshCategories}
             />
           </div>
         </div>

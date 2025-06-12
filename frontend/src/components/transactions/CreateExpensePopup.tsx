@@ -367,7 +367,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   };
 
   const fetchAICategorySuggestions = async () => {
-    if (!formData.name || !formData.amount || !token ) {
+    if (!formData.name || !formData.amount || !token) {
       return;
     }
 
@@ -777,17 +777,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     setIsLoading(true);
     setError(null);
 
-    
-
     try {
-
       await createExpense(
-        
         formData.name,
         formData.amount,
         formData.currency,
         parseInt(formData.selectedAccount),
-        null,
         formData.description || null,
         formData.selectedCategories.length > 0
           ? formData.selectedCategories

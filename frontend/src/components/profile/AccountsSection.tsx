@@ -14,7 +14,6 @@ import { AccountType } from "../../interfaces/enums";
 import CreateDefaultAccountPopup from "../accounts/CreateDefaultAccountPopup";
 import EditDefaultAccountPopup from "../accounts/EditDefaultAccountPopup";
 import AddFundsPopup from "./AddFundsPopup";
-import EmptyState from "../EmptyState";
 
 interface AccountsSectionProps {
   accounts: Account[];
