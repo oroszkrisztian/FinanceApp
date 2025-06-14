@@ -1,0 +1,9 @@
+{
+    "services": [
+      {
+        "name": "backend",
+        "sourceDir": "backend"
+      }
+    ]
+  }
+  
