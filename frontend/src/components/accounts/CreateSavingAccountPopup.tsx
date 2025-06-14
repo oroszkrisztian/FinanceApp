@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
 import { createSavingAccount } from "../../services/accountService";
 import { AccountType } from "../../interfaces/enums";
 import {

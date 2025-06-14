@@ -1,4 +1,3 @@
-import { BudgetCategory } from "./BudgetCategory";
 import { CustomCategory } from "./CustomCategory";
 import { CurrencyType } from "./enums";
 import { Transaction } from "./Transaction";

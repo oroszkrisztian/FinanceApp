@@ -24,7 +24,6 @@ interface DateRangeFilterProps {
 const DateRangeFilter: React.FC<DateRangeFilterProps> = ({
   dateRange,
   setDateRange,
-  isSmallScreen,
   isOpen,
   setIsOpen,
   buttonRef,

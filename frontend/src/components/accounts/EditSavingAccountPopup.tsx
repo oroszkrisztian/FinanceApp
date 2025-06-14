@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useAuth } from "../../context/AuthContext";
 import { CurrencyType, AccountType } from "../../interfaces/enums";
 import { editSavingAccount } from "../../services/accountService";
 import {
@@ -22,7 +21,6 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
   account,
   onSuccess,
 }) => {
-  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
@@ -190,7 +188,6 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
     setError(null);
 
     try {
-      if (!user?.id) throw new Error("User is not authenticated");
       if (!formData.currency) throw new Error("Please select a currency");
       if (formData.targetAmount === "")
         throw new Error("Please enter a target amount");
@@ -223,7 +220,7 @@ const EditSavingAccountPopup: React.FC<EditSavingAccountPopupProps> = ({
         },
       };
 
-      await editSavingAccount(user.id, account.id, requestData);
+      await editSavingAccount(account.id, requestData);
       setLoading(false);
       onSuccess(account.id); 
       handleClose();

@@ -2,15 +2,12 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
-  ArrowUp,
   ChevronRight,
   RefreshCw,
   X,
   ChevronDown,
   Filter,
   Plus,
-  Clock,
-  CreditCard,
   Tag,
 } from "lucide-react";
 import { Account } from "../../interfaces/Account";
@@ -55,9 +52,6 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   fetchingRates,
   formatAmount,
   formatDate,
-  onTransactionClick,
-  onAddIncomeClick,
-  isSmallScreen,
   onTransactionCreated,
   onCategoryCreated,
   accountsLoading = false,

@@ -12,7 +12,6 @@ interface CompletedSavingsGridProps {
 }
 
 const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
-  filterOption,
   searchInput,
   selectedSearchResult,
   onDelete,

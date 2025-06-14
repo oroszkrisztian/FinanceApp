@@ -7,13 +7,11 @@ import {
   TrendingUp,
   TrendingDown,
   Tag,
-  CreditCard,
   Clock,
   ArrowUp,
   ArrowDown,
   ArrowRightLeft,
 } from "lucide-react";
-import { relative } from "path";
 
 interface Transaction {
   id?: number;

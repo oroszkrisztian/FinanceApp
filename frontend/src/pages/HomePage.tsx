@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useEffect, useCallback } from "react";
-import { useAuth } from "../context/AuthContext";
+import React, { useState, useEffect, useCallback } from "react";
 import { Account } from "../interfaces/Account";
 import {
   ExchangeRates,
@@ -27,7 +26,7 @@ const HomePage: React.FC = () => {
     []
   );
   const [rates, setRates] = useState<ExchangeRates>({});
-  const [displayCurrency, setDisplayCurrency] = useState("RON");
+  const [displayCurrency] = useState("RON");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isMobileView, setIsMobileView] = useState(false);

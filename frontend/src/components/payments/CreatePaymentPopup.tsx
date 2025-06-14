@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   X,
   Plus,
@@ -8,7 +8,6 @@ import {
   Tag,
   Bell,
   Zap,
-  Info,
   AlertCircle,
   ArrowRight,
   ArrowLeft,
@@ -231,7 +230,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   accounts,
   categories,
   defaultType = PaymentType.EXPENSE,
-  budgets = [],
   editPayment = null,
   currentStep: externalCurrentStep = 1,
   onStepChange,
@@ -259,7 +257,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [, setIsClosing] = useState(false);
 
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");

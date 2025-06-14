@@ -100,7 +100,7 @@ const ProfilePage: React.FC = () => {
     });
   };
 
-  const handleEditRequest = (accountId: string | number): void => {
+  const handleEditRequest = (): void => {
     setForceCloseDropdowns((prev) => prev + 1);
   };
 

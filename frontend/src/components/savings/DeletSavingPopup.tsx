@@ -10,7 +10,6 @@ import {
   Info,
 } from "lucide-react";
 import { deleteSavingAccount } from "../../services/accountService";
-import { useAuth } from "../../context/AuthContext";
 import { Account } from "../../interfaces/Account";
 import {
   ExchangeRates,
@@ -19,7 +18,7 @@ import {
   getExchangeRate,
 } from "../../services/exchangeRateService";
 import { addFundsDefault } from "../../services/transactionService";
-import { CurrencyType, TransactionType } from "../../interfaces/enums";
+import { TransactionType } from "../../interfaces/enums";
 import ErrorState from "../ErrorState";
 
 interface DeleteSavingAccountModalProps {

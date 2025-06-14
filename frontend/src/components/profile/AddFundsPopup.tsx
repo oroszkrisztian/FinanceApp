@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, DollarSign, FileText, Plus, ChevronDown, TrendingUp, Wallet, AlertCircle } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
-import { TransactionType, CurrencyType } from "../../interfaces/enums";
+import { X, DollarSign, FileText, Plus, ChevronDown, TrendingUp, AlertCircle } from "lucide-react";
+import { TransactionType } from "../../interfaces/enums";
 import { Account } from "../../interfaces/Account";
 import { addFundsDefaultAccount } from "../../services/transactionService";
 

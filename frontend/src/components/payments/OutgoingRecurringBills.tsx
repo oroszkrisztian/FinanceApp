@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import {
   Calendar,
   Tag,
-  ChevronRight,
   AlertCircle,
   RefreshCw,
   X,
@@ -10,7 +9,6 @@ import {
   Filter,
   Plus,
   DollarSign,
-  CreditCard,
 } from "lucide-react";
 import {
   ExchangeRates,
@@ -28,7 +26,6 @@ import PaymentDetailsPopup from "./PaymentDetailsPopup";
 import type { Payments } from "../../interfaces/Payments";
 import { Account } from "../../interfaces/Account";
 import { CustomCategory } from "../../interfaces/CustomCategory";
-import { useAuth } from "../../context/AuthContext";
 import { deletePayment } from "../../services/paymentService";
 
 interface OutgoingRecurringBillsProps {
@@ -41,7 +38,6 @@ interface OutgoingRecurringBillsProps {
 }
 
 const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
-  isSmallScreen,
   payments,
   accounts,
   categories,

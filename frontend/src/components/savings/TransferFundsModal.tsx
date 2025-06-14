@@ -1,5 +1,4 @@
 import { Account } from "../../interfaces/Account";
-import { useAuth } from "../../context/AuthContext";
 import { CurrencyType, TransactionType } from "../../interfaces/enums";
 import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
@@ -33,14 +32,14 @@ const TransferFromSavingModal: React.FC<TransferFromSavingModalProps> = ({
   const [selectedTargetAccount, setSelectedTargetAccount] = useState<
     number | null
   >(null);
-  const [loadingAccounts, setLoadingAccounts] = useState(false);
+  const [loadingAccounts] = useState(false);
   const [rates, setRates] = useState<ExchangeRates>({});
   const [fetchingRates, setFetchingRates] = useState(false);
   const [targetAccountCurrency, setTargetAccountCurrency] = useState<
     string | null
   >(null);
   const [isClosing, setIsClosing] = useState(false);
-  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
+  const [, setDisplayCurrency] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
   const [showAccountDropdown, setShowAccountDropdown] =
     useState<boolean>(false);

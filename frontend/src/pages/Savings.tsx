@@ -9,10 +9,8 @@ import SavingsEmptyState from "../components/savings/SavingsEmptyState";
 import TransferFundsModal from "../components/savings/TransferFundsModal";
 import ActiveSavingsGrid from "../components/savings/ActiveSavingsGrid";
 import CompletedSavingsGrid from "../components/savings/CompletedSavingsGrid";
-import { useAuth } from "../context/AuthContext";
 import { Account } from "../interfaces/Account";
 import {
-  fetchAllAccounts,
   fetchDefaultAccounts,
   fetchSavings,
 } from "../services/accountService";
@@ -61,7 +59,7 @@ const Savings: React.FC = () => {
 
   const [savingsAccounts, setSavingsAccounts] = useState<Account[]>([]);
 
-  const [animationPlayed, setAnimationPlayed] = useState<boolean>(false);
+  const [, setAnimationPlayed] = useState<boolean>(false);
 
   useEffect(() => {
     setAnimationPlayed(true);

@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
-  ArrowLeftRight,
   ChevronRight,
   RefreshCw,
   X,
@@ -38,7 +37,6 @@ interface TransferTransactionsProps {
 }
 
 const TransferTransactions: React.FC<TransferTransactionsProps> = ({
-  isSmallScreen,
   transactions,
   accounts,
   onTransactionCreated,
@@ -182,7 +180,7 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setAccountSearchTerm("");
-    setDateRange(getCurrentMonthRange()); 
+    setDateRange(getCurrentMonthRange());
   };
 
   const formatDateRangeDisplay = () => {
@@ -278,9 +276,7 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
   }, [accounts]);
 
   const hasActiveFilters =
-    nameSearchTerm !== "" ||
-    accountSearchTerm !== "" ||
-    !isCurrentMonth();
+    nameSearchTerm !== "" || accountSearchTerm !== "" || !isCurrentMonth();
 
   function isCurrentMonth() {
     if (!dateRange.start || !dateRange.end) return false;
@@ -634,7 +630,8 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
                           <span
                             className={`text-blue-600 font-bold whitespace-nowrap ml-2 ${isMobileView ? "text-sm" : "text-lg"}`}
                           >
-                            {formatAmount(transaction.amount)} {transaction.currency}
+                            {formatAmount(transaction.amount)}{" "}
+                            {transaction.currency}
                             {!isMobileView &&
                               transaction.currency !== displayCurrency && (
                                 <span className="ml-2 text-xs text-gray-500 font-normal">
@@ -652,7 +649,9 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
                         </div>
 
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
-                          <span className="truncate">{transaction.name || "Transfer"}</span>
+                          <span className="truncate">
+                            {transaction.name || "Transfer"}
+                          </span>
                           <span className="whitespace-nowrap ml-2">
                             {new Date(transaction.date).toLocaleTimeString([], {
                               hour: "2-digit",
@@ -667,15 +666,25 @@ const TransferTransactions: React.FC<TransferTransactionsProps> = ({
                               <Calendar size={10} />
                               {formatDate(transaction.date)}
                             </span>
-                            {isMobileView && transaction.currency !== displayCurrency && (
-                              <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100/80 text-gray-600 truncate">
-                                ({formatAmount(convertToDisplayCurrency(transaction.amount, transaction.currency))} {displayCurrency})
-                              </span>
-                            )}
+                            {isMobileView &&
+                              transaction.currency !== displayCurrency && (
+                                <span className="text-xs px-2 py-0.5 rounded-md bg-gray-100/80 text-gray-600 truncate">
+                                  (
+                                  {formatAmount(
+                                    convertToDisplayCurrency(
+                                      transaction.amount,
+                                      transaction.currency
+                                    )
+                                  )}{" "}
+                                  {displayCurrency})
+                                </span>
+                              )}
                           </div>
 
                           <div className="flex items-center gap-1">
-                            <span className={`${isMobileView ? "hidden" : "opacity-0 group-hover:opacity-100"} transition-opacity text-xs text-gray-500`}>
+                            <span
+                              className={`${isMobileView ? "hidden" : "opacity-0 group-hover:opacity-100"} transition-opacity text-xs text-gray-500`}
+                            >
                               View Details
                             </span>
                             <ChevronRight size={16} className="text-gray-400" />

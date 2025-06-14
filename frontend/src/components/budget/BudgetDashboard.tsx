@@ -6,17 +6,11 @@ import {
   RefreshCw,
   Plus,
   Filter,
-  TrendingUp,
   BarChart3,
   AlertTriangle,
-  CheckCircle,
-  Calendar,
   Search,
   X,
-  PieChart as PieChartIcon,
   Receipt,
-  ArrowUpDown,
-  Clock,
   Brain,
   Loader2,
   Tag,
@@ -60,7 +54,6 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
   placeholder,
   onSearch,
   suggestions,
-  variant,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
@@ -161,7 +154,6 @@ const SearchWithSuggestions: React.FC<SearchWithSuggestionsProps> = ({
 const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   budgets,
   categories,
-  deletedBudgets,
   onSuccess,
 }) => {
   const { token } = useAuth();

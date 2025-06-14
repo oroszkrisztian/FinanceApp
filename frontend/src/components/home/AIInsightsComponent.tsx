@@ -39,7 +39,6 @@ const AIInsightsComponent: React.FC<AIInsightsComponentProps> = ({
   futureOutgoingPayments,
   futureIncomingPayments,
   budgets,
-  isSmallScreen = false,
 }) => {
   const [isMobileView, setIsMobileView] = useState(false);
   const [chat, setChat] = useState<

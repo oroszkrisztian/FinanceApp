@@ -205,7 +205,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  const [, setIsClosing] = useState(false);
 
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
@@ -218,7 +218,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
   const [aiSuggestionsError, setAiSuggestionsError] = useState<string | null>(null);
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
-  const [suggestionsAccepted, setSuggestionsAccepted] = useState(false);
+  const [, setSuggestionsAccepted] = useState(false);
   const [hasTriggeredSuggestions, setHasTriggeredSuggestions] = useState(false);
   const [creatingCategories, setCreatingCategories] = useState<string[]>([]);
 
@@ -234,7 +234,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
 
   const [rates, setRates] = useState<ExchangeRates>({});
-  const [ratesError, setRatesError] = useState<string | null>(null);
+  const [, setRatesError] = useState<string | null>(null);
   const [fetchingRates, setFetchingRates] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const currencyRef = useRef<HTMLDivElement>(null);

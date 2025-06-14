@@ -2,15 +2,12 @@ import React, { useState, useEffect } from "react";
 import { Menu, ConfigProvider, theme } from "antd";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { Calculator } from "lucide-react";
 import {
   DashboardOutlined,
   WalletOutlined,
   LogoutOutlined,
   BankOutlined,
-  SettingOutlined,
   TransactionOutlined,
-  PieChartOutlined,
   CalculatorOutlined
 } from "@ant-design/icons";
 import type { MenuProps } from "antd";
@@ -19,7 +16,7 @@ type MenuItem = Required<MenuProps>["items"][number];
 
 interface SideBarProps {
   collapsed: boolean;
-  onItemClick?: () => void; // New prop to handle click events
+  onItemClick?: () => void; 
 }
 
 const SideBar: React.FC<SideBarProps> = ({ collapsed, onItemClick }) => {

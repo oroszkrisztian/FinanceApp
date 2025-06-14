@@ -13,7 +13,6 @@ import {
   Wallet,
   CheckCircle,
 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
 import { CustomCategory } from "../../interfaces/CustomCategory";
 
 import { createUserBudgetWithCategories } from "../../services/budgetService";

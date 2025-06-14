@@ -1,6 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "../context/AuthContext";
 import { getAllBudgets } from "../services/budgetService";
 import { Budget as BudgetType } from "../interfaces/Budget";
 import { CustomCategory } from "../interfaces/CustomCategory";

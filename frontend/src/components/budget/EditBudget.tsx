@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { Budget } from "../../interfaces/Budget";
 import { CustomCategory } from "../../interfaces/CustomCategory";
-import { useAuth } from "../../context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, AlertCircle, Search, ChevronDown, Edit, DollarSign, Tag, TrendingUp } from "lucide-react";
 
@@ -30,7 +29,6 @@ const EditBudget: React.FC<EditBudgetProps> = ({
   budget,
   categories,
   onSuccess,
-  color,
 }) => {
   const [name, setName] = useState(budget.name);
   const [limitAmount, setLimitAmount] = useState(budget.limitAmount.toString());

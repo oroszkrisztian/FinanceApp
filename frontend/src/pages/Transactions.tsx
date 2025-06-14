@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { getUserAllTransactions } from "../services/transactionService";
-import { useAuth } from "../context/AuthContext";
 import { Transaction } from "../interfaces/Transaction";
-import { TransactionType, AccountType } from "../interfaces/enums";
+import { AccountType } from "../interfaces/enums";
 import { motion } from "framer-motion";
 import {
   ArrowUp,
   ArrowDown,
   ArrowLeftRight,
-  Loader2,
-  CreditCard,
   Plus,
 } from "lucide-react";
 
@@ -21,7 +18,6 @@ import { getAllBudgets } from "../services/budgetService";
 import CreateExpensePopup from "../components/transactions/CreateExpensePopup";
 import AddIncomePopup from "../components/transactions/AddIncomePopup";
 import TransferDefaultAccounts from "../components/transactions/TransferDefaultAccounts";
-import TransactionDetailsPopup from "../components/transactions/transactionsHistory/TransactionDetailsPopup";
 import IncomeTransactionsSection from "../components/transactions/IncomeTransactionsSection";
 import ExpenseTransactions from "../components/transactions/ExpenseTransactions";
 import TransferTransactions from "../components/transactions/TransferTransactions";
@@ -45,19 +41,18 @@ const Transactions: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [accountsLoading, setAccountsLoading] = useState(true);
 
-  // Exchange rates
   const [rates, setRates] = useState<ExchangeRates>({});
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [fetchingRates, setFetchingRates] = useState(false);
 
-  // Modals
+  
   const [isCreateExpenseModalOpen, setIsCreateExpenseModalOpen] =
     useState(false);
   const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] =
+  const [, setSelectedTransaction] =
     useState<Transaction | null>(null);
-  const [isTransactionDetailsOpen, setIsTransactionDetailsOpen] =
+  const [, setIsTransactionDetailsOpen] =
     useState(false);
   const [currentIncomePopupStep, setCurrentIncomePopupStep] = useState(1);
 

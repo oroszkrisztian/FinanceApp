@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   X,
   ArrowRight,
@@ -226,7 +226,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [isClosing, setIsClosing] = useState(false);
+  const [, setIsClosing] = useState(false);
 
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
   const [categorySearchTerm, setCategorySearchTerm] = useState("");
@@ -245,12 +245,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     null
   );
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
-  const [suggestionsAccepted, setSuggestionsAccepted] = useState(false);
+  const [, setSuggestionsAccepted] = useState(false);
   const [hasTriggeredSuggestions, setHasTriggeredSuggestions] = useState(false);
   const [creatingCategories, setCreatingCategories] = useState<string[]>([]);
 
   const [rates, setRates] = useState<ExchangeRates>({});
-  const [ratesError, setRatesError] = useState<string | null>(null);
+  const [, setRatesError] = useState<string | null>(null);
   const [fetchingRates, setFetchingRates] = useState(false);
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
   const currencyRef = useRef<HTMLDivElement>(null);

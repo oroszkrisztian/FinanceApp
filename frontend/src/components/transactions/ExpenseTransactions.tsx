@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
-  ArrowDown,
   Tag,
   ChevronRight,
   RefreshCw,
@@ -10,8 +9,6 @@ import {
   ChevronDown,
   Filter,
   Plus,
-  Clock,
-  CreditCard,
 } from "lucide-react";
 
 import CreateExpensePopup from "./CreateExpensePopup";
@@ -43,11 +40,9 @@ interface ExpenseTransactionsProps {
 }
 
 const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
-  isSmallScreen,
   transactions,
   accounts,
   categories,
-  budgets,
   onTransactionCreated,
   onCategoryCreated,
   accountsLoading = false,

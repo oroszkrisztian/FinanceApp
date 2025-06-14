@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import ErrorState from "../ErrorState";
 import { TransactionType } from "../../interfaces/enums";
-import { useAuth } from "../../context/AuthContext";
 import { fetchDefaultAccounts } from "../../services/accountService";
 import { Account } from "../../interfaces/Account";
 import { addFundsSaving } from "../../services/transactionService";
@@ -40,7 +39,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
     string | null
   >(null);
   const [isClosing, setIsClosing] = useState(false);
-  const [displayCurrency, setDisplayCurrency] = useState<string | null>(null);
+  const [, setDisplayCurrency] = useState<string | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
   const [showAccountDropdown, setShowAccountDropdown] =
     useState<boolean>(false);

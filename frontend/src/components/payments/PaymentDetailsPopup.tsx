@@ -7,7 +7,6 @@ import {
   Tag,
   Bell,
   Zap,
-  User,
   CreditCard,
   Edit,
   Trash2,
@@ -256,7 +255,9 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
 
               {/* Settings */}
               <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-gray-800">Settings</h3>
+                <h3 className="text-sm font-semibold text-gray-800">
+                  Settings
+                </h3>
                 <div
                   className={`flex items-center justify-between p-2 ${theme.bgLight} border ${theme.border} rounded-lg shadow-sm`}
                 >

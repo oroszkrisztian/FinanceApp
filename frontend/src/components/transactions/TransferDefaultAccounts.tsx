@@ -10,7 +10,6 @@ import {
   ExchangeRates,
 } from "../../services/exchangeRateService";
 import { transferFundsDefault } from "../../services/transactionService";
-import { useAuth } from "../../context/AuthContext";
 
 interface TransferDefaultAccountsProps {
   onClose: () => void;
@@ -131,8 +130,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   accountsLoading,
   onSuccess,
   rates,
-  ratesError,
-  fetchingRates,
 }) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
@@ -142,7 +139,7 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   const [fromAccountSearchTerm, setFromAccountSearchTerm] = useState("");
   const [toAccountSearchTerm, setToAccountSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
+  const [, setIsClosing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState<{

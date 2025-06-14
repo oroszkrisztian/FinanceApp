@@ -17,9 +17,6 @@ interface ActiveSavingCardProps {
 
 const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
   account,
-  index,
-  activeMenu,
-  setActiveMenu,
   onAddFunds,
   onTransfer,
   onEdit,

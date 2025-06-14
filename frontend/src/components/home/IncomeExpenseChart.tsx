@@ -27,9 +27,8 @@ import {
   convertAmount,
   validateCurrencyConversion,
 } from "../../services/exchangeRateService";
-import { CurrencyType, AccountType } from "../../interfaces/enums";
+import { CurrencyType } from "../../interfaces/enums";
 import { fetchAllAccounts } from "../../services/accountService";
-import { useAuth } from "../../context/AuthContext";
 import TransactionDetailsModal from "./TransactionDetailsModal";
 
 interface BalanceHistoryEntry {
@@ -101,7 +100,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   futureOutgoingPayments,
   futureIncomingPayments,
   displayCurrency: initialDisplayCurrency,
-  isSmallScreen = false,
   onAccountsUpdate,
 }) => {
   const [selectedRange, setSelectedRange] =
@@ -842,7 +840,7 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     accountsLoading,
   ]);
 
-  const CustomTooltip = ({ active, payload, label }: any) => {
+  const CustomTooltip = ({ active, payload }: any) => {
     if (!active || !payload || !payload.length) return null;
 
     const data = payload[0].payload;

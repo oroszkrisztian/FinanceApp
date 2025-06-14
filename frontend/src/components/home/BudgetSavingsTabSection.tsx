@@ -21,7 +21,6 @@ interface BudgetSavingsTabSectionProps {
 const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
   accounts,
   budgets,
-  transactions,
   displayCurrency: initialDisplayCurrency,
 }) => {
   const [activeTab, setActiveTab] = useState<"budgets" | "savings">("budgets");
@@ -706,7 +705,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       .sort(
                         (a, b) => b.progressPercentage - a.progressPercentage
                       )
-                      .map((budget, index) => {
+                      .map((budget) => {
                         const originalSpent = budget.spent;
                         const originalLimit = budget.limitAmount || 0;
                         const originalCurrency =
@@ -865,7 +864,7 @@ const BudgetSavingsTabSection: React.FC<BudgetSavingsTabSectionProps> = ({
                       .sort(
                         (a, b) => b.progressPercentage - a.progressPercentage
                       )
-                      .map((account, index) => {
+                      .map((account) => {
                         const originalSaved = account.amount || 0;
                         const originalGoal =
                           account.savingAccount?.targetAmount || 0;

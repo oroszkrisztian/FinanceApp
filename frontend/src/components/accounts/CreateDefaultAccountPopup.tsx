@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
-import { useAuth } from "../../context/AuthContext";
 import { createDefaultAccount } from "../../services/accountService";
 import {
   fetchExchangeRates,
