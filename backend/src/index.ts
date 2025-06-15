@@ -25,6 +25,7 @@ app.use(
       "http://localhost:5173",
       "http://127.0.0.1:5173",
       "https://finance-app-frontend-bice.vercel.app",
+      "https://finance-app-frontend-ebyddx0p1-oroszkrisztians-projects.vercel.app",
     ],
     allowMethods: ["POST", "GET", "DELETE", "PUT", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
