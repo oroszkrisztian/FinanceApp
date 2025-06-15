@@ -105,43 +105,57 @@ app.get("/test-gemini", async (c) => {
         }, 500);
     }
 });
-const retryWithBackoff = async (fn, maxRetries = 3, baseDelay = 1000) => {
-    let lastError;
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
-        try {
-            console.log(`📧 Daily notification attempt ${attempt}/${maxRetries}`);
-            return await fn();
-        }
-        catch (error) {
-            lastError = error;
-            const errorMessage = error instanceof Error ? error.message : String(error);
-            const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-            const isRetryableError = errorMessage.includes('timeout') ||
-                errorMessage.includes('ECONNRESET') ||
-                errorMessage.includes('ENOTFOUND') ||
-                errorMessage.includes('cold start') ||
-                errorCode === 'ECONNREFUSED' ||
-                errorCode === 'ETIMEDOUT';
-            if (attempt === maxRetries || !isRetryableError) {
-                console.error(`❌ Attempt ${attempt} failed (final):`, errorMessage);
-                throw lastError;
-            }
-            const delay = baseDelay * Math.pow(2, attempt - 1);
-            console.warn(`⚠️ Attempt ${attempt} failed, retrying in ${delay}ms:`, errorMessage);
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
+// Add this warmup endpoint (simple approach)
+app.get("/warmup", (c) => {
+    console.log("🔥 Server warmup request");
+    return c.json({
+        status: "warmed",
+        timestamp: new Date().toISOString(),
+        message: "Server is now warm and ready"
+    });
+});
+// Or add this more comprehensive warmup that preloads services
+app.get("/warmup-full", async (c) => {
+    const startTime = Date.now();
+    try {
+        console.log("🔥 Full server warmup started");
+        // Preload the notification service to warm up imports and connections
+        const { default: ExpenseNotificationService } = await Promise.resolve().then(() => __importStar(require("./services/expenseNotificationService")));
+        const notificationService = new ExpenseNotificationService(process.env.BREVO_API_KEY, process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com", process.env.BREVO_SENDER_NAME || "Your Finance App");
+        // Test connection to ensure everything is ready
+        const { default: BrevoEmailService } = await Promise.resolve().then(() => __importStar(require("./services/brevoService")));
+        const brevoService = new BrevoEmailService(process.env.BREVO_API_KEY);
+        await brevoService.testConnection();
+        const duration = Date.now() - startTime;
+        console.log(`✅ Full warmup completed in ${duration}ms`);
+        return c.json({
+            status: "fully-warmed",
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString(),
+            message: "Server and all services are warm and ready"
+        });
     }
-    throw lastError;
-};
+    catch (error) {
+        const duration = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.warn(`⚠️ Warmup had issues but server is still warming: ${errorMessage}`);
+        return c.json({
+            status: "partially-warmed",
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString(),
+            message: "Server is warm but some services may need extra time",
+            warning: errorMessage
+        });
+    }
+});
+// Simplified daily notifications endpoint (remove retry mechanism)
 app.post("/cron/daily-notifications", async (c) => {
     const startTime = Date.now();
     try {
         console.log("📧 Daily notification endpoint triggered");
-        const result = await retryWithBackoff(async () => {
-            const { default: ExpenseNotificationService } = await Promise.resolve().then(() => __importStar(require("./services/expenseNotificationService")));
-            const notificationService = new ExpenseNotificationService(process.env.BREVO_API_KEY, process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com", process.env.BREVO_SENDER_NAME || "Your Finance App");
-            return await notificationService.sendDailyScheduledNotifications();
-        }, 3, 2000);
+        const { default: ExpenseNotificationService } = await Promise.resolve().then(() => __importStar(require("./services/expenseNotificationService")));
+        const notificationService = new ExpenseNotificationService(process.env.BREVO_API_KEY, process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com", process.env.BREVO_SENDER_NAME || "Your Finance App");
+        const result = await notificationService.sendDailyScheduledNotifications();
         const duration = Date.now() - startTime;
         console.log(`✅ Daily notifications completed in ${duration}ms:`, result);
         return c.json({
@@ -154,11 +168,12 @@ app.post("/cron/daily-notifications", async (c) => {
     }
     catch (error) {
         const duration = Date.now() - startTime;
-        console.error(`❌ Daily notification endpoint failed after ${duration}ms:`, error);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Daily notification endpoint failed after ${duration}ms:`, errorMessage);
         return c.json({
             success: false,
-            error: "Failed to send daily notifications after retries",
-            details: error instanceof Error ? error.message : "Unknown error",
+            error: "Failed to send daily notifications",
+            details: errorMessage,
             duration: `${duration}ms`,
             timestamp: new Date().toISOString(),
         }, 500);
