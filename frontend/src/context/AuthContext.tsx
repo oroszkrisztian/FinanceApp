@@ -8,13 +8,12 @@ interface TokenPayload {
 }
 
 interface AuthContextType {
-  userId: number | null;
-  username: string | null;
   isAuthenticated: boolean;
   token: string | null;
   login: (token: string, remember?: boolean) => void;
   logout: () => void;
   checkAndRefreshToken: () => Promise<boolean>;
+  decodeToken: () => TokenPayload | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,24 +44,11 @@ const isTokenExpired = (token: string): boolean => {
 
 const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [token, setToken] = useState<string | null>(null);
-  const [userId, setUserId] = useState<number | null>(null);
-  const [username, setUsername] = useState<string | null>(null);
 
   const clearAuth = () => {
     setToken(null);
-    setUserId(null);
-    setUsername(null);
     localStorage.removeItem('token');
     sessionStorage.removeItem('token');
-  };
-
-  const setAuthData = (newToken: string) => {
-    const payload = decodeToken(newToken);
-    setToken(newToken);
-    if (payload) {
-      setUserId(payload.userId);
-      setUsername(payload.username);
-    }
   };
 
   const checkAndRefreshToken = async (): Promise<boolean> => {
@@ -74,7 +60,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
 
     if (!isTokenExpired(storedToken)) {
       if (!token) {
-        setAuthData(storedToken);
+        setToken(storedToken);
       }
       return true;
     }
@@ -94,7 +80,7 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
       const data = await response.json();
       const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
       storage.setItem('token', data.token);
-      setAuthData(data.token);
+      setToken(data.token);
       return true;
     } catch (error) {
       console.error('Token refresh failed:', error);
@@ -113,23 +99,26 @@ const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => 
     
     otherStorage.removeItem('token');
     storage.setItem('token', newToken);
-    setAuthData(newToken);
+    setToken(newToken);
   };
 
   const logout = () => {
     clearAuth();
   };
 
-  const isAuthenticated = !!token && !!userId && !isTokenExpired(token);
+  const getDecodedToken = (): TokenPayload | null => {
+    return token ? decodeToken(token) : null;
+  };
+
+  const isAuthenticated = !!token && !isTokenExpired(token);
 
   const value = {
-    userId,
-    username,
     isAuthenticated,
     token,
     login,
     logout,
-    checkAndRefreshToken
+    checkAndRefreshToken,
+    decodeToken: getDecodedToken
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
