@@ -17,7 +17,6 @@ import "dotenv/config";
 const app = new Hono();
 const port = parseInt(process.env.PORT || "3000");
 
-// Middleware
 app.use(
   "*",
   cors({
@@ -26,6 +25,7 @@ app.use(
       "http://127.0.0.1:5173",
       "https://finance-app-frontend-bice.vercel.app",
       "https://finance-app-frontend-ebyddx0p1-oroszkrisztians-projects.vercel.app",
+      "https://backendfinanceapp.krisztianorosz0.workers.dev"
     ],
     allowMethods: ["POST", "GET", "DELETE", "PUT", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -80,37 +80,81 @@ app.get("/test-gemini", async (c) => {
   }
 });
 
+const retryWithBackoff = async <T>(fn: () => Promise<T>, maxRetries = 3, baseDelay = 1000): Promise<T> => {
+  let lastError: unknown;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`📧 Daily notification attempt ${attempt}/${maxRetries}`);
+      return await fn();
+    } catch (error: unknown) {
+      lastError = error;
+      
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorCode = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+      
+      const isRetryableError = 
+        errorMessage.includes('timeout') ||
+        errorMessage.includes('ECONNRESET') ||
+        errorMessage.includes('ENOTFOUND') ||
+        errorMessage.includes('cold start') ||
+        errorCode === 'ECONNREFUSED' ||
+        errorCode === 'ETIMEDOUT';
+
+      if (attempt === maxRetries || !isRetryableError) {
+        console.error(`❌ Attempt ${attempt} failed (final):`, errorMessage);
+        throw lastError;
+      }
+
+      const delay = baseDelay * Math.pow(2, attempt - 1); 
+      console.warn(`⚠️ Attempt ${attempt} failed, retrying in ${delay}ms:`, errorMessage);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw lastError;
+};
 app.post("/cron/daily-notifications", async (c) => {
+  const startTime = Date.now();
+  
   try {
     console.log("📧 Daily notification endpoint triggered");
 
-    const { default: ExpenseNotificationService } = await import("./services/expenseNotificationService");
-    const notificationService = new ExpenseNotificationService(
-      process.env.BREVO_API_KEY!,
-      process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com",
-      process.env.BREVO_SENDER_NAME || "Your Finance App"
-    );
+    const result = await retryWithBackoff(async () => {
+      const { default: ExpenseNotificationService } = await import("./services/expenseNotificationService");
+      const notificationService = new ExpenseNotificationService(
+        process.env.BREVO_API_KEY!,
+        process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com",
+        process.env.BREVO_SENDER_NAME || "Your Finance App"
+      );
 
-    const result = await notificationService.sendDailyScheduledNotifications();
+      return await notificationService.sendDailyScheduledNotifications();
+    }, 3, 2000); 
 
-    console.log("✅ Daily notifications completed:", result);
+    const duration = Date.now() - startTime;
+    console.log(`✅ Daily notifications completed in ${duration}ms:`, result);
 
     return c.json({
       success: true,
       message: "Daily notifications sent successfully",
       result,
+      duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error("❌ Daily notification endpoint failed:", error);
+    const duration = Date.now() - startTime;
+    console.error(`❌ Daily notification endpoint failed after ${duration}ms:`, error);
+    
     return c.json({
       success: false,
-      error: "Failed to send daily notifications",
+      error: "Failed to send daily notifications after retries",
       details: error instanceof Error ? error.message : "Unknown error",
+      duration: `${duration}ms`,
       timestamp: new Date().toISOString(),
     }, 500);
   }
 });
+
 
 app.get("/test-brevo", async (c) => {
   try {
@@ -159,7 +203,6 @@ app.get("/exchange-rates", async (c) => {
 
 app.get("/", (c) => c.text("Server is running"));
 
-// Start the server
 console.log(`Server is running on port ${port}`);
 
 if (process.env.GEMINI_API_KEY) {
@@ -173,13 +216,13 @@ serve({
   port,
 });
 
-// Graceful shutdown handling
 const gracefulShutdown = () => {
   console.log("\n🛑 Shutting down server...");
   process.exit(0);
 };
 
-// Handle different shutdown signals
+
+
 process.on("SIGINT", gracefulShutdown);
 process.on("SIGTERM", gracefulShutdown);
 process.on("SIGQUIT", gracefulShutdown);
