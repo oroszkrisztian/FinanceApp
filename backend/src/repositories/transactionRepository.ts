@@ -9,6 +9,8 @@ import { parseStringPromise } from "xml2js";
 
 export class TransactionRepository {
   private prisma: PrismaClient;
+  private exchangeRatesCache: { rates: any, timestamp: number } | null = null;
+  private readonly CACHE_DURATION = 5 * 60 * 1000;
 
   constructor() {
     this.prisma = new PrismaClient();
@@ -38,10 +40,6 @@ export class TransactionRepository {
         description,
       },
     });
-
-    console.log(
-      `Balance change recorded for account ${accountId}: ${previousBalance} -> ${newBalance} (${amountChanged >= 0 ? "+" : ""}${amountChanged})`
-    );
   }
 
   private async updateAccountBalance(
@@ -67,33 +65,39 @@ export class TransactionRepository {
       ? previousBalance + amount
       : previousBalance - amount;
 
-    await prisma.account.update({
-      where: { id: accountId },
-      data: {
-        amount: isIncrement ? { increment: amount } : { decrement: amount },
-      },
-    });
-
-    await this.recordBalanceChange(
-      prisma,
-      accountId,
-      transactionId,
-      previousBalance,
-      newBalance,
-      changeType,
-      account.currency,
-      description
-    );
+    await Promise.all([
+      prisma.account.update({
+        where: { id: accountId },
+        data: {
+          amount: isIncrement ? { increment: amount } : { decrement: amount },
+        },
+      }),
+      this.recordBalanceChange(
+        prisma,
+        accountId,
+        transactionId,
+        previousBalance,
+        newBalance,
+        changeType,
+        account.currency,
+        description
+      )
+    ]);
 
     return { previousBalance, newBalance };
   }
 
   async getUserAllTransactions(userId: number) {
-    const allTransactions = await this.prisma.transaction.findMany({
-      where: {
-        userId: userId,
-      },
-      include: {
+    return await this.prisma.transaction.findMany({
+      where: { userId },
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        amount: true,
+        type: true,
+        currency: true,
+        createdAt: true,
         transactionCategories: {
           select: {
             customCategoryId: true,
@@ -120,27 +124,19 @@ export class TransactionRepository {
             currency: true,
           },
         },
-        
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
     });
-
-    return allTransactions;
   }
 
-  async getAccountBalanceHistory(
-    accountId: number,
-    userId: number,
-    limit?: number
-  ) {
+  async getAccountBalanceHistory(accountId: number, userId: number, limit?: number) {
     const account = await this.prisma.account.findFirst({
       where: {
         id: accountId,
         userId: userId,
         deletedAt: null,
       },
+      select: { id: true },
     });
 
     if (!account) {
@@ -148,9 +144,7 @@ export class TransactionRepository {
     }
 
     return await this.prisma.accountBalanceHistory.findMany({
-      where: {
-        accountId: accountId,
-      },
+      where: { accountId },
       include: {
         transaction: {
           select: {
@@ -161,61 +155,48 @@ export class TransactionRepository {
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
   }
 
   async getExchangeRates() {
+    const now = Date.now();
+    
+    if (this.exchangeRatesCache && 
+        (now - this.exchangeRatesCache.timestamp) < this.CACHE_DURATION) {
+      return this.exchangeRatesCache.rates;
+    }
+
     try {
-      const rates: { [key: string]: number } = {};
-
-      rates["RON"] = 1;
-
+      const rates: { [key: string]: number } = { "RON": 1 };
       const response = await axios.get("https://financeapp-bg0k.onrender.com/exchange-rates");
-      const xmlText = response.data;
-
-      const result = await parseStringPromise(xmlText, {
+      const result = await parseStringPromise(response.data, {
         explicitArray: false,
         mergeAttrs: false,
       });
 
-      if (
-        result &&
-        result.DataSet &&
-        result.DataSet.Body &&
-        result.DataSet.Body.Cube &&
-        result.DataSet.Body.Cube.Rate
-      ) {
+      if (result?.DataSet?.Body?.Cube?.Rate) {
         const rateElements = Array.isArray(result.DataSet.Body.Cube.Rate)
           ? result.DataSet.Body.Cube.Rate
           : [result.DataSet.Body.Cube.Rate];
 
         for (const rate of rateElements) {
-          if (rate && rate.$ && rate.$.currency) {
+          if (rate?.$?.currency) {
             const currency = rate.$.currency;
-            const multiplier = rate.$.multiplier
-              ? parseInt(rate.$.multiplier)
-              : 1;
+            const multiplier = rate.$.multiplier ? parseInt(rate.$.multiplier) : 1;
             const value = parseFloat(rate._);
 
             if (currency && !isNaN(value)) {
-              if (multiplier > 1) {
-                rates[currency] = value / multiplier;
-              } else {
-                rates[currency] = value;
-              }
+              rates[currency] = multiplier > 1 ? value / multiplier : value;
             }
           }
         }
       }
 
-      console.log("Exchange rates fetched:", rates);
+      this.exchangeRatesCache = { rates, timestamp: now };
       return rates;
     } catch (error) {
-      console.error("Error fetching exchange rates:", error);
       throw new Error("Failed to fetch exchange rates");
     }
   }
@@ -230,27 +211,35 @@ export class TransactionRepository {
     customCategoriesId: number[] | null,
     currency: CurrencyType
   ) {
-    console.log("Sent account id ", toAccountId);
     const defaultAccount = await this.prisma.account.findFirst({
       where: {
         id: toAccountId,
         userId: userId,
         deletedAt: null,
       },
+      select: { id: true },
     });
 
     if (!defaultAccount) {
       throw new Error("No default account found for the user");
     }
 
-    console.log(
-      "Adding funds to default account:",
-      toAccountId,
-      "amount:",
-      amount,
-      "currency:",
-      currency
-    );
+    let validatedCategoryIds: number[] = [];
+    if (customCategoriesId?.length) {
+      const validCategories = await this.prisma.customCategory.findMany({
+        where: {
+          id: { in: customCategoriesId },
+          OR: [{ userId: userId }, { type: "SYSTEM" }],
+          deletedAt: null,
+        },
+        select: { id: true },
+      });
+
+      if (validCategories.length !== customCategoriesId.length) {
+        throw new Error("One or more categories are invalid or don't belong to the user");
+      }
+      validatedCategoryIds = validCategories.map(cat => cat.id);
+    }
 
     return await this.prisma.$transaction(async (prisma) => {
       const transaction = await prisma.transaction.create({
@@ -263,10 +252,7 @@ export class TransactionRepository {
           toAccountId: defaultAccount.id,
           currency: currency,
         },
-        include: {
-          toAccount: true,
-          budget: true,
-        },
+        select: { id: true },
       });
 
       await this.updateAccountBalance(
@@ -279,31 +265,23 @@ export class TransactionRepository {
         `Income: ${name || "Funds added"}`
       );
 
-      if (customCategoriesId && customCategoriesId.length > 0) {
-        const validCategories = await prisma.customCategory.findMany({
-          where: {
-            id: { in: customCategoriesId },
-            OR: [{ userId: userId }, { type: "SYSTEM" }],
-            deletedAt: null,
-          },
-        });
-
-        if (validCategories.length !== customCategoriesId.length) {
-          throw new Error(
-            "One or more categories are invalid or don't belong to the user"
-          );
-        }
-
+      if (validatedCategoryIds.length > 0) {
         await prisma.transactionCategory.createMany({
-          data: customCategoriesId.map((categoryId) => ({
+          data: validatedCategoryIds.map((categoryId) => ({
             transactionId: transaction.id,
             customCategoryId: categoryId,
           })),
         });
       }
 
-      return transaction;
-    });
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
+        include: {
+          toAccount: true,
+          budget: true,
+        },
+      });
+    }, { timeout: 15000 });
   }
 
   async addFundsSaving(
@@ -314,55 +292,32 @@ export class TransactionRepository {
     type: TransactionType,
     currency: CurrencyType
   ) {
-    const fromAccount = await this.prisma.account.findFirst({
-      where: {
-        id: fromAccountId,
-        userId,
-        deletedAt: null,
-      },
-    });
+    const [fromAccount, toAccount, rates] = await Promise.all([
+      this.prisma.account.findFirst({
+        where: { id: fromAccountId, userId, deletedAt: null },
+        select: { amount: true, currency: true },
+      }),
+      this.prisma.account.findFirst({
+        where: { id: toSavingId, userId, type: "SAVINGS", deletedAt: null },
+        include: { savingAccount: true },
+      }),
+      this.getExchangeRates()
+    ]);
 
     if (!fromAccount) {
       throw new Error("Source account not found or doesn't belong to the user");
     }
 
-    const toAccount = await this.prisma.account.findFirst({
-      where: {
-        id: toSavingId,
-        userId,
-        type: "SAVINGS",
-        deletedAt: null,
-      },
-      include: {
-        savingAccount: true,
-      },
-    });
-
     if (!toAccount) {
-      throw new Error(
-        "Savings account not found or doesn't belong to the user"
-      );
+      throw new Error("Savings account not found or doesn't belong to the user");
     }
 
     let amountToWithdraw = amount;
-
     if (fromAccount.currency !== currency) {
-      const rates = await this.getExchangeRates();
-
-      if (!rates[fromAccount.currency]) {
-        throw new Error(`Exchange rate for ${fromAccount.currency} not found`);
+      if (!rates[fromAccount.currency] || !rates[currency]) {
+        throw new Error(`Exchange rate not found for conversion between ${currency} and ${fromAccount.currency}`);
       }
-
-      if (!rates[currency]) {
-        throw new Error(`Exchange rate for ${currency} not found`);
-      }
-
-      amountToWithdraw =
-        amount * (rates[currency] / rates[fromAccount.currency]);
-
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`
-      );
+      amountToWithdraw = amount * (rates[currency] / rates[fromAccount.currency]);
     }
 
     if (fromAccount.amount < amountToWithdraw) {
@@ -381,50 +336,49 @@ export class TransactionRepository {
           toAccountId: toSavingId,
           currency,
         },
+        select: { id: true },
+      });
+
+      await Promise.all([
+        this.updateAccountBalance(
+          prisma,
+          fromAccountId,
+          amountToWithdraw,
+          false,
+          transaction.id,
+          BalanceChangeType.TRANSACTION_TRANSFER_OUT,
+          `Transfer to savings account`
+        ),
+        this.updateAccountBalance(
+          prisma,
+          toSavingId,
+          amount,
+          true,
+          transaction.id,
+          BalanceChangeType.TRANSACTION_TRANSFER_IN,
+          `Transfer from main account`
+        )
+      ]);
+
+      if (toAccount.savingAccount && !toAccount.savingAccount.isCompleted) {
+        const updatedAmount = toAccount.amount + amount;
+        if (updatedAmount >= toAccount.savingAccount.targetAmount) {
+          await prisma.savingAccount.update({
+            where: { id: toAccount.savingAccount.id },
+            data: { isCompleted: true },
+          });
+        }
+      }
+
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
         include: {
           fromAccount: true,
           toAccount: true,
           budget: true,
         },
       });
-
-      await this.updateAccountBalance(
-        prisma,
-        fromAccountId,
-        amountToWithdraw,
-        false,
-        transaction.id,
-        BalanceChangeType.TRANSACTION_TRANSFER_OUT,
-        `Transfer to savings account`
-      );
-
-      await this.updateAccountBalance(
-        prisma,
-        toSavingId,
-        amount,
-        true,
-        transaction.id,
-        BalanceChangeType.TRANSACTION_TRANSFER_IN,
-        `Transfer from main account`
-      );
-
-      if (toAccount.savingAccount && !toAccount.savingAccount.isCompleted) {
-        const updatedAmount = toAccount.amount + amount;
-
-        if (updatedAmount >= toAccount.savingAccount.targetAmount) {
-          await prisma.savingAccount.update({
-            where: {
-              id: toAccount.savingAccount.id,
-            },
-            data: {
-              isCompleted: true,
-            },
-          });
-        }
-      }
-
-      return transaction;
-    });
+    }, { timeout: 15000 });
   }
 
   async addFundsDefault(
@@ -435,54 +389,32 @@ export class TransactionRepository {
     type: TransactionType,
     currency: CurrencyType
   ) {
-    const fromAccount = await this.prisma.account.findFirst({
-      where: {
-        id: fromSavingId,
-        userId,
-        type: "SAVINGS",
-        deletedAt: null,
-      },
-      include: {
-        savingAccount: true,
-      },
-    });
+    const [fromAccount, toAccount, rates] = await Promise.all([
+      this.prisma.account.findFirst({
+        where: { id: fromSavingId, userId, type: "SAVINGS", deletedAt: null },
+        include: { savingAccount: true },
+      }),
+      this.prisma.account.findFirst({
+        where: { id: toAccountId, userId, deletedAt: null },
+        select: { id: true, currency: true },
+      }),
+      this.getExchangeRates()
+    ]);
 
     if (!fromAccount) {
-      throw new Error(
-        "Source savings account not found or doesn't belong to the user"
-      );
+      throw new Error("Source savings account not found or doesn't belong to the user");
     }
 
-    const toAccount = await this.prisma.account.findFirst({
-      where: {
-        id: toAccountId,
-        userId,
-        deletedAt: null,
-      },
-    });
-
     if (!toAccount) {
-      throw new Error(
-        "Destination account not found or doesn't belong to the user"
-      );
+      throw new Error("Destination account not found or doesn't belong to the user");
     }
 
     let amountToWithdraw = amount;
-
     if (fromAccount.currency !== currency) {
-      const rates = await this.getExchangeRates();
-      if (!rates[fromAccount.currency]) {
-        throw new Error(`Exchange rate for ${fromAccount.currency} not found`);
+      if (!rates[fromAccount.currency] || !rates[currency]) {
+        throw new Error(`Exchange rate not found for conversion between ${currency} and ${fromAccount.currency}`);
       }
-      if (!rates[currency]) {
-        throw new Error(`Exchange rate for ${currency} not found`);
-      }
-
-      amountToWithdraw =
-        amount * (rates[currency] / rates[fromAccount.currency]);
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency} for withdrawal`
-      );
+      amountToWithdraw = amount * (rates[currency] / rates[fromAccount.currency]);
     }
 
     if (fromAccount.amount < amountToWithdraw) {
@@ -501,37 +433,39 @@ export class TransactionRepository {
           toAccountId: toAccountId,
           currency,
         },
+        select: { id: true },
+      });
+
+      await Promise.all([
+        this.updateAccountBalance(
+          prisma,
+          fromSavingId,
+          amountToWithdraw,
+          false,
+          transaction.id,
+          BalanceChangeType.TRANSACTION_TRANSFER_OUT,
+          `Transfer from savings to main account`
+        ),
+        this.updateAccountBalance(
+          prisma,
+          toAccountId,
+          amount,
+          true,
+          transaction.id,
+          BalanceChangeType.TRANSACTION_TRANSFER_IN,
+          `Transfer from savings account`
+        )
+      ]);
+
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
         include: {
           fromAccount: true,
           toAccount: true,
           budget: true,
         },
       });
-
-      await this.updateAccountBalance(
-        prisma,
-        fromSavingId,
-        amountToWithdraw,
-        false,
-        transaction.id,
-        BalanceChangeType.TRANSACTION_TRANSFER_OUT,
-        `Transfer from savings to main account`
-      );
-
-      console.log("Adding funds to default account:", toAccountId);
-      console.log("amount:", amount);
-      await this.updateAccountBalance(
-        prisma,
-        toAccountId,
-        amount,
-        true,
-        transaction.id,
-        BalanceChangeType.TRANSACTION_TRANSFER_IN,
-        `Transfer from savings account`
-      );
-
-      return transaction;
-    });
+    }, { timeout: 15000 });
   }
 
   async createExpense(
@@ -543,26 +477,22 @@ export class TransactionRepository {
     description: string | null,
     customCategoriesId: number[] | null
   ) {
-    const account = await this.prisma.account.findFirst({
-      where: {
-        id: fromAccountId,
-        userId: userId,
-        deletedAt: null,
-      },
-    });
+    const [account, rates] = await Promise.all([
+      this.prisma.account.findFirst({
+        where: { id: fromAccountId, userId: userId, deletedAt: null },
+        select: { amount: true, currency: true },
+      }),
+      this.getExchangeRates()
+    ]);
 
     if (!account) {
       throw new Error("Account not found or doesn't belong to the user");
     }
 
     let amountToWithdraw = amount;
-    const rates = await this.getExchangeRates();
-
     if (account.currency !== currency) {
       if (!rates[account.currency] || !rates[currency]) {
-        throw new Error(
-          `Exchange rate not found for conversion between ${currency} and ${account.currency}`
-        );
+        throw new Error(`Exchange rate not found for conversion between ${currency} and ${account.currency}`);
       }
       amountToWithdraw = amount * (rates[currency] / rates[account.currency]);
     }
@@ -571,6 +501,45 @@ export class TransactionRepository {
       throw new Error(
         `Insufficient funds in account. Available: ${account.amount} ${account.currency}, Required: ${amountToWithdraw.toFixed(2)} ${account.currency}`
       );
+    }
+
+    let validatedCategoryIds: number[] = [];
+    let budgetUpdates: Array<{id: number, budgetAmount: number}> = [];
+
+    if (customCategoriesId?.length) {
+      const [validCategories, budgets] = await Promise.all([
+        this.prisma.customCategory.findMany({
+          where: {
+            id: { in: customCategoriesId },
+            OR: [{ userId: userId }, { type: "SYSTEM" }],
+            deletedAt: null,
+          },
+          select: { id: true },
+        }),
+        this.prisma.budget.findMany({
+          where: {
+            userId: userId,
+            deletedAt: null,
+            budgetCategories: {
+              some: { customCategoryId: { in: customCategoriesId } },
+            },
+          },
+          select: { id: true, currency: true },
+        })
+      ]);
+
+      if (validCategories.length !== customCategoriesId.length) {
+        throw new Error("One or more categories are invalid or don't belong to the user");
+      }
+
+      validatedCategoryIds = validCategories.map(cat => cat.id);
+      budgetUpdates = budgets.map(budget => {
+        let budgetAmount = amount;
+        if (currency !== budget.currency && rates[budget.currency]) {
+          budgetAmount = amount * (rates[currency] / rates[budget.currency]);
+        }
+        return { id: budget.id, budgetAmount };
+      });
     }
 
     return await this.prisma.$transaction(async (prisma) => {
@@ -584,9 +553,7 @@ export class TransactionRepository {
           amount: amount,
           currency: currency,
         },
-        include: {
-          fromAccount: true,
-        },
+        select: { id: true },
       });
 
       await this.updateAccountBalance(
@@ -599,62 +566,34 @@ export class TransactionRepository {
         `Expense: ${name}`
       );
 
-      if (customCategoriesId && customCategoriesId.length > 0) {
-        const validCategories = await prisma.customCategory.findMany({
-          where: {
-            id: { in: customCategoriesId },
-            OR: [{ userId: userId }, { type: "SYSTEM" }],
-            deletedAt: null,
-          },
-        });
-
-        if (validCategories.length !== customCategoriesId.length) {
-          throw new Error(
-            "One or more categories are invalid or don't belong to the user"
-          );
-        }
-
+      if (validatedCategoryIds.length > 0) {
         await prisma.transactionCategory.createMany({
-          data: customCategoriesId.map((categoryId) => ({
+          data: validatedCategoryIds.map((categoryId) => ({
             transactionId: transaction.id,
             customCategoryId: categoryId,
           })),
         });
-      }
 
-      if (customCategoriesId && customCategoriesId.length > 0) {
-        const budgets = await prisma.budget.findMany({
-          where: {
-            userId: userId,
-            deletedAt: null,
-            budgetCategories: {
-              some: {
-                customCategoryId: {
-                  in: customCategoriesId,
+        if (budgetUpdates.length > 0) {
+          await Promise.all(
+            budgetUpdates.map(({ id, budgetAmount }) =>
+              prisma.budget.update({
+                where: { id },
+                data: {
+                  currentSpent: { increment: budgetAmount },
+                  transactions: { connect: { id: transaction.id } },
                 },
-              },
-            },
-          },
-        });
-
-        for (const budget of budgets) {
-          let budgetAmount = amount;
-          if (currency !== budget.currency && rates[budget.currency]) {
-            budgetAmount = amount * (rates[currency] / rates[budget.currency]);
-          }
-
-          await prisma.budget.update({
-            where: { id: budget.id },
-            data: {
-              currentSpent: { increment: budgetAmount },
-              transactions: { connect: { id: transaction.id } },
-            },
-          });
+              })
+            )
+          );
         }
       }
 
-      return transaction;
-    });
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
+        include: { fromAccount: true },
+      });
+    }, { timeout: 15000 });
   }
 
   async transferFundsDefault(
@@ -665,30 +604,24 @@ export class TransactionRepository {
     type: TransactionType,
     currency: CurrencyType
   ) {
-    const fromAccount = await this.prisma.account.findFirst({
-      where: {
-        id: fromAccountId,
-        userId,
-        deletedAt: null,
-      },
-    });
+    const [fromAccount, toAccount, rates] = await Promise.all([
+      this.prisma.account.findFirst({
+        where: { id: fromAccountId, userId, deletedAt: null },
+        select: { amount: true, currency: true, name: true },
+      }),
+      this.prisma.account.findFirst({
+        where: { id: toAccountId, userId, deletedAt: null },
+        select: { currency: true, name: true },
+      }),
+      this.getExchangeRates()
+    ]);
 
     if (!fromAccount) {
       throw new Error("Source account not found or doesn't belong to the user");
     }
 
-    const toAccount = await this.prisma.account.findFirst({
-      where: {
-        id: toAccountId,
-        userId,
-        deletedAt: null,
-      },
-    });
-
     if (!toAccount) {
-      throw new Error(
-        "Destination account not found or doesn't belong to the user"
-      );
+      throw new Error("Destination account not found or doesn't belong to the user");
     }
 
     if (fromAccount.amount < amount) {
@@ -698,20 +631,11 @@ export class TransactionRepository {
     }
 
     let amountToDeposit = amount;
-
     if (toAccount.currency !== currency) {
-      const rates = await this.getExchangeRates();
-      if (!rates[toAccount.currency]) {
-        throw new Error(`Exchange rate for ${toAccount.currency} not found`);
+      if (!rates[toAccount.currency] || !rates[currency]) {
+        throw new Error(`Exchange rate not found for conversion between ${currency} and ${toAccount.currency}`);
       }
-      if (!rates[currency]) {
-        throw new Error(`Exchange rate for ${currency} not found`);
-      }
-
       amountToDeposit = amount * (rates[currency] / rates[toAccount.currency]);
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToDeposit.toFixed(2)} ${toAccount.currency} for deposit`
-      );
     }
 
     return await this.prisma.$transaction(async (prisma) => {
@@ -724,35 +648,39 @@ export class TransactionRepository {
           toAccountId: toAccountId,
           currency,
         },
+        select: { id: true },
+      });
+
+      await Promise.all([
+        this.updateAccountBalance(
+          prisma,
+          fromAccountId,
+          amount,
+          false,
+          transaction.id,
+          BalanceChangeType.TRANSACTION_TRANSFER_OUT,
+          `Transfer to account ${toAccount.name}`
+        ),
+        this.updateAccountBalance(
+          prisma,
+          toAccountId,
+          amountToDeposit,
+          true,
+          transaction.id,
+          BalanceChangeType.TRANSACTION_TRANSFER_IN,
+          `Transfer from account ${fromAccount.name}`
+        )
+      ]);
+
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
         include: {
           fromAccount: true,
           toAccount: true,
           budget: true,
         },
       });
-
-      await this.updateAccountBalance(
-        prisma,
-        fromAccountId,
-        amount,
-        false,
-        transaction.id,
-        BalanceChangeType.TRANSACTION_TRANSFER_OUT,
-        `Transfer to account ${toAccount.name}`
-      );
-
-      await this.updateAccountBalance(
-        prisma,
-        toAccountId,
-        amountToDeposit,
-        true,
-        transaction.id,
-        BalanceChangeType.TRANSACTION_TRANSFER_IN,
-        `Transfer from account ${fromAccount.name}`
-      );
-
-      return transaction;
-    });
+    }, { timeout: 15000 });
   }
 
   async executeRecurringPayment(
@@ -765,26 +693,22 @@ export class TransactionRepository {
     description: string | null,
     customCategoriesId: number[] | null
   ) {
-    const account = await this.prisma.account.findFirst({
-      where: {
-        id: fromAccountId,
-        userId: userId,
-        deletedAt: null,
-      },
-    });
+    const [account, rates] = await Promise.all([
+      this.prisma.account.findFirst({
+        where: { id: fromAccountId, userId: userId, deletedAt: null },
+        select: { amount: true, currency: true },
+      }),
+      this.getExchangeRates()
+    ]);
 
     if (!account) {
       throw new Error("Account not found or doesn't belong to the user");
     }
 
     let amountToWithdraw = amount;
-    const rates = await this.getExchangeRates();
-
     if (account.currency !== currency) {
       if (!rates[account.currency] || !rates[currency]) {
-        throw new Error(
-          `Exchange rate not found for conversion between ${currency} and ${account.currency}`
-        );
+        throw new Error(`Exchange rate not found for conversion between ${currency} and ${account.currency}`);
       }
       amountToWithdraw = amount * (rates[currency] / rates[account.currency]);
     }
@@ -793,6 +717,84 @@ export class TransactionRepository {
       throw new Error(
         `Insufficient funds in account. Available: ${account.amount} ${account.currency}, Required: ${amountToWithdraw.toFixed(2)} ${account.currency}`
       );
+    }
+
+    let validatedCategoryIds: number[] = [];
+    let budgetUpdates: Array<{id: number, budgetAmount: number}> = [];
+    
+    const [validCategories, budgets, payment] = await Promise.all([
+      customCategoriesId?.length ? this.prisma.customCategory.findMany({
+        where: {
+          id: { in: customCategoriesId },
+          OR: [{ userId: userId }, { type: "SYSTEM" }],
+          deletedAt: null,
+        },
+        select: { id: true },
+      }) : Promise.resolve([]),
+      customCategoriesId?.length ? this.prisma.budget.findMany({
+        where: {
+          userId: userId,
+          deletedAt: null,
+          budgetCategories: {
+            some: { customCategoryId: { in: customCategoriesId } },
+          },
+        },
+        select: { id: true, currency: true },
+      }) : Promise.resolve([]),
+      this.prisma.recurringFundAndBill.findUnique({
+        where: { id: paymentId },
+        select: { id: true, name: true, frequency: true, nextExecution: true },
+      })
+    ]);
+
+    if (customCategoriesId?.length && validCategories.length !== customCategoriesId.length) {
+      throw new Error("One or more categories are invalid or don't belong to the user");
+    }
+
+    if (validCategories.length > 0) {
+      validatedCategoryIds = validCategories.map(cat => cat.id);
+      budgetUpdates = budgets.map(budget => {
+        let budgetAmount = amount;
+        if (currency !== budget.currency && rates[budget.currency]) {
+          budgetAmount = amount * (rates[currency] / rates[budget.currency]);
+        }
+        return { id: budget.id, budgetAmount };
+      });
+    }
+
+    let nextExecutionUpdate: { nextExecution?: Date | null, deletedAt?: Date } = {};
+    if (payment) {
+      if (payment.frequency === "ONCE") {
+        nextExecutionUpdate = {
+          nextExecution: null,
+          deletedAt: new Date(),
+        };
+      } else {
+        const scheduledDate = payment.nextExecution || new Date();
+        let nextExecution = new Date(scheduledDate);
+
+        switch (payment.frequency) {
+          case "WEEKLY":
+            nextExecution.setDate(nextExecution.getDate() + 7);
+            break;
+          case "BIWEEKLY":
+            nextExecution.setDate(nextExecution.getDate() + 14);
+            break;
+          case "MONTHLY":
+            nextExecution.setMonth(nextExecution.getMonth() + 1);
+            break;
+          case "QUARTERLY":
+            nextExecution.setMonth(nextExecution.getMonth() + 3);
+            break;
+          case "YEARLY":
+            nextExecution.setFullYear(nextExecution.getFullYear() + 1);
+            break;
+          default:
+            nextExecution.setMonth(nextExecution.getMonth() + 1);
+        }
+
+        nextExecutionUpdate = { nextExecution };
+      }
     }
 
     return await this.prisma.$transaction(async (prisma) => {
@@ -806,9 +808,7 @@ export class TransactionRepository {
           amount: amount,
           currency: currency,
         },
-        include: {
-          fromAccount: true,
-        },
+        select: { id: true },
       });
 
       await this.updateAccountBalance(
@@ -821,127 +821,41 @@ export class TransactionRepository {
         `Recurring payment: ${name}`
       );
 
-      if (customCategoriesId && customCategoriesId.length > 0) {
-        const validCategories = await prisma.customCategory.findMany({
-          where: {
-            id: { in: customCategoriesId },
-            OR: [{ userId: userId }, { type: "SYSTEM" }],
-            deletedAt: null,
-          },
-        });
-
-        if (validCategories.length !== customCategoriesId.length) {
-          throw new Error(
-            "One or more categories are invalid or don't belong to the user"
-          );
-        }
-
+      if (validatedCategoryIds.length > 0) {
         await prisma.transactionCategory.createMany({
-          data: customCategoriesId.map((categoryId) => ({
+          data: validatedCategoryIds.map((categoryId) => ({
             transactionId: transaction.id,
             customCategoryId: categoryId,
           })),
         });
-      }
 
-      if (customCategoriesId && customCategoriesId.length > 0) {
-        const budgets = await prisma.budget.findMany({
-          where: {
-            userId: userId,
-            deletedAt: null,
-            budgetCategories: {
-              some: {
-                customCategoryId: {
-                  in: customCategoriesId,
+        if (budgetUpdates.length > 0) {
+          await Promise.all(
+            budgetUpdates.map(({ id, budgetAmount }) =>
+              prisma.budget.update({
+                where: { id },
+                data: {
+                  currentSpent: { increment: budgetAmount },
+                  transactions: { connect: { id: transaction.id } },
                 },
-              },
-            },
-          },
-          include: {
-            budgetCategories: {
-              include: {
-                customCategory: true,
-              },
-            },
-          },
+              })
+            )
+          );
+        }
+      }
+
+      if (payment && Object.keys(nextExecutionUpdate).length > 0) {
+        await prisma.recurringFundAndBill.update({
+          where: { id: paymentId },
+          data: nextExecutionUpdate,
         });
-
-        for (const budget of budgets) {
-          let budgetAmount = amount;
-
-          if (currency !== budget.currency && rates[budget.currency]) {
-            budgetAmount = amount * (rates[currency] / rates[budget.currency]);
-          }
-
-          await prisma.budget.update({
-            where: { id: budget.id },
-            data: {
-              currentSpent: { increment: budgetAmount },
-              transactions: { connect: { id: transaction.id } },
-            },
-          });
-
-          console.log(
-            `Updated budget "${budget.name}" with ${budgetAmount} ${budget.currency} for recurring payment`
-          );
-        }
       }
 
-      const payment = await prisma.recurringFundAndBill.findUnique({
-        where: { id: paymentId },
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
+        include: { fromAccount: true },
       });
-
-      if (payment) {
-        if (payment.frequency === "ONCE") {
-          const today = new Date();
-          await prisma.recurringFundAndBill.update({
-            where: { id: paymentId },
-            data: {
-              nextExecution: null,
-              deletedAt: today,
-            },
-          });
-
-          console.log(
-            `One-time payment "${payment.name}" has been executed and completed`
-          );
-        } else {
-          const scheduledDate = payment.nextExecution || new Date();
-          let nextExecution = new Date(scheduledDate);
-
-          switch (payment.frequency) {
-            case "WEEKLY":
-              nextExecution.setDate(nextExecution.getDate() + 7);
-              break;
-            case "BIWEEKLY":
-              nextExecution.setDate(nextExecution.getDate() + 14);
-              break;
-            case "MONTHLY":
-              nextExecution.setMonth(nextExecution.getMonth() + 1);
-              break;
-            case "QUARTERLY":
-              nextExecution.setMonth(nextExecution.getMonth() + 3);
-              break;
-            case "YEARLY":
-              nextExecution.setFullYear(nextExecution.getFullYear() + 1);
-              break;
-            default:
-              nextExecution.setMonth(nextExecution.getMonth() + 1);
-          }
-
-          await prisma.recurringFundAndBill.update({
-            where: { id: paymentId },
-            data: { nextExecution: nextExecution },
-          });
-
-          console.log(
-            `Updated payment "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
-          );
-        }
-      }
-
-      return transaction;
-    });
+    }, { timeout: 15000 });
   }
 
   async executeRecurringIncome(
@@ -954,28 +868,63 @@ export class TransactionRepository {
     description: string | null,
     customCategoriesId: number[] | null
   ) {
-    const account = await this.prisma.account.findFirst({
-      where: {
-        id: toAccountId,
-        userId: userId,
-        deletedAt: null,
-      },
-    });
+    const [account, rates, payment] = await Promise.all([
+      this.prisma.account.findFirst({
+        where: { id: toAccountId, userId: userId, deletedAt: null },
+        select: { currency: true },
+      }),
+      this.getExchangeRates(),
+      this.prisma.recurringFundAndBill.findUnique({
+        where: { id: paymentId },
+        select: { id: true, name: true, frequency: true, nextExecution: true },
+      })
+    ]);
 
     if (!account) {
       throw new Error("Account not found or doesn't belong to the user");
     }
 
     let amountToDeposit = amount;
-    const rates = await this.getExchangeRates();
-
     if (account.currency !== currency) {
       if (!rates[account.currency] || !rates[currency]) {
-        throw new Error(
-          `Exchange rate not found for conversion between ${currency} and ${account.currency}`
-        );
+        throw new Error(`Exchange rate not found for conversion between ${currency} and ${account.currency}`);
       }
       amountToDeposit = amount * (rates[currency] / rates[account.currency]);
+    }
+
+    let nextExecutionUpdate: { nextExecution?: Date | null, deletedAt?: Date } = {};
+    if (payment) {
+      if (payment.frequency === "ONCE") {
+        nextExecutionUpdate = {
+          nextExecution: null,
+          deletedAt: new Date(),
+        };
+      } else {
+        const scheduledDate = payment.nextExecution || new Date();
+        let nextExecution = new Date(scheduledDate);
+
+        switch (payment.frequency) {
+          case "WEEKLY":
+            nextExecution.setDate(nextExecution.getDate() + 7);
+            break;
+          case "BIWEEKLY":
+            nextExecution.setDate(nextExecution.getDate() + 14);
+            break;
+          case "MONTHLY":
+            nextExecution.setMonth(nextExecution.getMonth() + 1);
+            break;
+          case "QUARTERLY":
+            nextExecution.setMonth(nextExecution.getMonth() + 3);
+            break;
+          case "YEARLY":
+            nextExecution.setFullYear(nextExecution.getFullYear() + 1);
+            break;
+          default:
+            nextExecution.setMonth(nextExecution.getMonth() + 1);
+        }
+
+        nextExecutionUpdate = { nextExecution };
+      }
     }
 
     return await this.prisma.$transaction(async (prisma) => {
@@ -989,9 +938,7 @@ export class TransactionRepository {
           amount: amount,
           currency: currency,
         },
-        include: {
-          toAccount: true,
-        },
+        select: { id: true },
       });
 
       await this.updateAccountBalance(
@@ -1004,61 +951,18 @@ export class TransactionRepository {
         `Recurring income: ${name}`
       );
 
-      const payment = await prisma.recurringFundAndBill.findUnique({
-        where: { id: paymentId },
-      });
-
-      if (payment) {
-        if (payment.frequency === "ONCE") {
-          const today = new Date();
-          await prisma.recurringFundAndBill.update({
-            where: { id: paymentId },
-            data: {
-              nextExecution: null,
-              deletedAt: today,
-            },
-          });
-
-          console.log(
-            `One-time income "${payment.name}" has been executed and completed`
-          );
-        } else {
-          const scheduledDate = payment.nextExecution || new Date();
-          let nextExecution = new Date(scheduledDate);
-
-          switch (payment.frequency) {
-            case "WEEKLY":
-              nextExecution.setDate(nextExecution.getDate() + 7);
-              break;
-            case "BIWEEKLY":
-              nextExecution.setDate(nextExecution.getDate() + 14);
-              break;
-            case "MONTHLY":
-              nextExecution.setMonth(nextExecution.getMonth() + 1);
-              break;
-            case "QUARTERLY":
-              nextExecution.setMonth(nextExecution.getMonth() + 3);
-              break;
-            case "YEARLY":
-              nextExecution.setFullYear(nextExecution.getFullYear() + 1);
-              break;
-            default:
-              nextExecution.setMonth(nextExecution.getMonth() + 1);
-          }
-
-          await prisma.recurringFundAndBill.update({
-            where: { id: paymentId },
-            data: { nextExecution: nextExecution },
-          });
-
-          console.log(
-            `Updated income "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
-          );
-        }
+      if (payment && Object.keys(nextExecutionUpdate).length > 0) {
+        await prisma.recurringFundAndBill.update({
+          where: { id: paymentId },
+          data: nextExecutionUpdate,
+        });
       }
 
-      return transaction;
-    });
+      return prisma.transaction.findUnique({
+        where: { id: transaction.id },
+        include: { toAccount: true },
+      });
+    }, { timeout: 15000 });
   }
 
   async manualBalanceAdjustment(
@@ -1074,6 +978,7 @@ export class TransactionRepository {
         userId: userId,
         deletedAt: null,
       },
+      select: { id: true },
     });
 
     if (!account) {
@@ -1092,6 +997,6 @@ export class TransactionRepository {
       );
 
       return { success: true, message: `Balance adjusted by ${amount}` };
-    });
+    }, { timeout: 10000 });
   }
 }

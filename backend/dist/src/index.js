@@ -105,7 +105,6 @@ app.get("/test-gemini", async (c) => {
         }, 500);
     }
 });
-// Add this warmup endpoint (simple approach)
 app.get("/warmup", (c) => {
     console.log("🔥 Server warmup request");
     return c.json({
@@ -114,15 +113,12 @@ app.get("/warmup", (c) => {
         message: "Server is now warm and ready"
     });
 });
-// Or add this more comprehensive warmup that preloads services
 app.get("/warmup-full", async (c) => {
     const startTime = Date.now();
     try {
         console.log("🔥 Full server warmup started");
-        // Preload the notification service to warm up imports and connections
         const { default: ExpenseNotificationService } = await Promise.resolve().then(() => __importStar(require("./services/expenseNotificationService")));
         const notificationService = new ExpenseNotificationService(process.env.BREVO_API_KEY, process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com", process.env.BREVO_SENDER_NAME || "Your Finance App");
-        // Test connection to ensure everything is ready
         const { default: BrevoEmailService } = await Promise.resolve().then(() => __importStar(require("./services/brevoService")));
         const brevoService = new BrevoEmailService(process.env.BREVO_API_KEY);
         await brevoService.testConnection();
@@ -148,7 +144,6 @@ app.get("/warmup-full", async (c) => {
         });
     }
 });
-// Simplified daily notifications endpoint (remove retry mechanism)
 app.post("/cron/daily-notifications", async (c) => {
     const startTime = Date.now();
     try {
