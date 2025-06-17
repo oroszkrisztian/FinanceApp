@@ -46,7 +46,7 @@ interface IncomeProps {
 }
 
 interface AIExistingCategorySuggestion {
-  type: 'existing';
+  type: "existing";
   categoryId: number;
   categoryName: string;
   confidence: number;
@@ -54,14 +54,16 @@ interface AIExistingCategorySuggestion {
 }
 
 interface AINewCategorySuggestion {
-  type: 'new';
+  type: "new";
   categoryName: string;
   confidence: number;
   reason: string;
   description?: string;
 }
 
-type AICategorySuggestion = AIExistingCategorySuggestion | AINewCategorySuggestion;
+type AICategorySuggestion =
+  | AIExistingCategorySuggestion
+  | AINewCategorySuggestion;
 
 const SearchWithSuggestions: React.FC<{
   placeholder: string;
@@ -213,10 +215,13 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     useState(false);
   const [localCategories, setLocalCategories] = useState(categories);
 
-  
-  const [aiSuggestions, setAiSuggestions] = useState<AICategorySuggestion[]>([]);
+  const [aiSuggestions, setAiSuggestions] = useState<AICategorySuggestion[]>(
+    []
+  );
   const [aiSuggestionsLoading, setAiSuggestionsLoading] = useState(false);
-  const [aiSuggestionsError, setAiSuggestionsError] = useState<string | null>(null);
+  const [aiSuggestionsError, setAiSuggestionsError] = useState<string | null>(
+    null
+  );
   const [showAiSuggestions, setShowAiSuggestions] = useState(true);
   const [, setSuggestionsAccepted] = useState(false);
   const [hasTriggeredSuggestions, setHasTriggeredSuggestions] = useState(false);
@@ -317,34 +322,40 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     formData.amount,
     showAiSuggestions,
     hasTriggeredSuggestions,
-    token
+    token,
   ]);
 
   const createNewCategory = async (categoryName: string) => {
     try {
-      setCreatingCategories(prev => [...prev, categoryName]);
+      setCreatingCategories((prev) => [...prev, categoryName]);
 
-      const response = await fetch("https://financeapp-bg0k.onrender.com/categories/createUserCategory", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          categoryName,
-        }),
-      });
+      const response = await fetch(
+        "https://financeapp-bg0k.onrender.com/categories/createUserCategory",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            categoryName,
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to create category");
       }
 
       const result = await response.json();
-      
-      const newCategory = { id: result.id || Date.now(), name: categoryName } as CustomCategory;
-      setLocalCategories(prev => [...prev, newCategory]);
-      
-      setSelectedCategories(prev => [...prev, newCategory.id]);
+
+      const newCategory = {
+        id: result.id || Date.now(),
+        name: categoryName,
+      } as CustomCategory;
+      setLocalCategories((prev) => [...prev, newCategory]);
+
+      setSelectedCategories((prev) => [...prev, newCategory.id]);
 
       if (onCategoryCreated) {
         await onCategoryCreated();
@@ -352,17 +363,18 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
 
       console.log("✅ Category created successfully:", categoryName);
       return result;
-
     } catch (error) {
       console.error("❌ Error creating category:", error);
       throw error;
     } finally {
-      setCreatingCategories(prev => prev.filter(name => name !== categoryName));
+      setCreatingCategories((prev) =>
+        prev.filter((name) => name !== categoryName)
+      );
     }
   };
 
   const fetchAICategorySuggestions = async () => {
-    if (!formData.name || !formData.amount || !token ) {
+    if (!formData.name || !formData.amount || !token) {
       return;
     }
 
@@ -414,11 +426,11 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
 
   const acceptAISuggestion = async (suggestion: AICategorySuggestion) => {
     try {
-      if (suggestion.type === 'existing') {
+      if (suggestion.type === "existing") {
         if (!selectedCategories.includes(suggestion.categoryId)) {
-          setSelectedCategories(prev => [...prev, suggestion.categoryId]);
+          setSelectedCategories((prev) => [...prev, suggestion.categoryId]);
         }
-      } else if (suggestion.type === 'new') {
+      } else if (suggestion.type === "new") {
         await createNewCategory(suggestion.categoryName);
       }
     } catch (error) {
@@ -430,18 +442,20 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
   const acceptAllAISuggestions = async () => {
     try {
       for (const suggestion of aiSuggestions) {
-        if (suggestion.type === 'existing') {
+        if (suggestion.type === "existing") {
           if (!selectedCategories.includes(suggestion.categoryId)) {
-            setSelectedCategories(prev => [...prev, suggestion.categoryId]);
+            setSelectedCategories((prev) => [...prev, suggestion.categoryId]);
           }
-        } else if (suggestion.type === 'new') {
+        } else if (suggestion.type === "new") {
           await createNewCategory(suggestion.categoryName);
         }
       }
       setSuggestionsAccepted(true);
     } catch (error) {
       console.error("Error accepting all suggestions:", error);
-      setAiSuggestionsError("Failed to process some suggestions. Please try individually.");
+      setAiSuggestionsError(
+        "Failed to process some suggestions. Please try individually."
+      );
     }
   };
 
@@ -570,7 +584,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
       error: null,
     });
     setError(null);
-    
+
     setShowAiSuggestions(true);
     setHasTriggeredSuggestions(false);
     setAiSuggestions([]);
@@ -595,7 +609,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     setError(null);
 
     // Reset AI suggestions if payment details change
-    if ((field === "name" || field === "amount")) {
+    if (field === "name" || field === "amount") {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
       setAiSuggestionsError(null);
@@ -684,7 +698,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
 
   const nextStep = () => {
     if (canProceed() && currentStep < 3) {
-      handleStepChange(currentStep + 1); 
+      handleStepChange(currentStep + 1);
     }
   };
 
@@ -726,7 +740,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     setIsLoading(true);
     setError(null);
 
-    
     if (!selectedAccount) {
       setError("No account selected");
       setIsLoading(false);
@@ -920,7 +933,10 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
               <div className="space-y-4 sm:space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Brain size={18} className="text-purple-600 sm:w-4 sm:h-4" />
+                    <Brain
+                      size={18}
+                      className="text-purple-600 sm:w-4 sm:h-4"
+                    />
                     <label className="text-base sm:text-sm font-medium text-gray-700">
                       AI Suggestions
                     </label>
@@ -954,7 +970,10 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                   <div className="p-4 sm:p-3 bg-red-50 border border-red-200 rounded-xl">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-2">
                       <div className="flex items-center gap-2">
-                        <AlertCircle size={16} className="text-red-600 flex-shrink-0" />
+                        <AlertCircle
+                          size={16}
+                          className="text-red-600 flex-shrink-0"
+                        />
                         <span className="text-sm text-red-700">
                           {aiSuggestionsError}
                         </span>
@@ -974,13 +993,15 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                   <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200 rounded-xl p-5 sm:p-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-3 gap-3 sm:gap-2">
                       <div className="flex items-center gap-2">
-                        <Sparkles size={16} className="text-purple-600 flex-shrink-0" />
+                        <Sparkles
+                          size={16}
+                          className="text-purple-600 flex-shrink-0"
+                        />
                         <span className="text-base sm:text-sm font-medium text-purple-800">
                           Suggested for "{formData.name}"
                         </span>
                       </div>
                       <div className="flex gap-2 self-start sm:self-auto">
-                       
                         <button
                           type="button"
                           onClick={acceptAllAISuggestions}
@@ -1014,55 +1035,90 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                               <span className="text-base sm:text-sm font-medium text-gray-800 truncate">
                                 {suggestion.categoryName}
                               </span>
-                              <span className={`text-xs px-2 py-1 sm:px-1.5 sm:py-0.5 rounded-full self-start sm:self-auto ${
-                                suggestion.type === 'new' 
-                                  ? 'bg-green-100 text-green-700' 
-                                  : 'bg-purple-100 text-purple-700'
-                              }`}>
-                                {suggestion.type === 'new' ? 'New' : 'Existing'} • {Math.round(suggestion.confidence * 100)}% match
+                              <span
+                                className={`text-xs px-2 py-1 sm:px-1.5 sm:py-0.5 rounded-full self-start sm:self-auto ${
+                                  suggestion.type === "new"
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-purple-100 text-purple-700"
+                                }`}
+                              >
+                                {suggestion.type === "new" ? "New" : "Existing"}{" "}
+                                • {Math.round(suggestion.confidence * 100)}%
+                                match
                               </span>
                             </div>
                             <button
                               type="button"
                               onClick={() => acceptAISuggestion(suggestion)}
                               disabled={
-                                (suggestion.type === 'existing' && selectedCategories.includes(suggestion.categoryId)) ||
-                                (suggestion.type === 'new' && creatingCategories.includes(suggestion.categoryName)) ||
-                                (suggestion.type === 'new' && localCategories.some(cat => 
-                                  cat.name.toLowerCase() === suggestion.categoryName.toLowerCase()
-                                ))
+                                (suggestion.type === "existing" &&
+                                  selectedCategories.includes(
+                                    suggestion.categoryId
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  creatingCategories.includes(
+                                    suggestion.categoryName
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  localCategories.some(
+                                    (cat) =>
+                                      cat.name.toLowerCase() ===
+                                      suggestion.categoryName.toLowerCase()
+                                  ))
                               }
                               className={`w-10 h-10 sm:w-8 sm:h-8 rounded-lg text-sm sm:text-xs transition-colors touch-manipulation flex-shrink-0 flex items-center justify-center ${
-                                (suggestion.type === 'existing' && selectedCategories.includes(suggestion.categoryId)) ||
-                                (suggestion.type === 'new' && localCategories.some(cat => 
-                                  cat.name.toLowerCase() === suggestion.categoryName.toLowerCase()
-                                ))
+                                (suggestion.type === "existing" &&
+                                  selectedCategories.includes(
+                                    suggestion.categoryId
+                                  )) ||
+                                (suggestion.type === "new" &&
+                                  localCategories.some(
+                                    (cat) =>
+                                      cat.name.toLowerCase() ===
+                                      suggestion.categoryName.toLowerCase()
+                                  ))
                                   ? "bg-green-100 text-green-700 cursor-default"
-                                  : creatingCategories.includes(suggestion.categoryName)
-                                  ? "bg-gray-100 text-gray-500 cursor-not-allowed"
-                                  : suggestion.type === 'new'
-                                  ? "bg-green-600 text-white hover:bg-green-700"
-                                  : "bg-purple-600 text-white hover:bg-purple-700"
+                                  : creatingCategories.includes(
+                                        suggestion.categoryName
+                                      )
+                                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                                    : suggestion.type === "new"
+                                      ? "bg-green-600 text-white hover:bg-green-700"
+                                      : "bg-purple-600 text-white hover:bg-purple-700"
                               }`}
                             >
-                              {(suggestion.type === 'existing' && selectedCategories.includes(suggestion.categoryId)) ||
-                               (suggestion.type === 'new' && localCategories.some(cat => 
-                                 cat.name.toLowerCase() === suggestion.categoryName.toLowerCase()
-                               )) ? (
+                              {(suggestion.type === "existing" &&
+                                selectedCategories.includes(
+                                  suggestion.categoryId
+                                )) ||
+                              (suggestion.type === "new" &&
+                                localCategories.some(
+                                  (cat) =>
+                                    cat.name.toLowerCase() ===
+                                    suggestion.categoryName.toLowerCase()
+                                )) ? (
                                 <Check size={16} className="sm:w-3 sm:h-3" />
-                              ) : creatingCategories.includes(suggestion.categoryName) ? (
-                                <Loader size={16} className="animate-spin sm:w-3 sm:h-3" />
+                              ) : creatingCategories.includes(
+                                  suggestion.categoryName
+                                ) ? (
+                                <Loader
+                                  size={16}
+                                  className="animate-spin sm:w-3 sm:h-3"
+                                />
                               ) : (
                                 <Plus size={16} className="sm:w-3 sm:h-3" />
                               )}
                             </button>
                           </div>
-                          <p className="text-sm sm:text-xs text-gray-600 leading-relaxed">{suggestion.reason}</p>
-                          {suggestion.type === 'new' && suggestion.description && (
-                            <p className="text-sm sm:text-xs text-gray-500 mt-2 sm:mt-1 italic leading-relaxed">
-                              {suggestion.description}
-                            </p>
-                          )}
+                          <p className="text-sm sm:text-xs text-gray-600 leading-relaxed">
+                            {suggestion.reason}
+                          </p>
+                          {suggestion.type === "new" &&
+                            suggestion.description && (
+                              <p className="text-sm sm:text-xs text-gray-500 mt-2 sm:mt-1 italic leading-relaxed">
+                                {suggestion.description}
+                              </p>
+                            )}
                         </motion.div>
                       ))}
                     </div>
@@ -1075,7 +1131,8 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
                   hasTriggeredSuggestions && (
                     <div className="p-4 sm:p-3 bg-gray-50 border border-gray-200 rounded-xl text-center">
                       <p className="text-base sm:text-sm text-gray-600">
-                        No specific category suggestions found. Please select categories manually.
+                        No specific category suggestions found. Please select
+                        categories manually.
                       </p>
                     </div>
                   )}

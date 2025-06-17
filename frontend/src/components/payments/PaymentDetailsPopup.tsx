@@ -29,8 +29,9 @@ interface PaymentDetailsPopupProps {
     isDue: boolean;
     type?: PaymentType;
     description?: string;
-    emailNotification?: boolean;
-    automaticPayment?: boolean;
+    emailNotification?: boolean; // boolean for email notifications enabled/disabled
+    notificationDay?: number; // days before to send notification
+    automaticAddition?: boolean; // boolean for automatic addition
   } | null;
   onEdit?: (paymentId: number) => void;
   onDelete?: (paymentId: number) => Promise<void>;
@@ -83,6 +84,37 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
     }
   };
 
+  const isAutomaticAdditionOn = payment.automaticAddition === false;
+  
+  const getEmailNotificationDisplay = () => {
+    if (!payment.emailNotification) {
+      return "Off";
+    }
+    
+    if (payment.notificationDay === undefined || payment.notificationDay === null || !payment.nextExecution) {
+      return "On (same day)";
+    }
+    
+    const nextExecutionDate = new Date(payment.nextExecution + "T00:00:00");
+    const notificationDate = new Date(nextExecutionDate);
+    notificationDate.setDate(notificationDate.getDate() - payment.notificationDay);
+    
+    const today = new Date();
+    
+    const notificationDateStr = `${notificationDate.getFullYear()}-${String(notificationDate.getMonth() + 1).padStart(2, '0')}-${String(notificationDate.getDate()).padStart(2, '0')}`;
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    
+    if (notificationDateStr === todayStr) {
+      return "Today";
+    }
+    
+    return notificationDate.toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: notificationDate.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+    });
+  };
+
   const categoryList =
     payment.categories && payment.categories.length > 0
       ? payment.categories
@@ -107,11 +139,9 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
             className="bg-white rounded-2xl max-w-md w-full max-h-[80vh] shadow-2xl flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Fixed Header */}
             <div
               className={`p-3 ${theme.gradient} text-white relative flex-shrink-0 rounded-t-2xl`}
             >
-              {/* Smaller decorative circles */}
               <div className="absolute top-2 left-4 bg-white/20 h-10 w-10 rounded-full"></div>
               <div className="absolute top-4 left-10 bg-white/10 h-6 w-6 rounded-full"></div>
               <div className="absolute -top-1 right-8 bg-white/10 h-8 w-8 rounded-full"></div>
@@ -147,9 +177,7 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
               </div>
             </div>
 
-            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Basic Info */}
               <div className="grid grid-cols-2 gap-2">
                 <div
                   className={`flex items-center gap-2 p-2 ${theme.bgLight} border ${theme.border} rounded-lg shadow-sm`}
@@ -216,7 +244,6 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                 </div>
               </div>
 
-              {/* Categories */}
               <div
                 className={`p-2 ${theme.bgLight} border ${theme.border} rounded-lg shadow-sm`}
               >
@@ -243,7 +270,6 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                 </div>
               </div>
 
-              {/* Description */}
               {payment.description && (
                 <div className="p-2 bg-blue-50 border border-blue-200 rounded-lg shadow-sm">
                   <p className="text-xs text-blue-800 font-medium mb-1">
@@ -253,7 +279,6 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                 </div>
               )}
 
-              {/* Settings */}
               <div className="space-y-2">
                 <h3 className="text-sm font-semibold text-gray-800">
                   Settings
@@ -272,7 +297,7 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {payment.emailNotification ? "On" : "Off"}
+                    {getEmailNotificationDisplay()}
                   </span>
                 </div>
 
@@ -285,18 +310,17 @@ const PaymentDetailsPopup: React.FC<PaymentDetailsPopupProps> = ({
                   </div>
                   <span
                     className={`px-1.5 py-0.5 rounded-full text-xs ${
-                      payment.automaticPayment
+                      isAutomaticAdditionOn
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-600"
                     }`}
                   >
-                    {payment.automaticPayment ? "On" : "Off"}
+                    {isAutomaticAdditionOn ? "On" : "Off"}
                   </span>
                 </div>
               </div>
             </div>
 
-            {/* Fixed Footer */}
             <div className="p-3 border-t bg-gray-50/50 flex gap-2 flex-shrink-0 rounded-b-2xl">
               <button
                 onClick={() => onEdit?.(payment.id)}

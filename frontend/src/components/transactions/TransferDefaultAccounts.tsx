@@ -1,6 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { X, Search, ArrowRight, ArrowLeft, AlertCircle, Info, DollarSign } from "lucide-react";
+import {
+  X,
+  Search,
+  ArrowRight,
+  ArrowLeft,
+  AlertCircle,
+  Info,
+  DollarSign,
+} from "lucide-react";
 import { Account } from "../../interfaces/Account";
 import { TransactionType } from "../../interfaces/enums";
 import {
@@ -26,13 +34,27 @@ const SearchWithSuggestions: React.FC<{
   placeholder: string;
   onSearch: (term: string) => void;
   suggestions: { id: number; name: string; amount: number; currency: string }[];
-  onSelect?: (account: { id: number; name: string; amount: number; currency: string }) => void;
+  onSelect?: (account: {
+    id: number;
+    name: string;
+    amount: number;
+    currency: string;
+  }) => void;
   value?: string;
   excludeId?: number;
-}> = ({ placeholder, onSearch, suggestions, onSelect, value = "", excludeId }) => {
+}> = ({
+  placeholder,
+  onSearch,
+  suggestions,
+  onSelect,
+  value = "",
+  excludeId,
+}) => {
   const [searchTerm, setSearchTerm] = useState(value);
   const [isOpen, setIsOpen] = useState(false);
-  const [filteredSuggestions, setFilteredSuggestions] = useState<typeof suggestions>([]);
+  const [filteredSuggestions, setFilteredSuggestions] = useState<
+    typeof suggestions
+  >([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -40,9 +62,10 @@ const SearchWithSuggestions: React.FC<{
   }, [value]);
 
   useEffect(() => {
-    const filtered = suggestions.filter((suggestion) =>
-      suggestion.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-      suggestion.id !== excludeId
+    const filtered = suggestions.filter(
+      (suggestion) =>
+        suggestion.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        suggestion.id !== excludeId
     );
     setFilteredSuggestions(filtered);
   }, [searchTerm, suggestions, excludeId]);
@@ -68,7 +91,7 @@ const SearchWithSuggestions: React.FC<{
     setIsOpen(true);
   };
 
-  const handleSuggestionClick = (suggestion: typeof suggestions[0]) => {
+  const handleSuggestionClick = (suggestion: (typeof suggestions)[0]) => {
     if (onSelect) {
       onSelect(suggestion);
     }
@@ -108,9 +131,7 @@ const SearchWithSuggestions: React.FC<{
               className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 transition-colors text-gray-700"
             >
               <div className="flex items-center justify-between">
-                <span className="font-medium truncate">
-                  {suggestion.name}
-                </span>
+                <span className="font-medium truncate">{suggestion.name}</span>
                 <span className="text-xs text-gray-500 ml-1">
                   {suggestion.amount.toFixed(2)} {suggestion.currency}
                 </span>
@@ -134,8 +155,11 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   const [currentStep, setCurrentStep] = useState(1);
   const [isMobileView, setIsMobileView] = useState<boolean>(false);
   const [amountString, setAmountString] = useState("");
-  const [selectedFromAccount, setSelectedFromAccount] = useState<Account | null>(null);
-  const [selectedToAccount, setSelectedToAccount] = useState<Account | null>(null);
+  const [selectedFromAccount, setSelectedFromAccount] =
+    useState<Account | null>(null);
+  const [selectedToAccount, setSelectedToAccount] = useState<Account | null>(
+    null
+  );
   const [fromAccountSearchTerm, setFromAccountSearchTerm] = useState("");
   const [toAccountSearchTerm, setToAccountSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -247,7 +271,12 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     }, 150);
   };
 
-  const handleFromAccountSelect = (account: { id: number; name: string; amount: number; currency: string }) => {
+  const handleFromAccountSelect = (account: {
+    id: number;
+    name: string;
+    amount: number;
+    currency: string;
+  }) => {
     const fullAccount = accounts.find((acc) => acc.id === account.id);
     if (fullAccount) {
       setSelectedFromAccount(fullAccount);
@@ -255,7 +284,12 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     }
   };
 
-  const handleToAccountSelect = (account: { id: number; name: string; amount: number; currency: string }) => {
+  const handleToAccountSelect = (account: {
+    id: number;
+    name: string;
+    amount: number;
+    currency: string;
+  }) => {
     const fullAccount = accounts.find((acc) => acc.id === account.id);
     if (fullAccount) {
       setSelectedToAccount(fullAccount);
@@ -273,11 +307,11 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     setToAccountSearchTerm("");
   };
 
-  const accountSuggestions = accounts.map(acc => ({
+  const accountSuggestions = accounts.map((acc) => ({
     id: acc.id,
     name: acc.name,
     amount: acc.amount,
-    currency: acc.currency
+    currency: acc.currency,
   }));
 
   const canProceed = () => {
@@ -307,7 +341,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
     setIsLoading(true);
     setError(null);
 
-   
     if (!selectedFromAccount || !selectedToAccount) {
       setError("Please select both accounts");
       setIsLoading(false);
@@ -331,7 +364,6 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
 
     try {
       await transferFundsDefault(
-        
         formData.amount,
         selectedFromAccount.id,
         selectedToAccount.id,
@@ -428,7 +460,9 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
                       if (value === "") {
                         setFormData({ amount: 0 });
                       } else {
-                        const numericValue = parseFloat(value.replace(",", "."));
+                        const numericValue = parseFloat(
+                          value.replace(",", ".")
+                        );
                         if (!isNaN(numericValue)) {
                           setFormData({ amount: numericValue });
                         }
@@ -549,8 +583,10 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
                           Insufficient funds
                         </div>
                         <div className="text-xs text-red-700">
-                          Available: {selectedFromAccount.amount.toFixed(2)} {selectedFromAccount.currency} | 
-                          Needed: {formData.amount.toFixed(2)} {selectedFromAccount.currency}
+                          Available: {selectedFromAccount.amount.toFixed(2)}{" "}
+                          {selectedFromAccount.currency} | Needed:{" "}
+                          {formData.amount.toFixed(2)}{" "}
+                          {selectedFromAccount.currency}
                         </div>
                       </div>
                     ) : (
@@ -558,9 +594,14 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
                         <div className="flex items-center justify-between text-sm">
                           {/* From Account New Balance */}
                           <div className="text-left">
-                            <div className="text-gray-600 text-xs">{selectedFromAccount.name}</div>
+                            <div className="text-gray-600 text-xs">
+                              {selectedFromAccount.name}
+                            </div>
                             <div className="font-bold text-gray-800">
-                              {(selectedFromAccount.amount - formData.amount).toFixed(2)} {selectedFromAccount.currency}
+                              {(
+                                selectedFromAccount.amount - formData.amount
+                              ).toFixed(2)}{" "}
+                              {selectedFromAccount.currency}
                             </div>
                           </div>
 
@@ -568,10 +609,14 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
                           <div className="text-center px-4">
                             <div className="h-px bg-blue-300 w-full mb-1"></div>
                             <div className="text-blue-700 font-medium text-xs">
-                              {formData.amount.toFixed(2)} {selectedFromAccount.currency}
-                              {selectedFromAccount.currency !== selectedToAccount.currency && (
+                              {formData.amount.toFixed(2)}{" "}
+                              {selectedFromAccount.currency}
+                              {selectedFromAccount.currency !==
+                                selectedToAccount.currency && (
                                 <div className="text-gray-500 mt-0.5">
-                                  ({conversionDetails.convertedAmount.toFixed(2)} {selectedToAccount.currency})
+                                  (
+                                  {conversionDetails.convertedAmount.toFixed(2)}{" "}
+                                  {selectedToAccount.currency})
                                 </div>
                               )}
                             </div>
@@ -580,9 +625,15 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
 
                           {/* To Account New Balance */}
                           <div className="text-right">
-                            <div className="text-gray-600 text-xs">{selectedToAccount.name}</div>
+                            <div className="text-gray-600 text-xs">
+                              {selectedToAccount.name}
+                            </div>
                             <div className="font-bold text-gray-800">
-                              {(selectedToAccount.amount + conversionDetails.convertedAmount).toFixed(2)} {selectedToAccount.currency}
+                              {(
+                                selectedToAccount.amount +
+                                conversionDetails.convertedAmount
+                              ).toFixed(2)}{" "}
+                              {selectedToAccount.currency}
                             </div>
                           </div>
                         </div>
@@ -605,11 +656,8 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Backdrop */}
-      <div 
-        className="absolute inset-0 "
-        onClick={handleClose}
-      />
-      
+      <div className="absolute inset-0 " onClick={handleClose} />
+
       {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
@@ -645,16 +693,26 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
             }`}
           ></div>
 
-          <div className={`${isMobileView ? "px-4 py-3" : "px-4 py-3"} flex items-center justify-between relative z-10 mb-2`}>
+          <div
+            className={`${isMobileView ? "px-4 py-3" : "px-4 py-3"} flex items-center justify-between relative z-10 mb-2`}
+          >
             <div className="flex items-center">
-              <div className={`bg-white rounded-full flex items-center justify-center mr-3 shadow-lg ${isMobileView ? "w-8 h-8" : "w-10 h-10"}`}>
-                <span className={isMobileView ? "text-base" : "text-lg"}>🔄</span>
+              <div
+                className={`bg-white rounded-full flex items-center justify-center mr-3 shadow-lg ${isMobileView ? "w-8 h-8" : "w-10 h-10"}`}
+              >
+                <span className={isMobileView ? "text-base" : "text-lg"}>
+                  🔄
+                </span>
               </div>
               <div>
-                <h2 className={`font-bold text-white ${isMobileView ? "text-base" : "text-lg"}`}>
+                <h2
+                  className={`font-bold text-white ${isMobileView ? "text-base" : "text-lg"}`}
+                >
                   Transfer Money
                 </h2>
-                <p className={`text-white/90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                <p
+                  className={`text-white/90 ${isMobileView ? "text-xs" : "text-sm"}`}
+                >
                   {steps[currentStep - 1]}
                 </p>
               </div>
@@ -671,7 +729,9 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
           </div>
 
           {/* Progress */}
-          <div className={`${isMobileView ? "px-4 pb-3" : "px-4 pb-3"} relative z-10`}>
+          <div
+            className={`${isMobileView ? "px-4 pb-3" : "px-4 pb-3"} relative z-10`}
+          >
             <div className="flex gap-1">
               {steps.map((_, index) => (
                 <div
@@ -686,7 +746,9 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
         </div>
 
         {/* Content */}
-        <div className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"}`}>
+        <div
+          className={`flex-1 overflow-y-auto ${isMobileView ? "p-3" : "p-4"}`}
+        >
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -702,7 +764,9 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
         </div>
 
         {/* Footer */}
-        <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 backdrop-blur-sm flex justify-between`}>
+        <div
+          className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 backdrop-blur-sm flex justify-between`}
+        >
           <motion.button
             onClick={prevStep}
             disabled={currentStep === 1}
@@ -733,10 +797,21 @@ const TransferDefaultAccounts: React.FC<TransferDefaultAccountsProps> = ({
                 !selectedFromAccount ||
                 !selectedToAccount ||
                 formData.amount <= 0 ||
-                (selectedFromAccount && selectedFromAccount.amount < formData.amount)
+                (selectedFromAccount &&
+                  selectedFromAccount.amount < formData.amount)
               }
               className="flex items-center gap-1 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md text-sm"
-              whileHover={{ scale: isLoading || !selectedFromAccount || !selectedToAccount || formData.amount <= 0 || (selectedFromAccount && selectedFromAccount.amount < formData.amount) ? 1 : 1.02 }}
+              whileHover={{
+                scale:
+                  isLoading ||
+                  !selectedFromAccount ||
+                  !selectedToAccount ||
+                  formData.amount <= 0 ||
+                  (selectedFromAccount &&
+                    selectedFromAccount.amount < formData.amount)
+                    ? 1
+                    : 1.02,
+              }}
               whileTap={{ scale: 0.98 }}
             >
               {isLoading ? (

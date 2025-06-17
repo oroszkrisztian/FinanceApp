@@ -257,6 +257,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [hasInitializedEditData, setHasInitializedEditData] = useState(false);
   const [, setIsClosing] = useState(false);
 
   const [accountSearchTerm, setAccountSearchTerm] = useState("");
@@ -351,7 +352,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       if (onCategoryCreated) {
         await onCategoryCreated();
       }
-      console.log("Category created and categories refreshed");
     } catch (error) {
       console.error("Error handling category creation:", error);
     }
@@ -393,7 +393,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         await onCategoryCreated();
       }
 
-      console.log("✅ Category created successfully:", categoryName);
       return result;
     } catch (error) {
       console.error("❌ Error creating category:", error);
@@ -414,8 +413,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setAiSuggestionsError(null);
 
     try {
-      console.log("🤖 Fetching enhanced AI category suggestions...");
-
       const response = await fetch(
         "https://financeapp-bg0k.onrender.com/ai/aiCategorySuggestion",
         {
@@ -441,14 +438,12 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       const data = await response.json();
 
       if (data.success && data.suggestions && Array.isArray(data.suggestions)) {
-        console.log("✅ Received enhanced AI suggestions:", data.suggestions);
         setAiSuggestions(data.suggestions);
         setHasTriggeredSuggestions(true);
       } else {
         throw new Error(data.error || "Failed to get AI suggestions");
       }
     } catch (error) {
-      console.error("❌ Error fetching enhanced AI suggestions:", error);
       setAiSuggestionsError("Failed to get AI suggestions. Please try again.");
       setHasTriggeredSuggestions(true);
     } finally {
@@ -469,7 +464,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         await createNewCategory(suggestion.categoryName);
       }
     } catch (error) {
-      console.error("Error accepting suggestion:", error);
       setAiSuggestionsError("Failed to process suggestion. Please try again.");
     }
   };
@@ -490,7 +484,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
       }
       setSuggestionsAccepted(true);
     } catch (error) {
-      console.error("Error accepting all suggestions:", error);
       setAiSuggestionsError(
         "Failed to process some suggestions. Please try individually."
       );
@@ -510,33 +503,20 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   };
 
   useEffect(() => {
-    console.log("Checking AI suggestions trigger:", {
-      currentStep,
-      isEditMode,
-      showAiSuggestions,
-      hasTriggeredSuggestions,
-      name: formData.name,
-      nameValid: formData.name.trim(),
-      amount: formData.amount,
-      amountValid: parseFloat(formData.amount) > 0,
-    });
     if (
       currentStep === 3 &&
-      !isEditMode &&
       showAiSuggestions &&
       !hasTriggeredSuggestions &&
       formData.name.trim() &&
       formData.amount &&
       parseFloat(formData.amount) > 0
     ) {
-      console.log("🚀 Triggering AI suggestions...");
       fetchAICategorySuggestions();
     }
   }, [
     currentStep,
     formData.name,
     formData.amount,
-    isEditMode,
     showAiSuggestions,
     hasTriggeredSuggestions,
   ]);
@@ -556,8 +536,9 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (editPayment && isOpen) {
+    if (editPayment && isOpen && !hasInitializedEditData) {
       setIsEditMode(true);
+      setHasInitializedEditData(true);
 
       const account = accounts.find((acc) => acc.name === editPayment.account);
 
@@ -588,7 +569,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           editPayment.nextExecution || new Date().toISOString().split("T")[0],
       });
     }
-  }, [editPayment, isOpen, accounts, localCategories, defaultType]);
+  }, [editPayment, isOpen, hasInitializedEditData, accounts, localCategories, defaultType]);
 
   const convertCurrency = (
     amount: number,
@@ -603,7 +584,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         !Object.values(CurrencyType).includes(fromCurrency as CurrencyType) ||
         !Object.values(CurrencyType).includes(toCurrency as CurrencyType)
       ) {
-        console.error("Invalid currency type");
         return amount;
       }
 
@@ -613,12 +593,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         rates
       );
       if (!validation.valid) {
-        console.error(validation.error);
         return amount;
       }
       return convertAmount(amount, fromCurrency, toCurrency, rates);
     } catch (err) {
-      console.error("Conversion error:", err);
       return amount;
     }
   };
@@ -701,7 +679,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
     setError(null);
 
-    if ((field === "name" || field === "amount") && !isEditMode) {
+    if (field === "name" || field === "amount") {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
       setAiSuggestionsError(null);
@@ -799,10 +777,10 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
     setError(null);
 
     try {
-      await createPayment({
-        name: formData.name,
+      const payloadData = {
+        name: formData.name.trim(),
         amount: parseFloat(formData.amount),
-        description: formData.description || undefined,
+        description: formData.description?.trim() || undefined,
         accountId: parseInt(formData.accountId),
         startDate: new Date(formData.startDate),
         frequency: formData.frequency,
@@ -811,10 +789,11 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         automaticPayment: formData.automaticPayment,
         type: formData.type,
         currency: formData.currency,
-        categoriesId:
-          formData.categoriesId.length > 0 ? formData.categoriesId : undefined,
-        paymentId: editPayment?.id,
-      });
+        categoriesId: formData.categoriesId.length > 0 ? formData.categoriesId : undefined,
+        ...(isEditMode && editPayment?.id && { paymentId: editPayment.id }),
+      };
+
+      await createPayment(payloadData);
 
       handleClose();
       onSuccess();
@@ -832,6 +811,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
   const resetForm = () => {
     handleStepChange(1);
     setIsEditMode(false);
+    setHasInitializedEditData(false);
     setOriginalCurrency("");
     setSuggestionsAccepted(false);
     setShowAiSuggestions(true);
@@ -1016,9 +996,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   className={`w-full px-4 sm:px-3 py-3 sm:py-2.5 border ${theme.borderColor} rounded-xl focus:outline-none focus:ring-2 ${theme.focusRing} focus:border-transparent transition-all ${theme.bgColor} shadow-sm text-base sm:text-sm relative z-[100]`}
                   style={{
                     colorScheme: "light",
-                    // Add these styles for mobile
                     WebkitAppearance: "none",
-                    minHeight: "3rem", // Makes it easier to tap on mobile
+                    minHeight: "3rem",
                   }}
                   onClick={(e) => {
                     if (isMobileView) {
@@ -1032,7 +1011,6 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                   }}
                   required
                 />
-                {/* Add a calendar icon that triggers the picker on mobile */}
                 {isMobileView && (
                   <div
                     className="absolute inset-0 flex items-center justify-end pr-4 pointer-events-none"
@@ -1043,9 +1021,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
                         );
                       if (input) (input as HTMLInputElement).showPicker();
                     }}
-                  >
-                    
-                  </div>
+                  ></div>
                 )}
               </div>
             </div>
@@ -1204,7 +1180,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               />
             </div>
 
-            {!isEditMode && showAiSuggestions && (
+            {showAiSuggestions && (
               <div className="space-y-4 sm:space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -1545,6 +1521,15 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
             <div
               className={`p-4 sm:p-3 ${theme.bgColor} backdrop-blur-sm border ${theme.borderColor.replace("-200", "-200/50")} rounded-xl shadow-sm`}
             >
+              {isEditMode && (
+                <div className="mb-3 sm:mb-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700 flex items-center gap-1">
+                    <Edit size={12} />
+                    Updating payment: {editPayment?.name}
+                  </p>
+                </div>
+              )}
+
               <h3
                 className={`font-semibold text-lg sm:text-base mb-3 sm:mb-2 ${theme.textColor.replace("-500", "-800")}`}
               >
@@ -1552,103 +1537,115 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
               </h3>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-2 text-sm sm:text-xs">
-                <div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Type:</span>
-                  <span className="ml-2 font-medium">
-                    {formData.type === PaymentType.EXPENSE
-                      ? "💸 Expense"
-                      : "💰 Income"}
+                  <span className="font-medium">
+                    {formData.type === PaymentType.EXPENSE ? "💸 Expense" : "💰 Income"}
                   </span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Amount:</span>
-                  <span className="ml-2 font-medium">
+                  <span className="font-medium">
                     {formData.amount} {formData.currency}
                   </span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Frequency:</span>
-                  <span className="ml-2 font-medium">
-                    {formData.frequency.charAt(0) +
-                      formData.frequency.slice(1).toLowerCase()}
+                  <span className="font-medium">
+                    {formData.frequency.charAt(0) + formData.frequency.slice(1).toLowerCase()}
                   </span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Start Date:</span>
-                  <span className="ml-2 font-medium">
+                  <span className="font-medium">
                     {new Date(formData.startDate).toLocaleDateString()}
                   </span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Account:</span>
-                  <span className="ml-2 font-medium">
-                    {selectedAccount?.name}
+                  <span className="font-medium">
+                    {selectedAccount?.name || 'No account selected'}
                   </span>
                 </div>
-                <div>
+                <div className="flex justify-between">
                   <span className="text-gray-600">Notifications:</span>
-                  <span className="ml-2 font-medium">
+                  <span className="font-medium">
                     {formData.emailNotification ? "✅ Enabled" : "❌ Disabled"}
                   </span>
                 </div>
               </div>
 
               {formData.description && (
-                <div
-                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
-                >
-                  <span className="text-gray-600 text-sm sm:text-xs">
-                    Description:{" "}
-                  </span>
-                  <span className="text-sm sm:text-xs text-gray-800">
-                    {formData.description}
-                  </span>
+                <div className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-gray-600 text-sm sm:text-xs font-medium">Description:</span>
+                    <span className="text-sm sm:text-xs text-gray-800 bg-gray-50 p-2 rounded">
+                      {formData.description}
+                    </span>
+                  </div>
                 </div>
               )}
 
               {selectedCategories.length > 0 && (
-                <div
-                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
-                >
-                  <span className="text-gray-600 text-sm sm:text-xs">
-                    Categories:{" "}
-                  </span>
-                  <div className="flex flex-wrap gap-1.5 sm:gap-1 mt-2 sm:mt-1">
-                    {selectedCategories.map((category) => (
-                      <span
-                        key={category.id}
-                        className={`px-2.5 py-1 sm:px-1.5 sm:py-0.5 ${theme.bgColor.replace("/50", "").replace("bg-", "bg-").replace("-50", "-100")} ${theme.textColor.replace("-500", "-700")} text-sm sm:text-xs rounded`}
-                      >
-                        {category.name}
-                      </span>
-                    ))}
+                <div className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-gray-600 text-sm sm:text-xs font-medium">
+                      Categories ({selectedCategories.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5 sm:gap-1">
+                      {selectedCategories.map((category) => (
+                        <span
+                          key={category.id}
+                          className={`px-2.5 py-1 sm:px-1.5 sm:py-0.5 ${theme.bgColor.replace("/50", "").replace("bg-", "bg-").replace("-50", "-100")} ${theme.textColor.replace("-500", "-700")} text-sm sm:text-xs rounded border`}
+                        >
+                          {category.name}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
               )}
 
               {(formData.emailNotification || formData.automaticPayment) && (
-                <div
-                  className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}
-                >
-                  <span className="text-gray-600 text-sm sm:text-xs">
-                    Settings:{" "}
-                  </span>
-                  <div className="flex flex-wrap gap-2 sm:gap-1 mt-2 sm:mt-1">
-                    {formData.automaticPayment && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 sm:px-1.5 sm:py-0.5 bg-blue-100 text-blue-700 text-xs rounded">
-                        <Zap size={10} />
-                        Auto Payment
-                      </span>
-                    )}
-                    {formData.emailNotification && (
-                      <span className="inline-flex items-center gap-1 px-2 py-1 sm:px-1.5 sm:py-0.5 bg-purple-100 text-purple-700 text-xs rounded">
-                        <Bell size={10} />
-                        Email Alerts
-                      </span>
-                    )}
+                <div className={`mt-3 sm:mt-2 pt-3 sm:pt-2 border-t ${theme.borderColor}`}>
+                  <div className="flex flex-col gap-2">
+                    <span className="text-gray-600 text-sm sm:text-xs font-medium">Settings:</span>
+                    <div className="flex flex-wrap gap-2 sm:gap-1">
+                      {formData.automaticPayment && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 sm:px-1.5 sm:py-0.5 bg-blue-100 text-blue-700 text-xs rounded border border-blue-200">
+                          <Zap size={10} />
+                          Auto Payment
+                        </span>
+                      )}
+                      {formData.emailNotification && (
+                        <span className="inline-flex items-center gap-1 px-2 py-1 sm:px-1.5 sm:py-0.5 bg-purple-100 text-purple-700 text-xs rounded border border-purple-200">
+                          <Bell size={10} />
+                          Email Alerts
+                          {formData.notificationDay > 0 && (
+                            <span className="text-xs">
+                              ({formData.notificationDay}d before)
+                            </span>
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 sm:p-2">
+              <p className="text-sm sm:text-xs text-gray-600 text-center">
+                {isEditMode ? (
+                  <>
+                    Click "Update Payment" to save your changes to <strong>{editPayment?.name}</strong>
+                  </>
+                ) : (
+                  <>
+                    Click "Create Payment" to set up your new {formData.type.toLowerCase()} schedule
+                  </>
+                )}
+              </p>
             </div>
           </div>
         );
@@ -1670,7 +1667,8 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
         transition={{ duration: 0.2 }}
         className="relative bg-white rounded-2xl shadow-2xl flex flex-col z-50 w-full max-w-md mx-auto"
         style={{
-          maxHeight: isMobileView ? "90vh" : "65vh",
+          maxHeight: isMobileView ? "80vh" : "70vh",
+          minHeight: isMobileView ? "70vh" : "60vh",
         }}
       >
         <div
@@ -1720,10 +1718,7 @@ const CreatePaymentPopup: React.FC<CreatePaymentPopupProps> = ({
           </div>
         </div>
 
-        <div
-          className="flex-1 px-5 py-4 sm:px-4 sm:py-3 min-h-0"
-          style={{ overflowY: currentStep === 2 ? "visible" : "auto" }}
-        >
+        <div className="flex-1 overflow-y-auto min-h-0 px-5 py-4 sm:px-4 sm:py-3">
           {error && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}

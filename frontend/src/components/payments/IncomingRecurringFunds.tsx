@@ -78,6 +78,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const [isMobileView, setIsMobileView] = useState(false);
 
   const [currentPopupStep, setCurrentPopupStep] = useState(1);
+  const [isExecutingIncome, setIsExecutingIncome] = useState(false);
 
   useEffect(() => {
     const checkMobileView = () => {
@@ -150,6 +151,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           : false,
         description: payment.description,
         emailNotification: payment.emailNotification,
+        notificationDay: payment.notificationDay,
         automaticAddition: payment.automaticAddition,
         type: PaymentType.INCOME,
       }));
@@ -343,6 +345,7 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
   const handleConfirmGetIncome = async () => {
     if (incomeToExecute) {
       try {
+        setIsExecutingIncome(true);
         const account = accounts.find(
           (acc) => acc.name === incomeToExecute.account
         );
@@ -372,6 +375,8 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
         onPaymentCreated();
       } catch (error) {
         console.error("Failed to execute income:", error);
+      } finally {
+        setIsExecutingIncome(false);
       }
     }
     setIsGetIncomeDialogOpen(false);
@@ -1033,10 +1038,15 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
                   Cancel
                 </button>
                 <button
-                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-800 transition-all shadow-md text-sm"
+                  className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-green-600 to-emerald-700 text-white font-medium rounded-lg hover:from-green-700 hover:to-emerald-800 transition-all shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={handleConfirmGetIncome}
+                  disabled={isExecutingIncome}
                 >
-                  <DollarSign size={14} />
+                  {isExecutingIncome ? (
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                  ) : (
+                    <DollarSign size={14} />
+                  )}
                   Get Now
                 </button>
               </div>

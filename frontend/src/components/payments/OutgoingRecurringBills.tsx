@@ -79,6 +79,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const [isMobileView, setIsMobileView] = useState(false);
 
   const [currentPopupStep, setCurrentPopupStep] = useState(1);
+  const [isExecutingPayment, setIsExecutingPayment] = useState(false);
 
   useEffect(() => {
     const checkMobileView = () => {
@@ -151,6 +152,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
           : false,
         description: payment.description,
         emailNotification: payment.emailNotification,
+        notificationDay: payment.notificationDay,
         automaticAddition: payment.automaticAddition,
         type: PaymentType.EXPENSE,
       }));
@@ -344,6 +346,7 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
   const handleConfirmPayNow = async () => {
     if (paymentToExecute) {
       try {
+        setIsExecutingPayment(true);
         const account = accounts.find(
           (acc) => acc.name === paymentToExecute.account
         );
@@ -373,6 +376,8 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
         onPaymentCreated();
       } catch (error) {
         console.error("Failed to execute payment:", error);
+      } finally {
+        setIsExecutingPayment(false);
       }
     }
     setIsPayNowDialogOpen(false);
@@ -1090,10 +1095,15 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
                     </div>
                   ) : (
                     <button
-                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-700 text-white font-medium rounded-lg hover:from-red-700 hover:to-rose-800 transition-all shadow-md text-sm"
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-gradient-to-r from-red-600 to-rose-700 text-white font-medium rounded-lg hover:from-red-700 hover:to-emerald-800 transition-all shadow-md text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       onClick={handleConfirmPayNow}
+                      disabled={isExecutingPayment}
                     >
-                      <DollarSign size={14} />
+                      {isExecutingPayment ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                      ) : (
+                        <DollarSign size={14} />
+                      )}
                       Pay Now
                     </button>
                   );
