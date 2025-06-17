@@ -54,10 +54,11 @@ const port = parseInt(process.env.PORT || "3000");
 app.use("*", (0, cors_1.cors)({
     origin: [
         "http://localhost:5173",
+        "http://localhost:3000",
         "http://127.0.0.1:5173",
         "https://finance-app-frontend-bice.vercel.app",
         "https://finance-app-frontend-ebyddx0p1-oroszkrisztians-projects.vercel.app",
-        "https://backendfinanceapp.krisztianorosz0.workers.dev"
+        "https://backendfinanceapp.krisztianorosz0.workers.dev",
     ],
     allowMethods: ["POST", "GET", "DELETE", "PUT", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
@@ -92,7 +93,9 @@ app.get("/test-gemini", async (c) => {
             response: text,
             config: {
                 apiKeyProvided: !!process.env.GEMINI_API_KEY,
-                keyPrefix: process.env.GEMINI_API_KEY ? process.env.GEMINI_API_KEY.substring(0, 10) + "..." : "MISSING",
+                keyPrefix: process.env.GEMINI_API_KEY
+                    ? process.env.GEMINI_API_KEY.substring(0, 10) + "..."
+                    : "MISSING",
             },
         });
     }
@@ -110,7 +113,7 @@ app.get("/warmup", (c) => {
     return c.json({
         status: "warmed",
         timestamp: new Date().toISOString(),
-        message: "Server is now warm and ready"
+        message: "Server is now warm and ready",
     });
 });
 app.get("/warmup-full", async (c) => {
@@ -128,7 +131,7 @@ app.get("/warmup-full", async (c) => {
             status: "fully-warmed",
             duration: `${duration}ms`,
             timestamp: new Date().toISOString(),
-            message: "Server and all services are warm and ready"
+            message: "Server and all services are warm and ready",
         });
     }
     catch (error) {
@@ -140,7 +143,7 @@ app.get("/warmup-full", async (c) => {
             duration: `${duration}ms`,
             timestamp: new Date().toISOString(),
             message: "Server is warm but some services may need extra time",
-            warning: errorMessage
+            warning: errorMessage,
         });
     }
 });
@@ -168,6 +171,36 @@ app.post("/cron/daily-notifications", async (c) => {
         return c.json({
             success: false,
             error: "Failed to send daily notifications",
+            details: errorMessage,
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString(),
+        }, 500);
+    }
+});
+app.post("/cron/automatic-payments", async (c) => {
+    const startTime = Date.now();
+    try {
+        console.log("💰 Automatic payments cron job triggered");
+        const { default: AutomaticPaymentService } = await Promise.resolve().then(() => __importStar(require("./services/automaticPaymentService")));
+        const paymentService = new AutomaticPaymentService();
+        const result = await paymentService.processAutomaticPayments();
+        const duration = Date.now() - startTime;
+        console.log(`✅ Automatic payments processing completed in ${duration}ms:`, result);
+        return c.json({
+            success: true,
+            message: "Automatic payments processed successfully",
+            result,
+            duration: `${duration}ms`,
+            timestamp: new Date().toISOString(),
+        });
+    }
+    catch (error) {
+        const duration = Date.now() - startTime;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        console.error(`❌ Automatic payments cron job failed after ${duration}ms:`, errorMessage);
+        return c.json({
+            success: false,
+            error: "Failed to process automatic payments",
             details: errorMessage,
             duration: `${duration}ms`,
             timestamp: new Date().toISOString(),
