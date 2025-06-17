@@ -151,7 +151,7 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setAccountSearchTerm("");
-    setDateRange(getCurrentMonthRange()); 
+    setDateRange(getCurrentMonthRange());
   };
 
   const formatDateRangeDisplay = () => {
@@ -636,15 +636,20 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
                         </div>
 
                         {/* Categories */}
-                        {(transaction.transactionCategories || []).length > 0 && (
+                        {(transaction.transactionCategories || []).length >
+                          0 && (
                           <div className="mt-1">
                             <span className="text-xs px-2 py-0.5 rounded-md bg-green-100/80 text-green-700 truncate flex items-center gap-1 max-w-fit">
                               <Tag size={10} />
                               {(transaction.transactionCategories || [])
-                                .map((category: {
-                                  customCategoryId: number;
-                                  customCategory?: { name: string };
-                                }) => category.customCategory?.name || "Uncategorized")
+                                .map(
+                                  (category: {
+                                    customCategoryId: number;
+                                    customCategory?: { name: string };
+                                  }) =>
+                                    category.customCategory?.name ||
+                                    "Uncategorized"
+                                )
                                 .join(", ")}
                             </span>
                           </div>

@@ -27,7 +27,15 @@ transaction.post("/addFundDefaultAccount", async (c) => {
   try {
     const userId = (c as any).get("userId") as number;
     const body = await c.req.json();
-    const { name, description, amount, type, toAccountId, currency, customCategoriesId } = body;
+    const {
+      name,
+      description,
+      amount,
+      type,
+      toAccountId,
+      currency,
+      customCategoriesId,
+    } = body;
 
     if (!name || !amount || !type || !toAccountId) {
       return c.json(
@@ -271,7 +279,8 @@ transaction.post("/executeRecurringPayment", async (c) => {
     if (!paymentId || !amount || !fromAccountId || !name) {
       return c.json(
         {
-          error: "Missing required fields (paymentId, amount, fromAccountId, name)",
+          error:
+            "Missing required fields (paymentId, amount, fromAccountId, name)",
         },
         400
       );
@@ -324,7 +333,8 @@ transaction.post("/executeRecurringIncome", async (c) => {
     if (!paymentId || !amount || !toAccountId || !name) {
       return c.json(
         {
-          error: "Missing required fields (paymentId, amount, toAccountId, name)",
+          error:
+            "Missing required fields (paymentId, amount, toAccountId, name)",
         },
         400
       );

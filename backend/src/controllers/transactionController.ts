@@ -16,7 +16,8 @@ export class TransactionController {
         return c.json({ error: "User id not found" }, 400);
       }
 
-      const allTransactions = await this.transactionService.getUserAllTransactions(userId);
+      const allTransactions =
+        await this.transactionService.getUserAllTransactions(userId);
       return c.json(allTransactions);
     } catch (error) {
       console.error("Controller.getUserAllTransactions:", error);
@@ -40,16 +41,17 @@ export class TransactionController {
         return c.json({ error: "Fill all necessary fields" }, 400);
       }
 
-      const newFundAccount = await this.transactionService.addFundsDefaultAccount(
-        userId,
-        name,
-        description || '',
-        amount,
-        type,
-        toAccountId,
-        customCategoriesId,
-        currency
-      );
+      const newFundAccount =
+        await this.transactionService.addFundsDefaultAccount(
+          userId,
+          name,
+          description || "",
+          amount,
+          type,
+          toAccountId,
+          customCategoriesId,
+          currency
+        );
 
       return c.json(newFundAccount);
     } catch (error) {
@@ -145,7 +147,7 @@ export class TransactionController {
         amount,
         currency,
         userId,
-        name || '',
+        name || "",
         fromAccountId,
         description,
         customCategoriesId
@@ -176,14 +178,15 @@ export class TransactionController {
         return c.json({ error: "Amount must be greater than zero" }, 400);
       }
 
-      const defaultTransaction = await this.transactionService.transferFundsDefault(
-        userId,
-        amount,
-        fromAccountId,
-        toAccountId,
-        type || TransactionType.TRANSFER,
-        currency
-      );
+      const defaultTransaction =
+        await this.transactionService.transferFundsDefault(
+          userId,
+          amount,
+          fromAccountId,
+          toAccountId,
+          type || TransactionType.TRANSFER,
+          currency
+        );
 
       return c.json(defaultTransaction);
     } catch (error) {

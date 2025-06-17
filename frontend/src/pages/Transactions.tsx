@@ -3,12 +3,7 @@ import { getUserAllTransactions } from "../services/transactionService";
 import { Transaction } from "../interfaces/Transaction";
 import { AccountType } from "../interfaces/enums";
 import { motion } from "framer-motion";
-import {
-  ArrowUp,
-  ArrowDown,
-  ArrowLeftRight,
-  Plus,
-} from "lucide-react";
+import { ArrowUp, ArrowDown, ArrowLeftRight, Plus } from "lucide-react";
 
 import { Account } from "../interfaces/Account";
 import { fetchAllAccounts } from "../services/accountService";
@@ -45,15 +40,12 @@ const Transactions: React.FC = () => {
   const [ratesError, setRatesError] = useState<string | null>(null);
   const [fetchingRates, setFetchingRates] = useState(false);
 
-  
   const [isCreateExpenseModalOpen, setIsCreateExpenseModalOpen] =
     useState(false);
   const [isAddIncomeModalOpen, setIsAddIncomeModalOpen] = useState(false);
   const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
-  const [, setSelectedTransaction] =
-    useState<Transaction | null>(null);
-  const [, setIsTransactionDetailsOpen] =
-    useState(false);
+  const [, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [, setIsTransactionDetailsOpen] = useState(false);
   const [currentIncomePopupStep, setCurrentIncomePopupStep] = useState(1);
 
   const checkScreenSize = () => {

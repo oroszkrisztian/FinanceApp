@@ -14,7 +14,7 @@ export const getUserAllTransactions = async () => {
 
     console.log("Response status:", response.status);
     const data = await handleApiResponse(response);
-    
+
     console.log("Parsed data type:", typeof data);
     console.log("Is array:", Array.isArray(data));
     console.log("Data length:", Array.isArray(data) ? data.length : "N/A");
@@ -124,7 +124,13 @@ export const addFundsDefault = async (
 };
 
 export const createExpense = async (
-name: string | null, amount: number, currency: string, fromAccountId: number, description: string | null,  customCategoriesId: number[] | null) => {
+  name: string | null,
+  amount: number,
+  currency: string,
+  fromAccountId: number,
+  description: string | null,
+  customCategoriesId: number[] | null
+) => {
   try {
     const response = await fetch(
       "https://financeapp-bg0k.onrender.com/transaction/createExpense",
@@ -235,7 +241,7 @@ export const executeRecurringIncome = async (
           toAccountId,
           name,
           description,
-          customCategoriesId
+          customCategoriesId,
         }),
       }
     );

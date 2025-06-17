@@ -126,7 +126,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isCurrencyMenuOpen, isDateFilterOpen]);
 
-  
   const formatAmount = (amount: number) => amount.toFixed(2);
 
   const formatDate = (dateString: Date) => {
@@ -138,7 +137,6 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
       year: "numeric",
     });
   };
-  
 
   const getAccountName = (accountId: number | undefined) => {
     if (!accountId) return "-";
@@ -178,7 +176,7 @@ const ExpenseTransactions: React.FC<ExpenseTransactionsProps> = ({
   const clearAllFilters = () => {
     setNameSearchTerm("");
     setAccountSearchTerm("");
-    setDateRange(getCurrentMonthRange()); 
+    setDateRange(getCurrentMonthRange());
   };
 
   const formatDateRangeDisplay = () => {
