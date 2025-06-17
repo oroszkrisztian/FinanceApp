@@ -89,7 +89,7 @@ async function getUserBudgets(userId, token) {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ userId }),
+            body: JSON.stringify({}),
         });
         if (!response.ok)
             throw new Error("Failed to get user budgets");
