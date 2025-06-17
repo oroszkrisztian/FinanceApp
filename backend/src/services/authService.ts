@@ -1,14 +1,16 @@
 import bcrypt from "bcryptjs";
-import { sign, verify } from "jsonwebtoken";
+import { SignJWT, jwtVerify } from "jose";
 import 'dotenv/config';
 import { LoginCredentials, RegisterData, User } from "../types/user";
 import { UserRepository } from "../repositories/userRepository";
 
 export class AuthService {
   private userRepository: UserRepository;
+  private secret: Uint8Array;
 
   constructor() {
     this.userRepository = new UserRepository();
+    this.secret = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key");
   }
 
   async login(credentials: LoginCredentials) {
@@ -25,7 +27,7 @@ export class AuthService {
       throw new Error("Invalid username or password");
     }
 
-    const token = this.generateToken(user);
+    const token = await this.generateToken(user);
     const { password: _, ...userWithoutPassword } = user;
     return {
       user: userWithoutPassword,
@@ -63,7 +65,7 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    const token = this.generateToken(newUser);
+    const token = await this.generateToken(newUser);
     const { password: _, ...userWithoutPassword } = newUser;
     return {
       user: userWithoutPassword,
@@ -73,14 +75,14 @@ export class AuthService {
 
   async refreshToken(oldToken: string) {
     try {
-      const decoded = verify(oldToken, process.env.JWT_SECRET || "your-secret-key") as any;
-      const user = await this.userRepository.findById(decoded.userId);
+      const { payload } = await jwtVerify(oldToken, this.secret);
+      const user = await this.userRepository.findById(payload.userId as number);
       
       if (!user) {
         throw new Error("User not found");
       }
 
-      const newToken = this.generateToken(user);
+      const newToken = await this.generateToken(user);
       const { password: _, ...userWithoutPassword } = user;
       
       return {
@@ -92,11 +94,13 @@ export class AuthService {
     }
   }
 
-  private generateToken(user: User) {
-    return sign(
-      { userId: user.id, username: user.username },
-      process.env.JWT_SECRET || "your-secret-key",
-      { expiresIn: "24h" }
-    );
+  private async generateToken(user: User) {
+    const token = await new SignJWT({ userId: user.id, username: user.username })
+      .setProtectedHeader({ alg: 'HS256' })
+      .setIssuedAt()
+      .setExpirationTime('24h')
+      .sign(this.secret);
+    
+    return token;
   }
 }

@@ -1,6 +1,8 @@
 import { Context, Next } from "hono";
-import jwt from "jsonwebtoken";
+import { jwtVerify } from "jose";
 import "dotenv/config";
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key");
 
 export const verifyToken = async (c: Context, next: Next) => {
   try {
@@ -17,11 +19,10 @@ export const verifyToken = async (c: Context, next: Next) => {
       return c.json({ error: "Server configuration error" }, 500);
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET) as any;
+    const { payload } = await jwtVerify(token, secret);
 
-  
-    c.set("userId", decoded.id || decoded.userId);
-    c.set("user", decoded);
+    c.set("userId", payload.userId as number);
+    c.set("user", payload);
 
     await next();
   } catch (error) {
