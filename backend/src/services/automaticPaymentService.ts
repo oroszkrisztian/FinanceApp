@@ -235,7 +235,7 @@ export default class AutomaticPaymentService {
               </p>
             </div>
 
-            ${payment.nextExecution ? `
+            ${payment.nextExecution && payment.frequency !== 'ONCE' ? `
               <div style="margin: 20px 0; padding: 15px; background-color: #fff8e1; border-radius: 5px;">
                 <p style="margin: 0; color: #666;">
                   <strong>📅 Next automatic ${payment.type.toLowerCase()}:</strong> ${new Date(payment.nextExecution).toLocaleDateString('en-US', { 
@@ -244,6 +244,14 @@ export default class AutomaticPaymentService {
                     month: 'long', 
                     day: 'numeric' 
                   })}
+                </p>
+              </div>
+            ` : ''}
+
+            ${payment.frequency === 'ONCE' ? `
+              <div style="margin: 20px 0; padding: 15px; background-color: #e8f4fd; border-radius: 5px;">
+                <p style="margin: 0; color: #666;">
+                  <strong>✅ One-time payment:</strong> This was a one-time automatic ${payment.type.toLowerCase()} and will not repeat.
                 </p>
               </div>
             ` : ''}
