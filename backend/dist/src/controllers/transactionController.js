@@ -26,7 +26,7 @@ class TransactionController {
             if (!userId || !name || !amount || !type || !toAccountId) {
                 return c.json({ error: "Fill all necessary fields" }, 400);
             }
-            const newFundAccount = await this.transactionService.addFundsDefaultAccount(userId, name, description || '', amount, type, toAccountId, customCategoriesId, currency);
+            const newFundAccount = await this.transactionService.addFundsDefaultAccount(userId, name, description || "", amount, type, toAccountId, customCategoriesId, currency);
             return c.json(newFundAccount);
         }
         catch (error) {
@@ -71,7 +71,7 @@ class TransactionController {
             if (!userId || !amount || !fromAccountId) {
                 return c.json({ error: "Fill all necessary fields" }, 400);
             }
-            const expense = await this.transactionService.createExpense(amount, currency, userId, name || '', fromAccountId, description, customCategoriesId);
+            const expense = await this.transactionService.createExpense(amount, currency, userId, name || "", fromAccountId, description, customCategoriesId);
             return c.json(expense);
         }
         catch (error) {

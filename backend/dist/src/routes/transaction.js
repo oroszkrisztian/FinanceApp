@@ -23,7 +23,7 @@ transaction.post("/addFundDefaultAccount", async (c) => {
     try {
         const userId = c.get("userId");
         const body = await c.req.json();
-        const { name, description, amount, type, toAccountId, currency, customCategoriesId } = body;
+        const { name, description, amount, type, toAccountId, currency, customCategoriesId, } = body;
         if (!name || !amount || !type || !toAccountId) {
             return c.json({
                 error: "Missing required fields (name, amount, type, toAccountId)",
