@@ -91,7 +91,7 @@ async function getAllCategoriesForUser(token: string) {
 async function getUserBudgets(userId: number, token: string) {
   try {
     const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/budget/getUserBudgets`,
+      `https://financeapp-bg0k.onrender.com/budget/getAllUserBudgets`,
       {
         method: "POST",
         headers: {
