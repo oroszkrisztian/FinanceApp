@@ -18,7 +18,20 @@ export class AuthController {
   async login(c: Context) {
     try {
       const credentials = await c.req.json();
-      const result = await this.authService.login(credentials);
+
+      // Extract IP address and user agent from request
+      const ipAddress =
+        c.req.header("x-forwarded-for") ||
+        c.req.header("x-real-ip") ||
+        c.req.header("cf-connecting-ip") ||
+        "unknown";
+      const userAgent = c.req.header("user-agent") || "unknown";
+
+      const result = await this.authService.login(
+        credentials,
+        ipAddress,
+        userAgent
+      );
       return c.json(result);
     } catch (error) {
       console.error("Login error:", error);
@@ -52,7 +65,7 @@ export class AuthController {
   async refresh(c: Context) {
     try {
       const { token } = await c.req.json();
-      
+
       if (!token) {
         return c.json({ error: "Token is required" }, 400);
       }
