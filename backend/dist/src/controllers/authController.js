@@ -16,7 +16,13 @@ class AuthController {
     async login(c) {
         try {
             const credentials = await c.req.json();
-            const result = await this.authService.login(credentials);
+            // Extract IP address and user agent from request
+            const ipAddress = c.req.header("x-forwarded-for") ||
+                c.req.header("x-real-ip") ||
+                c.req.header("cf-connecting-ip") ||
+                "unknown";
+            const userAgent = c.req.header("user-agent") || "unknown";
+            const result = await this.authService.login(credentials, ipAddress, userAgent);
             return c.json(result);
         }
         catch (error) {

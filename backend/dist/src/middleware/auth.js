@@ -1,11 +1,9 @@
 "use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.verifyToken = void 0;
-const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const jose_1 = require("jose");
 require("dotenv/config");
+const secret = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key");
 const verifyToken = async (c, next) => {
     try {
         const authHeader = c.req.header("Authorization");
@@ -17,9 +15,9 @@ const verifyToken = async (c, next) => {
             console.error("JWT_SECRET not configured");
             return c.json({ error: "Server configuration error" }, 500);
         }
-        const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);
-        c.set("userId", decoded.id || decoded.userId);
-        c.set("user", decoded);
+        const { payload } = await (0, jose_1.jwtVerify)(token, secret);
+        c.set("userId", payload.userId);
+        c.set("user", payload);
         await next();
     }
     catch (error) {

@@ -5,15 +5,20 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthService = void 0;
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
-const jsonwebtoken_1 = require("jsonwebtoken");
+const jose_1 = require("jose");
 require("dotenv/config");
 const userRepository_1 = require("../repositories/userRepository");
+const loginEmailService_1 = __importDefault(require("./loginEmailService"));
 class AuthService {
     userRepository;
+    loginEmailService;
+    secret;
     constructor() {
         this.userRepository = new userRepository_1.UserRepository();
+        this.loginEmailService = new loginEmailService_1.default();
+        this.secret = new TextEncoder().encode(process.env.JWT_SECRET || "your-secret-key");
     }
-    async login(credentials) {
+    async login(credentials, ipAddress, userAgent) {
         const user = await this.userRepository.findByUsername(credentials.username);
         if (!user) {
             throw new Error("Invalid username or password");
@@ -22,8 +27,22 @@ class AuthService {
         if (!isValidPassword) {
             throw new Error("Invalid username or password");
         }
-        const token = this.generateToken(user);
+        const token = await this.generateToken(user);
         const { password: _, ...userWithoutPassword } = user;
+        // Send login notification email
+        try {
+            await this.loginEmailService.sendLoginNotification({
+                userEmail: user.email,
+                userName: `${user.firstName} ${user.lastName}`,
+                loginTime: new Date(),
+                ipAddress,
+                userAgent,
+            });
+        }
+        catch (error) {
+            console.error("Failed to send login email:", error);
+            // Continue with login even if email fails
+        }
         return {
             user: userWithoutPassword,
             token,
@@ -51,7 +70,7 @@ class AuthService {
             ...data,
             password: hashedPassword,
         });
-        const token = this.generateToken(newUser);
+        const token = await this.generateToken(newUser);
         const { password: _, ...userWithoutPassword } = newUser;
         return {
             user: userWithoutPassword,
@@ -60,12 +79,12 @@ class AuthService {
     }
     async refreshToken(oldToken) {
         try {
-            const decoded = (0, jsonwebtoken_1.verify)(oldToken, process.env.JWT_SECRET || "your-secret-key");
-            const user = await this.userRepository.findById(decoded.userId);
+            const { payload } = await (0, jose_1.jwtVerify)(oldToken, this.secret);
+            const user = await this.userRepository.findById(payload.userId);
             if (!user) {
                 throw new Error("User not found");
             }
-            const newToken = this.generateToken(user);
+            const newToken = await this.generateToken(user);
             const { password: _, ...userWithoutPassword } = user;
             return {
                 user: userWithoutPassword,
@@ -76,8 +95,16 @@ class AuthService {
             throw new Error("Invalid token");
         }
     }
-    generateToken(user) {
-        return (0, jsonwebtoken_1.sign)({ userId: user.id, username: user.username }, process.env.JWT_SECRET || "your-secret-key", { expiresIn: "24h" });
+    async generateToken(user) {
+        const token = await new jose_1.SignJWT({
+            userId: user.id,
+            username: user.username,
+        })
+            .setProtectedHeader({ alg: "HS256" })
+            .setIssuedAt()
+            .setExpirationTime("24h")
+            .sign(this.secret);
+        return token;
     }
 }
 exports.AuthService = AuthService;
