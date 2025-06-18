@@ -14,8 +14,8 @@ class LoginEmailService {
             throw new Error("BREVO_API_KEY environment variable is required");
         }
         this.brevoService = new brevoService_1.default(apiKey);
-        this.senderEmail = process.env.SENDER_EMAIL || "noreply@financeapp.com";
-        this.senderName = process.env.SENDER_NAME || "Finance App";
+        this.senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@financeapp.com";
+        this.senderName = process.env.BREVO_SENDER_NAME || "Finance App";
     }
     async sendLoginNotification(data) {
         try {
@@ -40,7 +40,6 @@ class LoginEmailService {
         }
         catch (error) {
             console.error("Failed to send login notification email:", error);
-            // Don't throw error to avoid breaking the login flow
         }
     }
     generateLoginEmailHTML(data) {

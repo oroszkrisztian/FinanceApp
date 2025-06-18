@@ -16,7 +16,6 @@ class AuthController {
     async login(c) {
         try {
             const credentials = await c.req.json();
-            // Extract IP address and user agent from request
             const ipAddress = c.req.header("x-forwarded-for") ||
                 c.req.header("x-real-ip") ||
                 c.req.header("cf-connecting-ip") ||

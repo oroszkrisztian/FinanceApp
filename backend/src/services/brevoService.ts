@@ -54,7 +54,7 @@ class BrevoEmailService {
         'api-key': this.apiKey,
         'content-type': 'application/json'
       },
-      timeout: 10000 // 10 second timeout
+      timeout: 10000 
     });
   }
 

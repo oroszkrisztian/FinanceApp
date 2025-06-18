@@ -24,8 +24,8 @@ class LoginEmailService {
     }
 
     this.brevoService = new BrevoEmailService(apiKey);
-    this.senderEmail = process.env.SENDER_EMAIL || "noreply@financeapp.com";
-    this.senderName = process.env.SENDER_NAME || "Finance App";
+    this.senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@financeapp.com";
+    this.senderName = process.env.BREVO_SENDER_NAME || "Finance App";
   }
 
   async sendLoginNotification(data: LoginEmailData): Promise<void> {
@@ -51,7 +51,6 @@ class LoginEmailService {
       console.log(`Login notification email sent to ${data.userEmail}`);
     } catch (error) {
       console.error("Failed to send login notification email:", error);
-      // Don't throw error to avoid breaking the login flow
     }
   }
 
