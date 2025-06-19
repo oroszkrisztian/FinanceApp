@@ -9,6 +9,7 @@ const jose_1 = require("jose");
 require("dotenv/config");
 const userRepository_1 = require("../repositories/userRepository");
 const loginEmailService_1 = __importDefault(require("./loginEmailService"));
+const geoip_lite_1 = __importDefault(require("geoip-lite"));
 class AuthService {
     userRepository;
     loginEmailService;
@@ -29,6 +30,17 @@ class AuthService {
         }
         const token = await this.generateToken(user);
         const { password: _, ...userWithoutPassword } = user;
+        // Look up location from IP address
+        let location = undefined;
+        if (ipAddress && ipAddress !== "unknown") {
+            const geo = geoip_lite_1.default.lookup(ipAddress.split(",")[0].trim());
+            if (geo) {
+                location = {
+                    country: geo.country,
+                    city: geo.city,
+                };
+            }
+        }
         // Send login notification email
         try {
             await this.loginEmailService.sendLoginNotification({
@@ -37,6 +49,7 @@ class AuthService {
                 loginTime: new Date(),
                 ipAddress,
                 userAgent,
+                location,
             });
         }
         catch (error) {

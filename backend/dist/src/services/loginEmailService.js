@@ -14,7 +14,8 @@ class LoginEmailService {
             throw new Error("BREVO_API_KEY environment variable is required");
         }
         this.brevoService = new brevoService_1.default(apiKey);
-        this.senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@financeapp.com";
+        this.senderEmail =
+            process.env.BREVO_SENDER_EMAIL || "noreply@financeapp.com";
         this.senderName = process.env.BREVO_SENDER_NAME || "Finance App";
     }
     async sendLoginNotification(data) {
@@ -44,9 +45,13 @@ class LoginEmailService {
     }
     generateLoginEmailHTML(data) {
         const loginTime = data.loginTime.toLocaleString();
-        const ipInfo = data.ipAddress
-            ? `<p><strong>IP Address:</strong> ${data.ipAddress}</p>`
-            : "";
+        let locationInfo = "";
+        if (data.location && (data.location.country || data.location.city)) {
+            locationInfo = `<p><strong>Location:</strong> ${data.location.city ? data.location.city + ", " : ""}${data.location.country || ""}</p>`;
+        }
+        else if (data.ipAddress) {
+            locationInfo = `<p><strong>IP Address:</strong> ${data.ipAddress}</p>`;
+        }
         const userAgentInfo = data.userAgent
             ? `<p><strong>Device:</strong> ${data.userAgent}</p>`
             : "";
@@ -79,7 +84,7 @@ class LoginEmailService {
             
             <h3>Login Details:</h3>
             <p><strong>Time:</strong> ${loginTime}</p>
-            ${ipInfo}
+            ${locationInfo}
             ${userAgentInfo}
             
             <p>If this was you, you can safely ignore this email. If you don't recognize this login, please contact our support team immediately.</p>
@@ -97,7 +102,13 @@ class LoginEmailService {
     }
     generateLoginEmailText(data) {
         const loginTime = data.loginTime.toLocaleString();
-        const ipInfo = data.ipAddress ? `IP Address: ${data.ipAddress}\n` : "";
+        let locationInfo = "";
+        if (data.location && (data.location.country || data.location.city)) {
+            locationInfo = `Location: ${data.location.city ? data.location.city + ", " : ""}${data.location.country || ""}\n`;
+        }
+        else if (data.ipAddress) {
+            locationInfo = `IP Address: ${data.ipAddress}\n`;
+        }
         const userAgentInfo = data.userAgent ? `Device: ${data.userAgent}\n` : "";
         return `
 New Login Notification
@@ -108,8 +119,7 @@ We detected a new login to your Finance App account.
 
 Login Details:
 Time: ${loginTime}
-${ipInfo}${userAgentInfo}
-If this was you, you can safely ignore this email. If you don't recognize this login, please contact our support team immediately.
+${locationInfo}${userAgentInfo}If this was you, you can safely ignore this email. If you don't recognize this login, please contact our support team immediately.
 
 Thank you for using Finance App!
 
