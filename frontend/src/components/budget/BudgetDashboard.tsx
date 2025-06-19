@@ -218,8 +218,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   }, []);
 
   const fetchTransactions = async () => {
-    
-
     try {
       const data = await getUserAllTransactions();
       let transactionsArray: Transaction[] = [];
@@ -248,8 +246,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
 
   useEffect(() => {
     const loadData = async () => {
-     
-
       setTransactionsLoading(true);
       setTransactionsError(null);
 
@@ -266,27 +262,30 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   }, []);
 
   const editBudgetsAi = async () => {
-    if (!token ) return;
+    if (!token) return;
 
     setIsLoadingAI(true);
     setAiError(undefined);
     setIsAIModalOpen(true);
 
     try {
-      const response = await fetch("https://financeapp-bg0k.onrender.com/ai/budgetEdit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          transactions: transactions,
-          categories,
-          budgets: budgets,
-          futureOutgoingPayments: [], 
-          futureIncomingPayments: [], 
-        }),
-      });
+      const response = await fetch(
+        "https://financeapp-bg0k.onrender.com/ai/budgetEdit",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            transactions: transactions,
+            categories,
+            budgets: budgets,
+            futureOutgoingPayments: [],
+            futureIncomingPayments: [],
+          }),
+        }
+      );
 
       if (!response.ok) {
         throw new Error("Failed to get AI recommendations");
@@ -315,13 +314,11 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
   const handleApplyAIRecommendations = async (
     recommendations: AIBudgetRecommendation[]
   ) => {
-
     const results = [];
 
     for (const rec of recommendations) {
       try {
         if (rec.action === "create") {
-          
           await createUserBudgetWithCategories(
             rec.name,
             rec.limitAmount,
@@ -511,7 +508,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     });
   }, [transactions, budgetCategoryIds, filteredBudgets, transactionSearchTerm]);
 
-
   const budgetNames = useMemo(() => {
     return budgets?.map((budget) => budget.name) || [];
   }, [budgets]);
@@ -587,7 +583,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
       gradient: "from-green-300 to-emerald-500",
     };
   };
-
 
   if (!budgets || budgets.length === 0) {
     return <EmptyBudget categories={categories} onSuccess={onSuccess} />;
@@ -812,7 +807,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                     </div>
                   </div>
 
-                
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -869,7 +863,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                   : "bg-gradient-to-r from-green-50 to-emerald-50 border-l-green-400 active:from-green-100 active:to-emerald-100"
                           }`}
                         >
-                          {/* Top Section with Icon, Name, Categories and Amounts */}
                           <div
                             className={`flex items-start justify-between ${isMobileView ? "mb-2" : "mb-3"}`}
                           >
@@ -888,19 +881,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                           : "bg-gradient-to-r from-green-400 to-green-500 text-white"
                                   }`}
                                 >
-                                  <svg
-                                    className={`${isMobileView ? "w-3.5 h-3.5" : "w-5 h-5"}`}
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2 2v14a2 2 0 002 2z"
-                                    />
-                                  </svg>
+                                  <Calculator size={isMobileView ? 14 : 20} />
                                 </div>
 
                                 <div className="flex-1 min-w-0 max-w-full">
@@ -1380,16 +1361,26 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                     {isMobileView && displayName.length > 12
                                       ? displayName.substring(0, 12) + "..."
                                       : displayName}
-                                    {budget && (
-                                      <span className="text-gray-600 font-normal">
-                                        {" "}
-                                        → to{" "}
-                                        {isMobileView && budget.name.length > 6
-                                          ? budget.name.substring(0, 6) + "..."
-                                          : budget.name}
-                                      </span>
-                                    )}
                                   </h4>
+                                  <div className={`flex flex-wrap gap-1 mt-1`}>
+                                    {(
+                                      transaction.transactionCategories || []
+                                    ).map(
+                                      (category: {
+                                        customCategoryId: number;
+                                        customCategory?: { name: string };
+                                      }) => (
+                                        <span
+                                          key={category.customCategoryId}
+                                          className="text-xs px-2 py-0.5 rounded-md bg-purple-100/80 text-purple-700 font-semibold truncate flex items-center gap-1"
+                                        >
+                                          <Tag size={10} />
+                                          {category.customCategory?.name ||
+                                            "Uncategorized"}
+                                        </span>
+                                      )
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                             </div>
@@ -1455,25 +1446,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                 </div>
                               )}
                             </div>
-                          </div>
-
-                          {/* Unified Categories Section */}
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {(transaction.transactionCategories || []).map(
-                              (category: {
-                                customCategoryId: number;
-                                customCategory?: { name: string };
-                              }) => (
-                                <span
-                                  key={category.customCategoryId}
-                                  className="text-xs px-2 py-0.5 rounded-md bg-red-100/80 text-red-700 truncate flex items-center gap-1"
-                                >
-                                  <Tag size={10} />
-                                  {category.customCategory?.name ||
-                                    "Uncategorized"}
-                                </span>
-                              )
-                            )}
                           </div>
                         </motion.div>
                       );
@@ -1608,13 +1580,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                     {filteredTransactions.slice(0, 20).map((transaction) => {
                       const categoryId = (transaction as any)
                         .transactionCategories?.[0]?.customCategoryId;
-                      const budget = categoryId
-                        ? budgets?.find((b) =>
-                            b.customCategories.some(
-                              (cat) => String(cat.id) === String(categoryId)
-                            )
-                          )
-                        : null;
                       const convertedAmount = convertToDisplayCurrency(
                         transaction.amount,
                         transaction.currency
@@ -1624,8 +1589,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                         transaction.name ||
                         transaction.description ||
                         "Untitled Transaction";
-                      const categoryInfo = (transaction as any)
-                        .transactionCategories?.[0]?.customCategory;
 
                       const showConversion =
                         transaction.currency !== displayCurrency;
@@ -1637,7 +1600,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                           animate={{ opacity: 1, y: 0 }}
                           whileTap={{ scale: isMobileView ? 0.97 : 0.98 }}
                           onClick={() => handleTransactionPreview(transaction)}
-                          className={`rounded-xl ${isMobileView ? "p-2.5 active:scale-95" : "p-4"} border-l-4 shadow-sm hover:shadow-md active:shadow-lg transition-all duration-200 touch-manipulation select-none cursor-pointer ${
+                          className={`rounded-xl ${isMobileView ? "p-3 active:scale-95" : "p-4"} border-l-4 shadow-sm hover:shadow-md active:shadow-lg transition-all duration-200 touch-manipulation select-none cursor-pointer ${
                             transaction.type === "EXPENSE"
                               ? "bg-gradient-to-r from-red-50 to-red-100 border-l-red-500 active:from-red-100 active:to-red-150"
                               : transaction.type === "INCOME"
@@ -1651,7 +1614,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                 className={`flex items-center gap-${isMobileView ? "2" : "3"} ${isMobileView ? "mb-1.5" : "mb-2"}`}
                               >
                                 <div
-                                  className={`${isMobileView ? "p-1" : "p-2.5"} rounded-xl shadow-sm flex-shrink-0 ${
+                                  className={`${isMobileView ? "p-2" : "p-3"} rounded-xl shadow-sm flex-shrink-0 ${
                                     transaction.type === "EXPENSE"
                                       ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
                                       : transaction.type === "INCOME"
@@ -1659,7 +1622,7 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                         : "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
                                   }`}
                                 >
-                                  <Receipt size={isMobileView ? 10 : 16} />
+                                  <Receipt size={isMobileView ? 12 : 16} />
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <h4
@@ -1679,34 +1642,24 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                     {isMobileView && displayName.length > 12
                                       ? displayName.substring(0, 12) + "..."
                                       : displayName}
-                                    {budget && (
-                                      <span className="text-gray-600 font-normal">
-                                        {" "}
-                                        → to{" "}
-                                        {isMobileView && budget.name.length > 6
-                                          ? budget.name.substring(0, 6) + "..."
-                                          : budget.name}
-                                      </span>
-                                    )}
                                   </h4>
-                                  <div
-                                    className={`flex flex-wrap gap-0.5 ${isMobileView ? "mt-0.5" : "mt-2"}`}
-                                  >
-                                    {categoryInfo && (
-                                      <span
-                                        className={`bg-purple-100 text-purple-700 px-1 py-0.5 rounded-full font-medium text-[9px] leading-tight ${
-                                          isMobileView
-                                            ? "max-w-[60px] truncate"
-                                            : ""
-                                        }`}
-                                        title={categoryInfo.name}
-                                      >
-                                        {isMobileView &&
-                                        categoryInfo.name.length > 8
-                                          ? categoryInfo.name.substring(0, 8) +
-                                            "..."
-                                          : categoryInfo.name}
-                                      </span>
+                                  <div className={`flex flex-wrap gap-1 mt-1`}>
+                                    {(
+                                      transaction.transactionCategories || []
+                                    ).map(
+                                      (category: {
+                                        customCategoryId: number;
+                                        customCategory?: { name: string };
+                                      }) => (
+                                        <span
+                                          key={category.customCategoryId}
+                                          className="text-xs px-2 py-0.5 rounded-md bg-purple-100/80 text-purple-700 font-semibold truncate flex items-center gap-1"
+                                        >
+                                          <Tag size={10} />
+                                          {category.customCategory?.name ||
+                                            "Uncategorized"}
+                                        </span>
+                                      )
                                     )}
                                   </div>
                                 </div>
@@ -1774,25 +1727,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                                 </div>
                               )}
                             </div>
-                          </div>
-
-                          {/* Unified Categories Section */}
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {(transaction.transactionCategories || []).map(
-                              (category: {
-                                customCategoryId: number;
-                                customCategory?: { name: string };
-                              }) => (
-                                <span
-                                  key={category.customCategoryId}
-                                  className="text-xs px-2 py-0.5 rounded-md bg-red-100/80 text-red-700 truncate flex items-center gap-1"
-                                >
-                                  <Tag size={10} />
-                                  {category.customCategory?.name ||
-                                    "Uncategorized"}
-                                </span>
-                              )
-                            )}
                           </div>
                         </motion.div>
                       );
@@ -2120,32 +2054,27 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                 {(() => {
                   const categoryInfo = (selectedTransactionPreview as any)
                     .transactionCategories?.[0]?.customCategory;
-                  const categoryId = (selectedTransactionPreview as any)
-                    .transactionCategories?.[0]?.customCategoryId;
-                  const budget = categoryId
-                    ? budgets?.find((b) =>
-                        b.customCategories.some(
-                          (cat) => String(cat.id) === String(categoryId)
-                        )
-                      )
-                    : null;
-
                   return (
-                    (categoryInfo || budget) && (
+                    categoryInfo && (
                       <div className="bg-purple-50 p-4 rounded-xl">
-                        <p className="text-sm text-purple-600 mb-2">
-                          Category & Budget
-                        </p>
+                        <p className="text-sm text-purple-600 mb-2">Category</p>
                         <div className="space-y-2">
-                          {categoryInfo && (
-                            <span className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium text-sm">
-                              {categoryInfo.name}
-                            </span>
-                          )}
-                          {budget && (
-                            <p className="text-purple-900 font-medium">
-                              Budget: {budget.name}
-                            </p>
+                          {(
+                            selectedTransactionPreview.transactionCategories ||
+                            []
+                          ).map(
+                            (category: {
+                              customCategoryId: number;
+                              customCategory?: { name: string };
+                            }) => (
+                              <span
+                                key={category.customCategoryId}
+                                className="inline-block bg-purple-100 text-purple-700 px-3 py-1 rounded-full font-medium text-sm mr-2 mb-2"
+                              >
+                                {category.customCategory?.name ||
+                                  "Uncategorized"}
+                              </span>
+                            )
                           )}
                         </div>
                       </div>

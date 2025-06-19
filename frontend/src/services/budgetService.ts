@@ -1,17 +1,8 @@
-import { getAuthHeaders, handleApiResponse } from "./apiHelpers";
+import { api } from "./apiHelpers";
 
 export const getAllBudgets = async () => {
   try {
-    const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/budget/getAllUserBudgets`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({}),
-      }
-    );
-
-    const data = await handleApiResponse(response);
+    const data = await api.post("budget/getAllUserBudgets", {});
     console.log("Budgets data:", data);
 
     if (!data || (typeof data === "object" && Object.keys(data).length === 0)) {
@@ -33,21 +24,12 @@ export const createUserBudgetWithCategories = async (
   categoryIds: number[]
 ) => {
   try {
-    const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/budget/createUserBudgetWithCategories`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name,
-          limitAmount,
-          currency,
-          categoryIds,
-        }),
-      }
-    );
-
-    return await handleApiResponse(response);
+    return await api.post("budget/createUserBudgetWithCategories", {
+      name,
+      limitAmount,
+      currency,
+      categoryIds,
+    });
   } catch (error) {
     console.error("Error creating budget:", error);
     throw error;
@@ -56,18 +38,9 @@ export const createUserBudgetWithCategories = async (
 
 export const deleteUserBudget = async (budgetId: number) => {
   try {
-    const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/budget/deleteUserBudget`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          budgetId,
-        }),
-      }
-    );
-
-    return await handleApiResponse(response);
+    return await api.post("budget/deleteUserBudget", {
+      budgetId,
+    });
   } catch (error) {
     console.error("Error deleting budget:", error);
     throw error;
@@ -86,26 +59,17 @@ export const updateUserBudget = async (
     name,
     limitAmount,
     currency,
-    categoryIds
+    categoryIds,
   });
-  
-  try {
-    const response = await fetch(
-      `https://financeapp-bg0k.onrender.com/budget/updateUserBudget`,
-      {
-        method: "POST",
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          budgetId,
-          name,
-          limitAmount,
-          currency,
-          categoryIds,
-        }),
-      }
-    );
 
-    return await handleApiResponse(response);
+  try {
+    return await api.post("budget/updateUserBudget", {
+      budgetId,
+      name,
+      limitAmount,
+      currency,
+      categoryIds,
+    });
   } catch (error) {
     console.error("Error updating budget:", error);
     throw error;

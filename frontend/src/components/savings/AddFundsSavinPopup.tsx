@@ -173,14 +173,28 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
   };
 
   const getWithdrawAmount = (): number => {
-    if (!amountTransfer || !sourceAccountCurrency) return 0;
+    if (!amountTransfer || !sourceAccountCurrency || !account?.currency)
+      return 0;
     const amountValue = parseNumberInput(amountTransfer);
-    return isNaN(amountValue) ? 0 : amountValue;
+    if (isNaN(amountValue)) return 0;
+
+    if (sourceAccountCurrency === account.currency) {
+      return amountValue;
+    } else {
+      return convertAmount(
+        amountValue,
+        account.currency,
+        sourceAccountCurrency,
+        rates
+      );
+    }
   };
 
   const calculateNewTargetBalance = (): number | null => {
     if (!account || account.amount === undefined) return null;
-    return account.amount + getTargetAmount();
+    const amountValue = parseNumberInput(amountTransfer);
+    if (isNaN(amountValue)) return account.amount;
+    return account.amount + amountValue;
   };
 
   const calculateSourceAccountNewBalance = (): number | null => {
@@ -265,8 +279,6 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
         throw new Error("Please select a source account.");
       }
 
-     
-
       const targetCheck = calculateTargetAmountExceed();
       if (targetCheck?.exceeded) {
         throw new Error(
@@ -291,7 +303,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
 
       setLoading(false);
       handleClose();
-      onSuccess(account.id); 
+      onSuccess(account.id);
     } catch (err) {
       setLoading(false);
       setError(err instanceof Error ? err.message : "Failed to add funds");
@@ -331,8 +343,9 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
               animate={{ scale: 1, opacity: 1 }}
               transition={{ duration: 0.2 }}
               className="bg-white rounded-2xl shadow-2xl overflow-hidden w-full max-w-md sm:max-w-lg md:max-w-xl lg:max-w-2xl xl:max-w-3xl pointer-events-auto"
-              style={{ maxWidth: isMobileScreen ? "auto" : "500px" ,
-                        minWidth: isMobileScreen ? "auto" : "400px"
+              style={{
+                maxWidth: isMobileScreen ? "auto" : "500px",
+                minWidth: isMobileScreen ? "auto" : "400px",
               }}
             >
               {/* Header with fixed position */}
@@ -666,13 +679,13 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                             setAmount(value);
                         }}
                         className="w-full border border-indigo-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-all bg-indigo-50/50"
-                        placeholder={"0.00"}
+                        placeholder={`0.00 (${account?.currency || ""})`}
                         autoComplete="off"
                         required
                       />
                       <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                         <span className="text-indigo-600 font-medium">
-                          {sourceAccountCurrency || account?.currency}
+                          {account?.currency}
                         </span>
                       </div>
                     </div>
@@ -801,10 +814,7 @@ const AddFundsSavingPopup: React.FC<AddFundsPopupProps> = ({
                                   {account.name}
                                 </div>
                                 <div className="font-bold text-green-500 text-lg">
-                                  +
-                                  {(
-                                    newTargetBalance - (account.amount || 0)
-                                  ).toFixed(2)}{" "}
+                                  +{parseNumberInput(amountTransfer).toFixed(2)}{" "}
                                   {account.currency}
                                 </div>
                                 <div className="text-xs text-gray-500 mt-2 flex items-center">

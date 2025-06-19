@@ -7,10 +7,14 @@ interface ActiveSavingCardProps {
   index: number;
   activeMenu: string | null;
   setActiveMenu: React.Dispatch<React.SetStateAction<string | null>>;
-  onAddFunds: (accountId: number) => void;
-  onTransfer: (accountId: number) => void;
+  onAddFunds: (account: Account) => void;
+  onTransfer: (account: Account) => void;
   onEdit: (accountId: number) => void;
-  onDelete: (accountId: number, accountName: string, accountAmount:number) => void;
+  onDelete: (
+    accountId: number,
+    accountName: string,
+    accountAmount: number
+  ) => void;
   updatedSavingId?: number | null;
   isUpdated?: boolean;
 }
@@ -34,24 +38,46 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
     : 0;
 
   const colors = {
-    primary: completionPercentage >= 75 ? "green" : "indigo",
-    accent: completionPercentage >= 75 ? "green" : "indigo",
+    primary:
+      completionPercentage >= 100
+        ? "green"
+        : completionPercentage >= 75
+          ? "orange"
+          : "indigo",
+    accent:
+      completionPercentage >= 100
+        ? "green"
+        : completionPercentage >= 75
+          ? "orange"
+          : "indigo",
     gradient:
-      completionPercentage >= 75
+      completionPercentage >= 100
         ? "from-green-600 to-emerald-500"
-        : "from-indigo-600 to-blue-500",
+        : completionPercentage >= 75
+          ? "from-orange-500 to-amber-500"
+          : "from-indigo-600 to-blue-500",
   };
 
   const cardStyles =
-    completionPercentage >= 75
+    completionPercentage >= 100
       ? "border-green-100 hover:border-green-200"
-      : "border-indigo-100 hover:border-indigo-200";
+      : completionPercentage >= 75
+        ? "border-orange-100 hover:border-orange-200"
+        : "border-indigo-100 hover:border-indigo-200";
 
   const waveColor =
-    completionPercentage >= 75 ? "bg-green-300" : "bg-indigo-300";
+    completionPercentage >= 100
+      ? "bg-green-300"
+      : completionPercentage >= 75
+        ? "bg-orange-300"
+        : "bg-indigo-300";
 
   const progressBarColor =
-    completionPercentage >= 75 ? "bg-green-500" : "bg-indigo-500";
+    completionPercentage >= 100
+      ? "bg-green-500"
+      : completionPercentage >= 75
+        ? "bg-orange-500"
+        : "bg-indigo-500";
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -103,7 +129,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
   useEffect(() => {
     if (isUpdated) {
       setAnimate(true);
-      const timeout = setTimeout(() => setAnimate(false), 1000); 
+      const timeout = setTimeout(() => setAnimate(false), 1000);
       return () => clearTimeout(timeout);
     }
   }, [isUpdated]);
@@ -270,7 +296,6 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
           </div>
         </div>
 
-        
         <div className="mb-4">
           <div
             className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-${colors.primary}-100 text-${colors.primary}-800`}
@@ -362,7 +387,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
         <div className="mt-5 flex gap-2">
           <button
             className={`flex-1 py-2.5 px-4 bg-${colors.primary}-50 text-${colors.primary}-700 rounded-lg hover:bg-${colors.primary}-100 focus:ring-2 focus:ring-${colors.primary}-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5`}
-            onClick={() => onAddFunds(account.id)}
+            onClick={() => onAddFunds(account)}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -381,7 +406,7 @@ const ActiveSavingCard: React.FC<ActiveSavingCardProps> = ({
 
           <button
             className={`flex-1 py-2.5 px-4 bg-white text-gray-700 rounded-lg border border-gray-300 hover:bg-gray-50 focus:ring-2 focus:ring-gray-500 focus:ring-opacity-50 focus:outline-none transition-all duration-200 text-sm font-medium flex items-center justify-center gap-1.5`}
-            onClick={() => onTransfer(account.id)}
+            onClick={() => onTransfer(account)}
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"

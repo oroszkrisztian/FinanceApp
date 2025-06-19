@@ -9,12 +9,14 @@ interface CompletedSavingsGridProps {
   searchInput: string;
   selectedSearchResult: Account | null;
   onDelete: (id: number, accountName: string) => void;
+  refetchTrigger: number;
 }
 
 const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
   searchInput,
   selectedSearchResult,
   onDelete,
+  refetchTrigger,
 }) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
@@ -40,6 +42,12 @@ const CompletedSavingsGrid: React.FC<CompletedSavingsGridProps> = ({
   useEffect(() => {
     fetchCompletedAccounts();
   }, []);
+
+  useEffect(() => {
+    if (refetchTrigger > 0) {
+      fetchCompletedAccounts();
+    }
+  }, [refetchTrigger]);
 
   useEffect(() => {
     if (accounts.length === 0) {

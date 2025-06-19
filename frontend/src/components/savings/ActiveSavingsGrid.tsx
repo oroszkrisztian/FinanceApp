@@ -12,11 +12,12 @@ interface ActiveSavingsGridProps {
   sortType: "percentage" | "none";
   activeMenu: string | null;
   setActiveMenu: React.Dispatch<React.SetStateAction<string | null>>;
-  onAddFunds: (id: number) => void;
-  onTransfer: (id: number) => void;
+  onAddFunds: (account: Account) => void;
+  onTransfer: (account: Account) => void;
   onEdit: (id: number) => void;
   onDelete: (id: number, accountName: string) => void;
   updatedAccountId: number | null;
+  refetchTrigger: number;
 }
 
 const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
@@ -32,6 +33,7 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
   onEdit,
   onDelete,
   updatedAccountId,
+  refetchTrigger,
 }) => {
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [filteredAccounts, setFilteredAccounts] = useState<Account[]>([]);
@@ -58,10 +60,10 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
             : acc
         );
         setAccounts(updatedAccounts);
-        setUpdatedCardId(accountId); 
+        setUpdatedCardId(accountId);
       } else {
         setAccounts(data);
-        setUpdatedCardId(null); 
+        setUpdatedCardId(null);
       }
 
       setLoading(false);
@@ -82,6 +84,12 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
       fetchSavingAccounts(updatedAccountId);
     }
   }, [updatedAccountId]);
+
+  useEffect(() => {
+    if (refetchTrigger > 0) {
+      fetchSavingAccounts();
+    }
+  }, [refetchTrigger]);
 
   useEffect(() => {
     if (accounts.length === 0) {
@@ -130,8 +138,8 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
   );
 
   const handleSuccess = (accountId: number): void => {
-    setUpdatedCardId(accountId); 
-    fetchSavingAccounts(accountId); 
+    setUpdatedCardId(accountId);
+    fetchSavingAccounts(accountId);
   };
 
   if (loading && accounts.length === 0) {
@@ -179,13 +187,13 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
               index={index}
               activeMenu={activeMenu}
               setActiveMenu={setActiveMenu}
-              onAddFunds={(id) => {
-                onAddFunds(id);
-                handleSuccess(id);
+              onAddFunds={(account) => {
+                onAddFunds(account);
+                handleSuccess(account.id);
               }}
-              onTransfer={(id) => {
-                onTransfer(id);
-                handleSuccess(id);
+              onTransfer={(account) => {
+                onTransfer(account);
+                handleSuccess(account.id);
               }}
               onEdit={(id) => {
                 onEdit(id);
@@ -193,7 +201,7 @@ const ActiveSavingsGrid: React.FC<ActiveSavingsGridProps> = ({
               }}
               onDelete={onDelete}
               updatedSavingId={updatedAccountId}
-              isUpdated={account.id === updatedCardId} 
+              isUpdated={account.id === updatedCardId}
             />
           </motion.div>
         ))}

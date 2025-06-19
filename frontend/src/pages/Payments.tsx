@@ -209,7 +209,9 @@ const Payments: React.FC = () => {
               ]);
               setDataLoaded(true);
             } catch (err) {
-              setError(err instanceof Error ? err.message : "Failed to reload data");
+              setError(
+                err instanceof Error ? err.message : "Failed to reload data"
+              );
             } finally {
               setLoading(false);
             }

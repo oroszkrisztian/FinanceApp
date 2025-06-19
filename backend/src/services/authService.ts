@@ -3,7 +3,9 @@ import { SignJWT, jwtVerify } from "jose";
 import "dotenv/config";
 import { LoginCredentials, RegisterData, User } from "../types/user";
 import { UserRepository } from "../repositories/userRepository";
-import LoginEmailService from "./loginEmailService";
+import LoginEmailService, { LoginEmailData } from "./loginEmailService";
+import BrevoEmailService, { TransactionalEmailData } from "./brevoService";
+import geoip from "geoip-lite";
 
 export class AuthService {
   private userRepository: UserRepository;
@@ -39,6 +41,18 @@ export class AuthService {
     const token = await this.generateToken(user);
     const { password: _, ...userWithoutPassword } = user;
 
+    // Look up location from IP address
+    let location: { country?: string; city?: string } | undefined = undefined;
+    if (ipAddress && ipAddress !== "unknown") {
+      const geo = geoip.lookup(ipAddress.split(",")[0].trim());
+      if (geo) {
+        location = {
+          country: geo.country,
+          city: geo.city,
+        };
+      }
+    }
+
     // Send login notification email
     try {
       await this.loginEmailService.sendLoginNotification({
@@ -47,6 +61,7 @@ export class AuthService {
         loginTime: new Date(),
         ipAddress,
         userAgent,
+        location,
       });
     } catch (error) {
       console.error("Failed to send login email:", error);

@@ -222,11 +222,10 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
   const generateAccountColors = (numAccounts: number): string[] => {
     const colors: string[] = [];
 
-
     const generateReadableColor = (): string => {
       const hue = Math.floor(Math.random() * 360);
-      const saturation = Math.floor(Math.random() * 40) + 60; 
-      const lightness = Math.floor(Math.random() * 30) + 35; 
+      const saturation = Math.floor(Math.random() * 40) + 60;
+      const lightness = Math.floor(Math.random() * 30) + 35;
 
       return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
     };

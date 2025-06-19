@@ -1,10 +1,12 @@
+import { buildApiUrl } from "../config/apiConfig";
+
 export interface ExchangeRates {
   [key: string]: number;
 }
 
 let cachedRates: ExchangeRates = {};
 let lastFetchTime: number = 0;
-const CACHE_DURATION = 5 * 60 * 1000; 
+const CACHE_DURATION = 5 * 60 * 1000;
 
 export const getCachedRates = (): ExchangeRates | null => {
   if (
@@ -16,7 +18,6 @@ export const getCachedRates = (): ExchangeRates | null => {
   return cachedRates;
 };
 
-
 export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
   const cached = getCachedRates();
   if (cached) {
@@ -24,7 +25,7 @@ export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
   }
 
   try {
-    const response = await fetch("https://financeapp-bg0k.onrender.com/exchange-rates");
+    const response = await fetch(buildApiUrl("exchange-rates"));
     const xmlText = await response.text();
     const parser = new DOMParser();
     const xmlDoc = parser.parseFromString(xmlText, "text/xml");
@@ -53,7 +54,6 @@ export const fetchExchangeRates = async (): Promise<ExchangeRates> => {
   }
 };
 
-
 export const convertAmount = (
   amount: number,
   fromCurrency: string,
@@ -73,7 +73,6 @@ export const convertAmount = (
   }
 };
 
-
 export const getExchangeRate = (
   fromCurrency: string,
   toCurrency: string,
@@ -84,7 +83,6 @@ export const getExchangeRate = (
 
   return rates[fromCurrency] / rates[toCurrency];
 };
-
 
 export const validateCurrencyConversion = (
   fromCurrency: string,

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Search, X } from "lucide-react";
 import CreateSavingAccountPopup from "../components/accounts/CreateSavingAccountPopup";
 import EditSavingAccountPopup from "../components/accounts/EditSavingAccountPopup";
 import ErrorState from "../components/ErrorState";
@@ -10,10 +11,7 @@ import TransferFundsModal from "../components/savings/TransferFundsModal";
 import ActiveSavingsGrid from "../components/savings/ActiveSavingsGrid";
 import CompletedSavingsGrid from "../components/savings/CompletedSavingsGrid";
 import { Account } from "../interfaces/Account";
-import {
-  fetchDefaultAccounts,
-  fetchSavings,
-} from "../services/accountService";
+import { fetchDefaultAccounts, fetchSavings } from "../services/accountService";
 import LoadingState from "../components/LoadingState";
 
 type SortOrder = "asc" | "desc" | "none";
@@ -57,7 +55,8 @@ const Savings: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<SortOrder>("none");
   const [sortType, setSortType] = useState<"percentage" | "none">("none");
 
-  const [savingsAccounts, setSavingsAccounts] = useState<Account[]>([]);
+  const [refetchTrigger, setRefetchTrigger] = useState<number>(0);
+  const [savingsAccountNames, setSavingsAccountNames] = useState<string[]>([]);
 
   const [, setAnimationPlayed] = useState<boolean>(false);
 
@@ -113,9 +112,20 @@ const Savings: React.FC = () => {
     }
   };
 
+  const fetchSavingsAccountNames = async (): Promise<void> => {
+    try {
+      const data: Account[] = await fetchSavings();
+      const names = data.map((account) => account.name);
+      setSavingsAccountNames(names);
+    } catch (err) {
+      console.error("Failed to fetch savings account names:", err);
+    }
+  };
+
   useEffect(() => {
     checkSavingsExist();
     fetchDefaultAccountsFr();
+    fetchSavingsAccountNames();
   }, []);
 
   useEffect(() => {
@@ -179,30 +189,14 @@ const Savings: React.FC = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchSavingsAccounts = async () => {
-      try {
-        const data: Account[] = await fetchSavings();
-        setSavingsAccounts(data);
-      } catch (err) {
-        console.error("Failed to fetch savings accounts:", err);
-      }
-    };
-
-    fetchSavingsAccounts();
-  }, []);
-
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchInput(value);
-    setSelectedSearchResult(null);
-    setShowSearchDropdown(true);
   };
 
   const selectSearchResult = (account: Account) => {
     setSelectedSearchResult(account);
     setSearchInput(account.name);
-    setShowSearchDropdown(false);
   };
 
   const clearSearch = () => {
@@ -240,6 +234,7 @@ const Savings: React.FC = () => {
     setIsAddFundsModalOpen(false);
     setIsTransferModalOpen(false);
     setIsDeleteModalOpen(false);
+
     try {
       const allAccounts = await fetchSavings();
       const accountToEdit = allAccounts.find((acc) => acc.id === accountId);
@@ -265,40 +260,16 @@ const Savings: React.FC = () => {
     setIsCreateModalOpen(true);
   };
 
-  const handleAddFunds = async (accountId: number): Promise<void> => {
+  const handleAddFunds = (account: Account): void => {
     setActiveMenu(null);
-
-    try {
-      const allAccounts = await fetchSavings();
-      const accountToEdit = allAccounts.find((acc) => acc.id === accountId);
-
-      if (accountToEdit) {
-        setSelectedSavingAccount(accountToEdit);
-        setIsAddFundsModalOpen(true);
-      } else {
-        console.error("Account not found for adding funds");
-      }
-    } catch (err) {
-      console.error("Error fetching account for adding funds:", err);
-    }
+    setSelectedSavingAccount(account);
+    setIsAddFundsModalOpen(true);
   };
 
-  const handleTransfer = async (accountId: number): Promise<void> => {
+  const handleTransfer = (account: Account): void => {
     setActiveMenu(null);
-
-    try {
-      const allAccounts = await fetchSavings();
-      const accountToTransfer = allAccounts.find((acc) => acc.id === accountId);
-
-      if (accountToTransfer) {
-        setSelectedSavingAccount(accountToTransfer);
-        setIsTransferModalOpen(true);
-      } else {
-        console.error("Account not found for transfer");
-      }
-    } catch (err) {
-      console.error("Error fetching account for transfer:", err);
-    }
+    setSelectedSavingAccount(account);
+    setIsTransferModalOpen(true);
   };
 
   const handleSuccess = (accountId?: number): void => {
@@ -311,77 +282,136 @@ const Savings: React.FC = () => {
     if (accountId) {
       setUpdatedSavingId(accountId);
       fetchDefaultAccountsFr();
+      fetchSavingsAccountNames();
       setTimeout(() => {
         setUpdatedSavingId(null);
       }, 1000);
     } else {
-      checkSavingsExist();
+      // When creating a new savings account, directly update the state without triggering loading
+      setSavingsExist(true);
       fetchDefaultAccountsFr();
+      fetchSavingsAccountNames();
     }
 
-    const fetchSavingsAccounts = async () => {
-      try {
-        const data: Account[] = await fetchSavings();
-        setSavingsAccounts(data);
-      } catch (err) {
-        console.error("Failed to fetch savings accounts:", err);
-      }
-    };
-
-    fetchSavingsAccounts();
+    // Trigger refetch in child components
+    setRefetchTrigger((prev) => prev + 1);
 
     setSelectedSearchResult(null);
   };
 
   const handleSearchFieldClick = () => {
-    console.log("Available savings accounts:", savingsAccounts);
     setShowSearchDropdown(true);
     setSearchInput("");
   };
 
   const renderSearchDropdown = () => {
-    const searchResults = savingsAccounts.filter((account) =>
-      account.name.toLowerCase().includes(searchInput.toLowerCase())
+    // Search functionality will be handled by child components
+    return null;
+  };
+
+  // SearchWithSuggestions component
+  const SearchWithSuggestions: React.FC<{
+    placeholder: string;
+    onSearch: (term: string) => void;
+    suggestions: string[];
+    value: string;
+  }> = ({ placeholder, onSearch, suggestions, value }) => {
+    const [searchTerm, setSearchTerm] = useState(value);
+    const [isOpen, setIsOpen] = useState(false);
+    const [filteredSuggestions, setFilteredSuggestions] = useState<string[]>(
+      []
     );
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+      setSearchTerm(value);
+    }, [value]);
+
+    useEffect(() => {
+      const filtered = suggestions.filter((suggestion) =>
+        suggestion.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+      setFilteredSuggestions(filtered);
+    }, [searchTerm, suggestions]);
+
+    useEffect(() => {
+      const handleClickOutside = (event: MouseEvent) => {
+        if (
+          dropdownRef.current &&
+          !dropdownRef.current.contains(event.target as Node)
+        ) {
+          setIsOpen(false);
+        }
+      };
+
+      document.addEventListener("mousedown", handleClickOutside);
+      return () =>
+        document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const value = e.target.value;
+      setSearchTerm(value);
+      onSearch(value);
+      setIsOpen(true);
+    };
+
+    const handleSuggestionClick = (suggestion: string) => {
+      setSearchTerm(suggestion);
+      onSearch(suggestion);
+      setIsOpen(false);
+    };
+
+    const clearSearch = () => {
+      setSearchTerm("");
+      onSearch("");
+      setIsOpen(false);
+    };
 
     return (
-      <div className="absolute z-20 mt-1 w-full bg-white border border-indigo-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-        {searchResults.length === 0 ? (
-          <div className="px-4 py-3 text-sm text-gray-500 flex items-center">
-            <svg
-              className="w-5 h-5 mr-2 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+      <div className="relative" ref={dropdownRef}>
+        <div className="relative">
+          <Search
+            size={14}
+            className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-indigo-400"
+          />
+          <input
+            type="text"
+            placeholder={placeholder}
+            value={searchTerm}
+            onChange={handleInputChange}
+            onFocus={() => setIsOpen(true)}
+            className={`w-full pl-8 ${searchTerm ? "pr-8" : "pr-3"} py-2.5 text-sm border border-indigo-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors shadow-sm bg-indigo-50/50`}
+          />
+          {searchTerm && (
+            <button
+              type="button"
+              className="absolute right-2 top-1/2 transform -translate-y-1/2 text-indigo-400 hover:text-indigo-600"
+              onClick={clearSearch}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M20 12H4"
-              />
-            </svg>
-            No matching savings accounts found
-          </div>
-        ) : (
-          <div className="py-1">
-            {searchResults.map((account) => (
-              <div
-                key={account.id}
-                className="px-4 py-3 hover:bg-indigo-50 cursor-pointer"
-                onClick={() => selectSearchResult(account)}
+              <X size={14} />
+            </button>
+          )}
+        </div>
+
+        {isOpen && filteredSuggestions.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="absolute top-full left-0 right-0 mt-1 bg-white border border-indigo-200 rounded-lg shadow-lg z-50 max-h-28 overflow-y-auto"
+          >
+            {filteredSuggestions.map((suggestion, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="w-full text-left px-3 py-2 text-sm hover:bg-indigo-50 transition-colors text-gray-700"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-gray-700">
-                    {account.name}
-                  </span>
-                  <span className="text-xs px-2 py-1 rounded-full font-medium bg-indigo-50 text-indigo-600">
-                    {account.amount.toLocaleString()} {account.currency}
-                  </span>
-                </div>
-              </div>
+                {suggestion}
+              </button>
             ))}
-          </div>
+          </motion.div>
         )}
       </div>
     );
@@ -394,11 +424,6 @@ const Savings: React.FC = () => {
         message="Loading your savings goals..."
         showDataStatus={true}
         dataStatus={[
-          {
-            label: "Savings Accounts",
-            isLoaded: !loading && Array.isArray(savingsAccounts),
-          },
-
           {
             label: "Savings Check",
             isLoaded: !loading && typeof savingsExist === "boolean",
@@ -493,94 +518,18 @@ const Savings: React.FC = () => {
                 <AnimatePresence>
                   {showFilters && (
                     <motion.div
-                      ref={searchRef}
-                      className="relative w-full sm:w-64 lg:w-80"
+                      className="w-full sm:w-64 lg:w-80"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div
-                        className="flex items-center bg-indigo-50 border border-indigo-200 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-indigo-500 focus-within:border-transparent"
-                        onClick={() =>
-                          setShowSearchDropdown(!showSearchDropdown)
-                        }
-                      >
-                        <div className="px-3 text-indigo-400">
-                          <svg
-                            className="h-5 w-5"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                          </svg>
-                        </div>
-
-                        <input
-                          ref={searchInputRef}
-                          type="text"
-                          className="w-full py-2.5 bg-transparent outline-none text-gray-900 font-medium"
-                          placeholder="Search goals..."
-                          value={
-                            selectedSearchResult
-                              ? selectedSearchResult.name
-                              : searchInput
-                          }
-                          onChange={handleSearchInputChange}
-                          onClick={handleSearchFieldClick}
-                        />
-
-                        {(searchInput || selectedSearchResult) && (
-                          <button
-                            type="button"
-                            className="px-3 text-indigo-400 hover:text-indigo-600"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              clearSearch();
-                            }}
-                          >
-                            <svg
-                              className="w-4 h-4"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M6 18L18 6M6 6l12 12"
-                              />
-                            </svg>
-                          </button>
-                        )}
-
-                        <div className="px-2 text-indigo-400">
-                          <svg
-                            className={`w-4 h-4 transition-transform duration-200 ${showSearchDropdown ? "transform rotate-180" : ""}`}
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 9l-7 7-7-7"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-
-                      {/* Search dropdown removed as it's now handled in the ActiveSavingsGrid component */}
-                      {showSearchDropdown && renderSearchDropdown()}
+                      <SearchWithSuggestions
+                        placeholder="Search goals..."
+                        onSearch={setSearchInput}
+                        suggestions={savingsAccountNames}
+                        value={searchInput}
+                      />
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -882,6 +831,7 @@ const Savings: React.FC = () => {
                   onEdit={handleEdit}
                   onDelete={handleDelete}
                   updatedAccountId={updatedSavingId}
+                  refetchTrigger={refetchTrigger}
                 />
               </div>
             )}
@@ -897,6 +847,7 @@ const Savings: React.FC = () => {
                   searchInput={searchInput}
                   selectedSearchResult={selectedSearchResult}
                   onDelete={handleDelete}
+                  refetchTrigger={refetchTrigger}
                 />
               </div>
             )}
@@ -935,7 +886,7 @@ const Savings: React.FC = () => {
         <DeleteSavingAccountModal
           isOpen={isDeleteModalOpen}
           onClose={() => setIsDeleteModalOpen(false)}
-          accounts={savingsAccounts}
+          accounts={[]}
           defaultAccounts={defaultAccounts}
           accountId={selectedAccount.id}
           accountName={selectedAccount.name}
