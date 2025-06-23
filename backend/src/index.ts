@@ -218,7 +218,7 @@ app.post("/cron/automatic-payments", async (c) => {
     const duration = Date.now() - startTime;
     const errorMessage = error instanceof Error ? error.message : String(error);
     console.error(
-      `❌ Automatic payments cron job failed after ${duration}ms:`,
+      `Automatic payments cron job failed after ${duration}ms:`,
       errorMessage
     );
 
@@ -253,7 +253,7 @@ app.get("/test-brevo", async (c) => {
       },
     });
   } catch (error) {
-    console.error("❌ Brevo test failed:", error);
+    console.error("Brevo test failed:", error);
     return c.json(
       {
         error: "Brevo test failed",

@@ -271,7 +271,6 @@ You're receiving this because you enabled notifications for this recurring ${pay
 
     try {
       await this.brevoService.sendTransactionalEmail(emailData);
-      console.log(`Notification sent for ${payment.type.toLowerCase()}: ${payment.name} to ${user.email}`);
     } catch (error) {
       console.error(`Failed to send notification for ${payment.type.toLowerCase()} ${payment.name}:`, error);
       throw error;

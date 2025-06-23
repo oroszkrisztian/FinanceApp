@@ -16,7 +16,7 @@ interface AutomaticPaymentResult {
     transactionId?: number;
   }>;
 }
-
+ 
 export default class AutomaticPaymentService {
   private prisma: PrismaClient;
   private transactionRepo: TransactionRepository;
