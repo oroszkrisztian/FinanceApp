@@ -43,7 +43,6 @@ export class CategoriesRepository {
         deletedAt: null,
       },
     });
-    console.log(allcat)
     return allcat;
   }
 

@@ -285,16 +285,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
   }, [categories]);
 
   useEffect(() => {
-    console.log("Checking AI suggestions trigger:", {
-      currentStep,
-      showAiSuggestions,
-      hasTriggeredSuggestions,
-      name: formData.name,
-      nameValid: formData.name.trim(),
-      amount: formData.amount,
-      amountValid: formData.amount > 0,
-      token: !!token,
-    });
     if (
       currentStep === 2 &&
       showAiSuggestions &&
@@ -303,7 +293,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       formData.amount > 0 &&
       token
     ) {
-      console.log("🚀 Triggering AI suggestions for expense...");
       fetchAICategorySuggestions();
     }
   }, [
@@ -354,10 +343,8 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         await onCategoryCreated();
       }
 
-      console.log("✅ Category created successfully:", categoryName);
       return result;
     } catch (error) {
-      console.error("❌ Error creating category:", error);
       throw error;
     } finally {
       setCreatingCategories((prev) =>
@@ -375,10 +362,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     setAiSuggestionsError(null);
 
     try {
-      console.log(
-        "🤖 Fetching enhanced AI category suggestions for expense..."
-      );
-
       const response = await fetch(
         "https://financeapp-bg0k.onrender.com/ai/aiCategorySuggestion",
         {
@@ -404,14 +387,12 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       const data = await response.json();
 
       if (data.success && data.suggestions && Array.isArray(data.suggestions)) {
-        console.log("✅ Received enhanced AI suggestions:", data.suggestions);
         setAiSuggestions(data.suggestions);
         setHasTriggeredSuggestions(true);
       } else {
         throw new Error(data.error || "Failed to get AI suggestions");
       }
     } catch (error) {
-      console.error("❌ Error fetching enhanced AI suggestions:", error);
       setAiSuggestionsError("Failed to get AI suggestions. Please try again.");
       setHasTriggeredSuggestions(true);
     } finally {
@@ -435,7 +416,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         await createNewCategory(suggestion.categoryName);
       }
     } catch (error) {
-      console.error("Error accepting suggestion:", error);
       setAiSuggestionsError("Failed to process suggestion. Please try again.");
     }
   };
@@ -459,7 +439,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       }
       setSuggestionsAccepted(true);
     } catch (error) {
-      console.error("Error accepting all suggestions:", error);
       setAiSuggestionsError(
         "Failed to process some suggestions. Please try individually."
       );
@@ -486,7 +465,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         const ratesData = await fetchExchangeRates();
         setRates(ratesData);
       } catch (err) {
-        console.error("Error fetching exchange rates:", err);
         setRatesError("Failed to load exchange rates");
       } finally {
         setFetchingRates(false);
@@ -576,7 +554,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       if (onCategoryCreated) {
         await onCategoryCreated();
       }
-      console.log("Category created and categories refreshed");
     } catch (error) {
       console.error("Error handling category creation:", error);
     }
@@ -613,7 +590,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       error: null,
     });
     setError(null);
-    // Reset AI suggestions state
     setShowAiSuggestions(true);
     setHasTriggeredSuggestions(false);
     setAiSuggestions([]);
@@ -637,7 +613,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
     }));
     setError(null);
 
-    // Reset AI suggestions if payment details change
     if (field === "name" || field === "amount") {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
@@ -709,7 +684,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 1:
         return formData.name && formData.amount > 0;
       case 2:
-        return true; // Categories are optional
+        return true;
       case 3:
         return formData.selectedAccount;
       default:
@@ -789,16 +764,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
           : null
       );
 
-      if (selectedAccount && formData.currency !== selectedAccount.currency) {
-        console.log("Currency conversion performed:", {
-          fromCurrency: formData.currency,
-          toCurrency: selectedAccount.currency,
-          originalAmount: formData.amount,
-          convertedAmount: conversionDetails.convertedAmount,
-          exchangeRate: conversionDetails.rate,
-        });
-      }
-
       handleClose();
       onSuccess();
     } catch (error) {
@@ -816,7 +781,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 1:
         return (
           <div className="space-y-4 sm:space-y-3">
-            {/* Name Field */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                 <span className="text-red-500 mr-1">🏷️</span>
@@ -832,7 +796,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               />
             </div>
 
-            {/* Amount and Currency */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-2">
               <div className="sm:col-span-1">
                 <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
@@ -916,7 +879,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               </div>
             </div>
 
-            {/* Description */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-2 sm:mb-1 flex items-center">
                 <span className="text-red-500 mr-1">📝</span>
@@ -938,7 +900,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 2:
         return (
           <div className="space-y-5 sm:space-y-4">
-            {/* Categories Selection - TOP */}
             <div>
               <div className="flex items-center justify-between mb-3 sm:mb-1">
                 <label className="block text-sm sm:text-xs font-medium text-gray-700 flex items-center">
@@ -966,7 +927,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               />
             </div>
 
-            {/* AI Category Suggestions - BOTTOM */}
             {showAiSuggestions && (
               <div className="space-y-4 sm:space-y-3">
                 <div className="flex items-center justify-between">
@@ -1182,7 +1142,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
       case 3:
         return (
           <div className="space-y-5 sm:space-y-4">
-            {/* Account Selection */}
             <div>
               <label className="block text-sm sm:text-xs font-medium text-gray-700 mb-3 sm:mb-1 flex items-center">
                 <span className="text-red-500 mr-1">💳</span>
@@ -1229,10 +1188,8 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
               )}
             </div>
 
-            {/* Preview Section */}
             {selectedAccount && (
               <div className="space-y-4 sm:space-y-3">
-                {/* Expense Summary */}
                 <div className="p-4 sm:p-3 bg-red-50/80 backdrop-blur-sm border border-red-200/50 rounded-xl shadow-sm">
                   <h3 className="font-semibold text-lg sm:text-base mb-3 sm:mb-2 text-red-800">
                     {formData.name}
@@ -1283,7 +1240,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                   )}
                 </div>
 
-                {/* Transaction Summary */}
                 {formData.amount > 0 && (
                   <div className="p-4 sm:p-3 bg-gradient-to-r from-red-50 to-rose-50 border border-red-100 rounded-xl shadow-sm">
                     <h3 className="font-bold text-red-700 mb-3 sm:mb-2 flex items-center text-base sm:text-sm">
@@ -1344,7 +1300,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
                       </div>
                     ) : null}
 
-                    {/* Currency Conversion Info */}
                     {formData.currency !== selectedAccount.currency &&
                       !conversionDetails.error &&
                       !fetchingRates && (
@@ -1404,10 +1359,8 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
-      {/* Backdrop */}
       <div className="absolute inset-0 " onClick={handleClose} />
 
-      {/* Modal */}
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -1418,9 +1371,7 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
           maxHeight: isMobileView ? "80vh" : "85vh",
         }}
       >
-        {/* Enhanced Header */}
         <div className="bg-gradient-to-r from-red-600 to-red-800 relative overflow-hidden flex-shrink-0">
-          {/* Background decorations */}
           <div className="absolute top-0 right-0 bg-white/20 rounded-full w-16 h-16 sm:w-12 sm:h-12 -translate-y-8 translate-x-8 sm:-translate-y-6 sm:translate-x-6"></div>
           <div className="absolute bottom-0 left-0 bg-white/10 rounded-full w-10 h-10 sm:w-8 sm:h-8 translate-y-5 -translate-x-5 sm:translate-y-4 sm:-translate-x-4"></div>
           <div className="absolute bg-white/15 rounded-full w-8 h-8 sm:w-6 sm:h-6 top-2 left-20 sm:top-1 sm:left-14"></div>
@@ -1450,7 +1401,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
             </motion.button>
           </div>
 
-          {/* Progress */}
           <div className="relative z-10 px-5 pb-4 sm:px-4 sm:pb-3">
             <div className="flex gap-1">
               {steps.map((_, index) => (
@@ -1465,7 +1415,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
           </div>
         </div>
 
-        {/* Content */}
         <div className="flex-1 overflow-y-auto px-5 py-4 sm:px-4 sm:py-3 min-h-0">
           {error && (
             <motion.div
@@ -1481,7 +1430,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
           {renderStepContent()}
         </div>
 
-        {/* Footer */}
         <div className="border-t bg-gray-50/50 backdrop-blur-sm flex justify-between px-5 py-4 sm:px-4 sm:py-3 flex-shrink-0">
           <motion.button
             onClick={prevStep}
@@ -1529,7 +1477,6 @@ const CreateExpensePopup: React.FC<CreateExpensePopupProps> = ({
         </div>
       </motion.div>
 
-      {/* Create Category Modal */}
       <CreateCategoryModal
         isOpen={isCreateCategoryModalOpen}
         onClose={() => setIsCreateCategoryModalOpen(false)}

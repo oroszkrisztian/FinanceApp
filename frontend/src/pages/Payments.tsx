@@ -35,7 +35,6 @@ const Payments: React.FC = () => {
   const fetchAccounts = async () => {
     try {
       const accountsData: Account[] = await fetchDefaultAccounts();
-      console.log("Accounts fetched:", accountsData);
 
       if (!Array.isArray(accountsData)) {
         throw new Error("Invalid accounts data received");
@@ -52,7 +51,6 @@ const Payments: React.FC = () => {
   const fetchCategories = async () => {
     try {
       const categoryData = await getAllCategoriesForUser();
-      console.log("Categories fetched:", categoryData);
 
       if (!Array.isArray(categoryData)) {
         throw new Error("Invalid categories data received");
@@ -69,7 +67,6 @@ const Payments: React.FC = () => {
   const fetchPayments = async () => {
     try {
       const fetchedPayments = await getAllPaymentsUser();
-      console.log("Payments fetched:", fetchedPayments);
 
       const paymentsArray = Array.isArray(fetchedPayments)
         ? fetchedPayments
@@ -98,7 +95,6 @@ const Payments: React.FC = () => {
     try {
       setError(null);
       const updatedCategories = await fetchCategories();
-      console.log("Categories refreshed:", updatedCategories);
     } catch (err) {
       console.error("Error refreshing categories:", err);
       setError(
@@ -142,7 +138,6 @@ const Payments: React.FC = () => {
         if (hasErrors) {
           setError(errors.join(", "));
         } else {
-          console.log("All data loaded successfully");
           setDataLoaded(true);
         }
       } catch (err) {
@@ -235,13 +230,6 @@ const Payments: React.FC = () => {
       </div>
     );
   }
-
-  console.log("Rendering components with data:", {
-    accounts: accounts.length,
-    categories: categories.length,
-    payments: payments.length,
-    dataLoaded,
-  });
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-gradient-to-br from-gray-50 to-indigo-50">

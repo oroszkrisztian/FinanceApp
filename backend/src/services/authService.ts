@@ -41,7 +41,6 @@ export class AuthService {
     const token = await this.generateToken(user);
     const { password: _, ...userWithoutPassword } = user;
 
-    // Look up location from IP address
     let location: { country?: string; city?: string } | undefined = undefined;
     if (ipAddress && ipAddress !== "unknown") {
       const geo = geoip.lookup(ipAddress.split(",")[0].trim());
@@ -53,7 +52,6 @@ export class AuthService {
       }
     }
 
-    // Send login notification email
     try {
       await this.loginEmailService.sendLoginNotification({
         userEmail: user.email,

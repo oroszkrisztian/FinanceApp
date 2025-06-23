@@ -345,7 +345,7 @@ const UpcomingPaymentsSection: React.FC<UpcomingPaymentsSectionProps> = ({
               </div>
             </div>
 
-            {/* Currency Selector - Top right on mobile */}
+            {/* Currency Selector*/}
             <div className="relative" ref={currencyRef}>
               <motion.button
                 whileHover={{ scale: 1.05 }}

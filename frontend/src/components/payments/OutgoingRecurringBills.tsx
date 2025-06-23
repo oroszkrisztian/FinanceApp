@@ -372,7 +372,6 @@ const OutgoingRecurringBills: React.FC<OutgoingRecurringBillsProps> = ({
           categoryIds
         );
 
-        console.log("Payment executed successfully:", paymentToExecute);
         onPaymentCreated();
       } catch (error) {
         console.error("Failed to execute payment:", error);

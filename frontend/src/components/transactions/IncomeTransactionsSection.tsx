@@ -164,7 +164,6 @@ const IncomeTransactionsSection: React.FC<IncomeTransactionsSectionProps> = ({
     };
 
     if (dateRange.start && dateRange.end) {
-      // Check if it's current month
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
       const currentMonthEnd = new Date(

@@ -5,10 +5,6 @@ export const getUserAllTransactions = async () => {
   try {
     const data = await api.post("transaction/getUserAllTransactions", {});
 
-    console.log("Parsed data type:", typeof data);
-    console.log("Is array:", Array.isArray(data));
-    console.log("Data length:", Array.isArray(data) ? data.length : "N/A");
-
     return data;
   } catch (error) {
     console.error(

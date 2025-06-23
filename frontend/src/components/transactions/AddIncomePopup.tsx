@@ -293,18 +293,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     }
   }, [isOpen]);
 
-  // Trigger AI suggestions when entering step 2
   useEffect(() => {
-    console.log("Checking AI suggestions trigger:", {
-      currentStep,
-      showAiSuggestions,
-      hasTriggeredSuggestions,
-      name: formData.name,
-      nameValid: formData.name.trim(),
-      amount: formData.amount,
-      amountValid: formData.amount > 0,
-      token: !!token,
-    });
     if (
       currentStep === 2 &&
       showAiSuggestions &&
@@ -313,7 +302,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
       formData.amount > 0 &&
       token
     ) {
-      console.log("🚀 Triggering AI suggestions for income...");
       fetchAICategorySuggestions();
     }
   }, [
@@ -361,7 +349,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
         await onCategoryCreated();
       }
 
-      console.log("✅ Category created successfully:", categoryName);
       return result;
     } catch (error) {
       console.error("❌ Error creating category:", error);
@@ -548,7 +535,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
       if (onCategoryCreated) {
         await onCategoryCreated();
       }
-      console.log("Category created and categories refreshed");
     } catch (error) {
       console.error("Error handling category creation:", error);
     }
@@ -608,7 +594,6 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
     }));
     setError(null);
 
-    // Reset AI suggestions if payment details change
     if (field === "name" || field === "amount") {
       setHasTriggeredSuggestions(false);
       setAiSuggestions([]);
@@ -680,7 +665,7 @@ const AddIncomePopup: React.FC<IncomeProps> = ({
       case 1:
         return formData.name && formData.amount > 0;
       case 2:
-        return true; // Categories are optional
+        return true; 
       case 3:
         return formData.selectedAccount;
       default:

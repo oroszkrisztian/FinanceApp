@@ -36,14 +36,16 @@ const UserProfileCard: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       if (!isAuthenticated) return;
-      
+
       try {
         setLoading(true);
         setError(null);
         const userData = await getUser();
         setUser(userData.user);
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load user data");
+        setError(
+          err instanceof Error ? err.message : "Failed to load user data"
+        );
         console.error("Error fetching user:", err);
       } finally {
         setLoading(false);
@@ -58,7 +60,6 @@ const UserProfileCard: React.FC = () => {
   };
 
   const handleUserUpdated = (updatedData: any) => {
-    console.log("User updated:", updatedData);
     setUser(updatedData.user);
     setIsEditOpen(false);
   };
@@ -137,7 +138,9 @@ const UserProfileCard: React.FC = () => {
         ></div>
 
         <div className="relative z-10">
-          <div className={`flex ${isMobileView ? "flex-col gap-4" : "flex-row items-center gap-6"}`}>
+          <div
+            className={`flex ${isMobileView ? "flex-col gap-4" : "flex-row items-center gap-6"}`}
+          >
             <motion.div
               className={`${
                 isMobileView ? "w-16 h-16 mx-auto" : "w-20 h-20"
@@ -147,12 +150,15 @@ const UserProfileCard: React.FC = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              {user.firstName?.[0]}{user.lastName?.[0]}
+              {user.firstName?.[0]}
+              {user.lastName?.[0]}
             </motion.div>
 
             <div className={`flex-1 ${isMobileView ? "text-center" : ""}`}>
               <div className="flex items-center justify-between mb-3">
-                <h2 className={`font-bold text-gray-900 ${isMobileView ? "text-lg" : "text-2xl"}`}>
+                <h2
+                  className={`font-bold text-gray-900 ${isMobileView ? "text-lg" : "text-2xl"}`}
+                >
                   {user.firstName} {user.lastName}
                 </h2>
                 <motion.button
@@ -168,10 +174,15 @@ const UserProfileCard: React.FC = () => {
                 </motion.button>
               </div>
 
-              <div className={`grid ${isMobileView ? "grid-cols-1 gap-2" : "grid-cols-2 gap-4"}`}>
+              <div
+                className={`grid ${isMobileView ? "grid-cols-1 gap-2" : "grid-cols-2 gap-4"}`}
+              >
                 <div className="flex items-center gap-2 text-gray-700">
                   <div className="bg-blue-100 rounded-lg p-1.5">
-                    <AtSign size={isMobileView ? 12 : 14} className="text-blue-600" />
+                    <AtSign
+                      size={isMobileView ? 12 : 14}
+                      className="text-blue-600"
+                    />
                   </div>
                   <span className={`${isMobileView ? "text-sm" : "text-base"}`}>
                     @{user.username}
@@ -179,7 +190,10 @@ const UserProfileCard: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-2 text-gray-700">
                   <div className="bg-indigo-100 rounded-lg p-1.5">
-                    <User size={isMobileView ? 12 : 14} className="text-indigo-600" />
+                    <User
+                      size={isMobileView ? 12 : 14}
+                      className="text-indigo-600"
+                    />
                   </div>
                   <span className={`${isMobileView ? "text-sm" : "text-base"}`}>
                     Member since {new Date(user.createdAt).getFullYear()}

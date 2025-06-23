@@ -63,7 +63,6 @@ export default class AutomaticPaymentService {
         },
       });
 
-      console.log(`💰 Found ${duePayments.length} automatic payments to process`);
 
       for (const payment of duePayments) {
         try {
@@ -110,12 +109,10 @@ export default class AutomaticPaymentService {
           try {
             const user = payment.user[0];
             await this.sendPaymentConfirmationEmail(payment, user, transactionId);
-            console.log(`📧 Confirmation email sent for ${payment.type.toLowerCase()}: ${payment.name}`);
           } catch (emailError) {
-            console.error(`⚠️ Failed to send confirmation email for ${payment.name}:`, emailError);
+            console.error(`Failed to send confirmation email for ${payment.name}:`, emailError);
           }
 
-          console.log(`✅ Processed automatic ${payment.type.toLowerCase()}: ${payment.name} for amount: ${payment.amount} ${payment.currency}`);
 
         } catch (error) {
           results.failed++;
@@ -130,15 +127,14 @@ export default class AutomaticPaymentService {
             error: errorMessage,
           });
 
-          console.error(`❌ Failed to process automatic ${payment.type.toLowerCase()} ${payment.name} (ID: ${payment.id}):`, errorMessage);
+          console.error(`Failed to process automatic ${payment.type.toLowerCase()} ${payment.name} (ID: ${payment.id}):`, errorMessage);
         }
       }
 
-      console.log(`🎯 Automatic payments processing completed: ${results.processed} processed, ${results.failed} failed`);
       return results;
 
     } catch (error) {
-      console.error("❌ Error in processAutomaticPayments:", error);
+      console.error("Error in processAutomaticPayments:", error);
       throw error;
     }
   }

@@ -39,9 +39,7 @@ export class TransactionRepository {
       },
     });
 
-    console.log(
-      `Balance change recorded for account ${accountId}: ${previousBalance} -> ${newBalance} (${amountChanged >= 0 ? "+" : ""}${amountChanged})`
-    );
+    
   }
 
   private async updateAccountBalance(
@@ -212,7 +210,6 @@ export class TransactionRepository {
         }
       }
 
-      console.log("Exchange rates fetched:", rates);
       return rates;
     } catch (error) {
       console.error("Error fetching exchange rates:", error);
@@ -230,7 +227,6 @@ export class TransactionRepository {
     customCategoriesId: number[] | null,
     currency: CurrencyType
   ) {
-    console.log("Sent account id ", toAccountId);
     const defaultAccount = await this.prisma.account.findFirst({
       where: {
         id: toAccountId,
@@ -243,14 +239,7 @@ export class TransactionRepository {
       throw new Error("No default account found for the user");
     }
 
-    console.log(
-      "Adding funds to default account:",
-      toAccountId,
-      "amount:",
-      amount,
-      "currency:",
-      currency
-    );
+  
 
     return await this.prisma.$transaction(async (prisma) => {
       const transaction = await prisma.transaction.create({
@@ -360,9 +349,7 @@ export class TransactionRepository {
       amountToWithdraw =
         amount * (rates[currency] / rates[fromAccount.currency]);
 
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`
-      );
+      
     }
 
     if (fromAccount.amount < amountToWithdraw) {
@@ -480,9 +467,7 @@ export class TransactionRepository {
 
       amountToWithdraw =
         amount * (rates[currency] / rates[fromAccount.currency]);
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency} for withdrawal`
-      );
+      
     }
 
     if (fromAccount.amount < amountToWithdraw) {
@@ -518,8 +503,6 @@ export class TransactionRepository {
         `Transfer from savings to main account`
       );
 
-      console.log("Adding funds to default account:", toAccountId);
-      console.log("amount:", amount);
       await this.updateAccountBalance(
         prisma,
         toAccountId,
@@ -709,9 +692,7 @@ export class TransactionRepository {
       }
 
       amountToDeposit = amount * (rates[currency] / rates[toAccount.currency]);
-      console.log(
-        `Converting ${amount} ${currency} to ${amountToDeposit.toFixed(2)} ${toAccount.currency} for deposit`
-      );
+      
     }
 
     return await this.prisma.$transaction(async (prisma) => {
@@ -881,9 +862,7 @@ export class TransactionRepository {
             },
           });
 
-          console.log(
-            `Updated budget "${budget.name}" with ${budgetAmount} ${budget.currency} for recurring payment`
-          );
+          
         }
       }
 
@@ -902,9 +881,7 @@ export class TransactionRepository {
             },
           });
 
-          console.log(
-            `One-time payment "${payment.name}" has been executed and completed`
-          );
+          
         } else {
           const scheduledDate = payment.nextExecution || new Date();
           let nextExecution = new Date(scheduledDate);
@@ -934,9 +911,7 @@ export class TransactionRepository {
             data: { nextExecution: nextExecution },
           });
 
-          console.log(
-            `Updated payment "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
-          );
+         
         }
       }
 
@@ -1019,9 +994,7 @@ export class TransactionRepository {
             },
           });
 
-          console.log(
-            `One-time income "${payment.name}" has been executed and completed`
-          );
+          
         } else {
           const scheduledDate = payment.nextExecution || new Date();
           let nextExecution = new Date(scheduledDate);
@@ -1051,9 +1024,7 @@ export class TransactionRepository {
             data: { nextExecution: nextExecution },
           });
 
-          console.log(
-            `Updated income "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`
-          );
+          
         }
       }
 

@@ -72,7 +72,6 @@ const CreateCategoryModal: React.FC<CreateCategoryModalProps> = ({
       return;
     }
 
-    // Check for duplicates (case-insensitive)
     if (existingCategories.includes(categoryName.trim().toLowerCase())) {
       setError("This category already exists");
       return;

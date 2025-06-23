@@ -29,9 +29,9 @@ interface PaymentDetailsPopupProps {
     isDue: boolean;
     type?: PaymentType;
     description?: string;
-    emailNotification?: boolean; // boolean for email notifications enabled/disabled
-    notificationDay?: number; // days before to send notification
-    automaticAddition?: boolean; // boolean for automatic addition
+    emailNotification?: boolean; 
+    notificationDay?: number; 
+    automaticAddition?: boolean; 
   } | null;
   onEdit?: (paymentId: number) => void;
   onDelete?: (paymentId: number) => Promise<void>;

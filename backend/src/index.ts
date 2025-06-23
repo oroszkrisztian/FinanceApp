@@ -91,20 +91,13 @@ app.get("/test-gemini", async (c) => {
   }
 });
 
-app.get("/warmup", (c) => {
-  console.log("🔥 Server warmup request");
-  return c.json({
-    status: "warmed",
-    timestamp: new Date().toISOString(),
-    message: "Server is now warm and ready",
-  });
-});
+
 
 app.get("/warmup-full", async (c) => {
   const startTime = Date.now();
 
   try {
-    console.log("🔥 Full server warmup started");
+    console.log("Full server warmup started");
 
     const { default: ExpenseNotificationService } = await import(
       "./services/expenseNotificationService"
@@ -122,7 +115,7 @@ app.get("/warmup-full", async (c) => {
     await brevoService.testConnection();
 
     const duration = Date.now() - startTime;
-    console.log(`✅ Full warmup completed in ${duration}ms`);
+    console.log(`Full warmup completed in ${duration}ms`);
 
     return c.json({
       status: "fully-warmed",
@@ -151,7 +144,7 @@ app.post("/cron/daily-notifications", async (c) => {
   const startTime = Date.now();
 
   try {
-    console.log("📧 Daily notification endpoint triggered");
+    console.log("Daily notification endpoint triggered");
 
     const { default: ExpenseNotificationService } = await import(
       "./services/expenseNotificationService"
@@ -165,7 +158,7 @@ app.post("/cron/daily-notifications", async (c) => {
     const result = await notificationService.sendDailyScheduledNotifications();
 
     const duration = Date.now() - startTime;
-    console.log(`✅ Daily notifications completed in ${duration}ms:`, result);
+    console.log(`Daily notifications completed in ${duration}ms:`, result);
 
     return c.json({
       success: true,
@@ -199,7 +192,7 @@ app.post("/cron/automatic-payments", async (c) => {
   const startTime = Date.now();
 
   try {
-    console.log("💰 Automatic payments cron job triggered");
+    console.log("Automatic payments cron job triggered");
 
     const { default: AutomaticPaymentService } = await import(
       "./services/automaticPaymentService"
@@ -210,7 +203,7 @@ app.post("/cron/automatic-payments", async (c) => {
 
     const duration = Date.now() - startTime;
     console.log(
-      `✅ Automatic payments processing completed in ${duration}ms:`,
+      `Automatic payments processing completed in ${duration}ms:`,
       result
     );
 
@@ -292,9 +285,9 @@ app.get("/", (c) => c.text("Server is running"));
 console.log(`Server is running on port ${port}`);
 
 if (process.env.GEMINI_API_KEY) {
-  console.log("✅ Gemini API key configured");
+  console.log("Gemini API key configured");
 } else {
-  console.log("⚠️  Gemini API key not found in environment variables");
+  console.log("Gemini API key not found in environment variables");
 }
 
 serve({
@@ -303,7 +296,7 @@ serve({
 });
 
 const gracefulShutdown = () => {
-  console.log("\n🛑 Shutting down server...");
+  console.log("\nShutting down server...");
   process.exit(0);
 };
 

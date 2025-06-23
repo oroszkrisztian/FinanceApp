@@ -105,7 +105,6 @@ const ProfilePage: React.FC = () => {
   };
 
   const handleDeleteSuccess = (accountId?: number): void => {
-    console.log(`Account with ID ${accountId} deleted successfully.`);
     refreshAccounts();
     setDeleteRequest({
       isOpen: false,

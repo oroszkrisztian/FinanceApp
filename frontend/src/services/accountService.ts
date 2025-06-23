@@ -76,7 +76,6 @@ export const fetchAllAccounts = async (
     }`;
 
     const data = await api.get(url, { signal });
-    console.log("Fetched accounts:", data);
 
     if (!Array.isArray(data)) {
       throw new Error("Invalid response format: Expected an array");
@@ -94,7 +93,6 @@ export const fetchDefaultAccounts = async (
 ): Promise<Account[]> => {
   try {
     const data = await api.get("accounts/getDefault", { signal });
-    console.log("Fetched accounts:", data);
 
     if (!Array.isArray(data)) {
       throw new Error("Invalid response format: Expected an array");
@@ -112,7 +110,6 @@ export const fetchSavings = async (
 ): Promise<Account[]> => {
   try {
     const data = await api.get("accounts/getSavings", { signal });
-    console.log("Fetched savings:", data);
 
     if (!Array.isArray(data)) {
       throw new Error("Invalid response format: Expected an array");
@@ -133,7 +130,6 @@ export const searchAccount = async (
     const data = await api.get(`accounts/searchAccount?search=${search}`, {
       signal,
     });
-    console.log("Backend response:", data);
     return data;
   } catch (error) {
     console.error("Error searching accounts:", error);
@@ -174,7 +170,6 @@ export const editDefaultAccount = async (
   }
 ) => {
   try {
-    console.log("Should update to amount" + requestData.amount);
     const { name, description, currency, accountType, amount } = requestData;
 
     return await api.post(

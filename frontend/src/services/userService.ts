@@ -32,9 +32,6 @@ export const getUser = async () => {
   try {
     const data = await api.post("user/getUser", {});
 
-    console.log("Parsed data type:", typeof data);
-    console.log("User data:", data);
-
     return data;
   } catch (error) {
     console.error("Error /getUser in frontend userService.ts:", error);
@@ -45,9 +42,6 @@ export const getUser = async () => {
 export const editUser = async (userData: EditUserData) => {
   try {
     const data = await api.post("user/editUser", userData);
-
-    console.log("Parsed data type:", typeof data);
-    console.log("Updated user data:", data);
 
     return data;
   } catch (error) {
@@ -60,9 +54,6 @@ export const changePassword = async (passwordData: ChangePasswordData) => {
   try {
     const data = await api.post("user/changePassword", passwordData);
 
-    console.log("Parsed data type:", typeof data);
-    console.log("Password change result:", data);
-
     return data;
   } catch (error) {
     console.error("Error changing password:", error);
@@ -74,9 +65,6 @@ export const checkAvailability = async (availabilityData: AvailabilityData) => {
   try {
     const data = await api.post("user/checkAvailability", availabilityData);
 
-    console.log("Parsed data type:", typeof data);
-    console.log("Availability result:", data);
-
     return data;
   } catch (error) {
     console.error("Error checking availability:", error);
@@ -86,11 +74,8 @@ export const checkAvailability = async (availabilityData: AvailabilityData) => {
 
 export const updateUserProfile = async (userData: EditUserData) => {
   try {
-    console.log("Updating user profile with data:", userData);
-
     const result = await editUser(userData);
 
-    console.log("User profile updated successfully:", result);
     return result;
   } catch (error) {
     console.error("Error updating user profile:", error);

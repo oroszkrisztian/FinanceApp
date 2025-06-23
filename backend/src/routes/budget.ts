@@ -13,7 +13,6 @@ budget.post("/getAllUserBudgets", async (c) => {
 
     const budgets = await budgetController.getAllBudgets(c, userId);
 
-    console.log("Sending budgets to client:", budgets);
 
     return c.json(budgets);
   } catch (error) {
@@ -42,7 +41,6 @@ budget.post("/createUserBudgetWithCategories", async (c) => {
       categoryIds
     );
 
-    console.log("Sending created budget to client:", budget);
 
     return c.json(budget);
   } catch (error) {
@@ -67,7 +65,6 @@ budget.post("/deleteUserBudget", async (c) => {
       userId,
       Number(budgetId)
     );
-    console.log("Sending deleted budget to client:", budget);
     return c.json(budget);
   } catch (error) {
     console.error("Error in /deleteUserBudget route:", error);
@@ -94,7 +91,6 @@ budget.post("/updateUserBudget", async (c) => {
       categoryIds
     );
 
-    console.log("Sending updated budget to client:", budget);
 
     return c.json(budget);
   } catch (error) {

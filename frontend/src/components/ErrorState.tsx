@@ -33,7 +33,6 @@ const ErrorState: React.FC<ErrorStateProps> = ({
     }
   };
 
-  // Determine icon and colors based on error type
   const getErrorType = () => {
     const errorLower = error.toLowerCase();
     if (errorLower.includes('network') || errorLower.includes('connection') || errorLower.includes('fetch')) {

@@ -4,10 +4,6 @@ export const getAllPaymentsUser = async () => {
   try {
     const data = await api.post("payment/getAllPayments", {});
 
-    console.log("Parsed data type:", typeof data);
-    console.log("Is array:", Array.isArray(data));
-    console.log("Data length:", Array.isArray(data) ? data.length : "N/A");
-
     return data;
   } catch (error) {
     console.error(

@@ -6,7 +6,14 @@ import {
   fetchExchangeRates,
   ExchangeRates,
 } from "../../services/exchangeRateService";
-import { X, CreditCard, FileText, ChevronDown, Plus, AlertCircle } from "lucide-react";
+import {
+  X,
+  CreditCard,
+  FileText,
+  ChevronDown,
+  Plus,
+  AlertCircle,
+} from "lucide-react";
 
 interface CreateDefaultAccountPopupProps {
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -92,7 +99,6 @@ const CreateDefaultAccountPopup = ({
     setError(null);
 
     try {
-      
       if (!formData.name.trim()) {
         throw new Error("Account name is required");
       }
@@ -103,8 +109,6 @@ const CreateDefaultAccountPopup = ({
         name: formData.name,
         description: formData.description,
       });
-
-      console.log("Account created successfully:", data);
 
       if (onAccountCreated) {
         onAccountCreated();
@@ -164,9 +168,7 @@ const CreateDefaultAccountPopup = ({
             ></div>
             <div
               className={`absolute bg-white/15 rounded-full ${
-                isMobileView
-                  ? "top-2 left-16 w-6 h-6"
-                  : "top-2 left-16 w-8 h-8"
+                isMobileView ? "top-2 left-16 w-6 h-6" : "top-2 left-16 w-8 h-8"
               }`}
             ></div>
             <div
@@ -188,10 +190,14 @@ const CreateDefaultAccountPopup = ({
                     <Plus size={isMobileView ? 14 : 18} />
                   </div>
                   <div>
-                    <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                    <h2
+                      className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}
+                    >
                       Create Account
                     </h2>
-                    <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                    <p
+                      className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}
+                    >
                       Add a new financial account
                     </p>
                   </div>
@@ -209,7 +215,9 @@ const CreateDefaultAccountPopup = ({
           </div>
 
           {/* Content */}
-          <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
+          <div
+            className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}
+          >
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
                 <AlertCircle size={16} />
@@ -290,7 +298,10 @@ const CreateDefaultAccountPopup = ({
                             key={curr}
                             type="button"
                             onClick={() => {
-                              setFormData({ ...formData, currency: curr as CurrencyType });
+                              setFormData({
+                                ...formData,
+                                currency: curr as CurrencyType,
+                              });
                               setIsCurrencyOpen(false);
                             }}
                             className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
@@ -342,7 +353,9 @@ const CreateDefaultAccountPopup = ({
           </div>
 
           {/* Footer */}
-          <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+          <div
+            className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}
+          >
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}

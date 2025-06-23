@@ -292,7 +292,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
       }
 
       const data = await response.json();
-      console.log("AI recommendations:", data);
 
       if (data.success && data.recommendations) {
         setAiRecommendations(data.recommendations);
@@ -352,7 +351,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
     const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
-    console.log(`Applied ${successful.length} recommendations successfully`);
     if (failed.length > 0) {
       console.error(`Failed to apply ${failed.length} recommendations`);
     }

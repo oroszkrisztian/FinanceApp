@@ -59,7 +59,6 @@ const HomePage: React.FC = () => {
         ]);
 
       if (transactionsData.status === "fulfilled") {
-        console.log("Transactions loaded:", transactionsData.value);
         setTransactions(
           Array.isArray(transactionsData.value) ? transactionsData.value : []
         );
@@ -68,14 +67,12 @@ const HomePage: React.FC = () => {
       }
 
       if (budgetsData.status === "fulfilled") {
-        console.log("Budgets loaded:", budgetsData.value);
         setBudgets(Array.isArray(budgetsData.value) ? budgetsData.value : []);
       } else {
         console.error("Failed to load budgets:", budgetsData.reason);
       }
 
       if (paymentsData.status === "fulfilled") {
-        console.log("Payments loaded:", paymentsData.value);
         setPayments(
           Array.isArray(paymentsData.value) ? paymentsData.value : []
         );
@@ -94,7 +91,6 @@ const HomePage: React.FC = () => {
       }
 
       if (ratesData.status === "fulfilled") {
-        console.log("Exchange rates loaded:", ratesData.value);
         setRates(ratesData.value || {});
       } else {
         console.error("Failed to load exchange rates:", ratesData.reason);
@@ -165,10 +161,8 @@ const HomePage: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="max-w-[1920px] w-full mx-auto">
-        {/* Chart and AI Insights Section */}
         <div className="px-0 sm:px-2 mb-8">
           {isMobileView ? (
-            // Mobile: Stack vertically
             <div className="space-y-4">
               <IncomeExpenseChart
                 transactions={transactions}
@@ -188,9 +182,8 @@ const HomePage: React.FC = () => {
               />
             </div>
           ) : (
-            // Desktop: Side by side
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              {/* Chart takes 1/2 of the width */}
+              
               <div className="xl:col-span-1">
                 <IncomeExpenseChart
                   transactions={transactions}
@@ -202,7 +195,7 @@ const HomePage: React.FC = () => {
                 />
               </div>
 
-              {/* AI Insights takes 1/2 of the width */}
+              
               <div className="xl:col-span-1">
                 <AIInsightsComponent
                   accounts={accounts}
@@ -217,9 +210,7 @@ const HomePage: React.FC = () => {
           )}
         </div>
 
-        {/* Two Column Layout for Sections */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8  ">
-          {/* Left Column - Upcoming Payments */}
           <div className="space-y-8">
             <UpcomingPaymentsSection
               futureOutgoingPayments={futureOutgoingPayments}
@@ -228,7 +219,6 @@ const HomePage: React.FC = () => {
             />
           </div>
 
-          {/* Right Column - Budget & Savings Tabs */}
           <div className="space-y-8">
             <BudgetSavingsTabSection
               accounts={accounts}

@@ -13,7 +13,11 @@ import {
   Shield,
   CheckCircle,
 } from "lucide-react";
-import { checkAvailability, editUser, changePassword } from "../../services/userService";
+import {
+  checkAvailability,
+  editUser,
+  changePassword,
+} from "../../services/userService";
 
 interface EditUserPopupProps {
   isOpen: boolean;
@@ -36,8 +40,8 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   onSuccess,
 }) => {
   const [isMobileView, setIsMobileView] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
-  
+  const [activeTab, setActiveTab] = useState<"profile" | "password">("profile");
+
   const [formData, setFormData] = useState({
     firstName: user.firstName || "",
     lastName: user.lastName || "",
@@ -60,7 +64,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [showSuccessPopup, setShowSuccessPopup] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{[key: string]: string}>({});
+  const [fieldErrors, setFieldErrors] = useState<{ [key: string]: string }>({});
 
   useEffect(() => {
     const checkMobileView = () => {
@@ -89,12 +93,12 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       setShowSuccessPopup(false);
       setFieldErrors({});
       setLoading(false);
-      setActiveTab('profile');
+      setActiveTab("profile");
     }
   }, [isOpen, user]);
 
   const handleInputChange = (field: string, value: string) => {
-    if (activeTab === 'profile') {
+    if (activeTab === "profile") {
       setFormData((prev) => ({ ...prev, [field]: value }));
     } else {
       setPasswordData((prev) => ({ ...prev, [field]: value }));
@@ -110,7 +114,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   };
 
   const validateProfileForm = async () => {
-    const errors: {[key: string]: string} = {};
+    const errors: { [key: string]: string } = {};
 
     if (!formData.firstName.trim()) {
       errors.firstName = "First name is required";
@@ -137,7 +141,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     if (!errors.username && formData.username !== user.username) {
       try {
         const availabilityResult = await checkAvailability({
-          username: formData.username
+          username: formData.username,
         });
         if (!availabilityResult.usernameAvailable) {
           errors.username = "Username is already taken";
@@ -147,10 +151,14 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       }
     }
 
-    if (!errors.email && formData.email && formData.email !== (user.email || "")) {
+    if (
+      !errors.email &&
+      formData.email &&
+      formData.email !== (user.email || "")
+    ) {
       try {
         const availabilityResult = await checkAvailability({
-          email: formData.email
+          email: formData.email,
         });
         if (!availabilityResult.emailAvailable) {
           errors.email = "Email is already taken";
@@ -164,7 +172,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
   };
 
   const validatePasswordForm = () => {
-    const errors: {[key: string]: string} = {};
+    const errors: { [key: string]: string } = {};
 
     if (!passwordData.currentPassword) {
       errors.currentPassword = "Current password is required";
@@ -183,7 +191,8 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     }
 
     if (passwordData.currentPassword === passwordData.newPassword) {
-      errors.newPassword = "New password must be different from current password";
+      errors.newPassword =
+        "New password must be different from current password";
     }
 
     return errors;
@@ -210,11 +219,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
         email: formData.email.trim() || undefined,
       };
 
-      console.log("Submitting user update:", updateData);
-
       const result = await editUser(updateData);
-
-      console.log("User update successful:", result);
 
       onSuccess({
         ...user,
@@ -223,18 +228,18 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       });
 
       onClose();
-
     } catch (err) {
       console.error("Error updating user:", err);
-      
-      let errorMessage = "An unexpected error occurred while updating your profile";
-      
+
+      let errorMessage =
+        "An unexpected error occurred while updating your profile";
+
       if (err instanceof Error) {
         errorMessage = err.message;
-      } else if (typeof err === 'string') {
+      } else if (typeof err === "string") {
         errorMessage = err;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -260,11 +265,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
         newPassword: passwordData.newPassword,
       };
 
-      console.log("Submitting password change...");
-
       const result = await changePassword(updateData);
-
-      console.log("Password change successful:", result);
 
       setPasswordData({
         currentPassword: "",
@@ -273,18 +274,18 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
       });
 
       setShowSuccessPopup(true);
-      
     } catch (err) {
       console.error("Error changing password:", err);
-      
-      let errorMessage = "An unexpected error occurred while changing your password";
-      
+
+      let errorMessage =
+        "An unexpected error occurred while changing your password";
+
       if (err instanceof Error) {
         errorMessage = err.message;
-      } else if (typeof err === 'string') {
+      } else if (typeof err === "string") {
         errorMessage = err;
       }
-      
+
       setError(errorMessage);
     } finally {
       setLoading(false);
@@ -318,10 +319,10 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
     );
   };
 
-  const togglePasswordVisibility = (field: 'current' | 'new' | 'confirm') => {
-    setShowPasswords(prev => ({
+  const togglePasswordVisibility = (field: "current" | "new" | "confirm") => {
+    setShowPasswords((prev) => ({
       ...prev,
-      [field]: !prev[field]
+      [field]: !prev[field],
     }));
   };
 
@@ -352,23 +353,45 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
-              <div className={`absolute top-0 right-0 bg-white/20 rounded-full ${isMobileView ? "w-12 h-12 -translate-y-6 translate-x-6" : "w-16 h-16 -translate-y-8 translate-x-8"}`}></div>
-              <div className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${isMobileView ? "w-8 h-8 translate-y-4 -translate-x-4" : "w-12 h-12 translate-y-6 -translate-x-6"}`}></div>
-              <div className={`absolute bg-white/15 rounded-full ${isMobileView ? "top-2 left-16 w-6 h-6" : "top-2 left-16 w-8 h-8"}`}></div>
-              <div className={`absolute bg-white/10 rounded-full ${isMobileView ? "bottom-2 right-12 w-4 h-4" : "bottom-2 right-12 w-6 h-6"}`}></div>
+              <div
+                className={`absolute top-0 right-0 bg-white/20 rounded-full ${isMobileView ? "w-12 h-12 -translate-y-6 translate-x-6" : "w-16 h-16 -translate-y-8 translate-x-8"}`}
+              ></div>
+              <div
+                className={`absolute bottom-0 left-0 bg-white/10 rounded-full ${isMobileView ? "w-8 h-8 translate-y-4 -translate-x-4" : "w-12 h-12 translate-y-6 -translate-x-6"}`}
+              ></div>
+              <div
+                className={`absolute bg-white/15 rounded-full ${isMobileView ? "top-2 left-16 w-6 h-6" : "top-2 left-16 w-8 h-8"}`}
+              ></div>
+              <div
+                className={`absolute bg-white/10 rounded-full ${isMobileView ? "bottom-2 right-12 w-4 h-4" : "bottom-2 right-12 w-6 h-6"}`}
+              ></div>
 
               <div className={`relative z-10 ${isMobileView ? "p-3" : "p-4"}`}>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
-                    <div className={`bg-white text-blue-600 rounded-full shadow-lg ${isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"} flex items-center justify-center`}>
-                      {activeTab === 'profile' ? <Edit size={isMobileView ? 14 : 18} /> : <Shield size={isMobileView ? 14 : 18} />}
+                    <div
+                      className={`bg-white text-blue-600 rounded-full shadow-lg ${isMobileView ? "p-1.5 w-7 h-7" : "p-1.5 w-10 h-10"} flex items-center justify-center`}
+                    >
+                      {activeTab === "profile" ? (
+                        <Edit size={isMobileView ? 14 : 18} />
+                      ) : (
+                        <Shield size={isMobileView ? 14 : 18} />
+                      )}
                     </div>
                     <div>
-                      <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
-                        {activeTab === 'profile' ? 'Edit Profile' : 'Change Password'}
+                      <h2
+                        className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}
+                      >
+                        {activeTab === "profile"
+                          ? "Edit Profile"
+                          : "Change Password"}
                       </h2>
-                      <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
-                        {activeTab === 'profile' ? 'Update your personal information' : 'Update your account password'}
+                      <p
+                        className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}
+                      >
+                        {activeTab === "profile"
+                          ? "Update your personal information"
+                          : "Update your account password"}
                       </p>
                     </div>
                   </div>
@@ -384,11 +407,11 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
 
                 <div className="flex mt-4 bg-white/10 rounded-lg p-1">
                   <button
-                    onClick={() => setActiveTab('profile')}
+                    onClick={() => setActiveTab("profile")}
                     className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                      activeTab === 'profile'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-white/80 hover:text-white'
+                      activeTab === "profile"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-white/80 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center justify-center gap-1">
@@ -397,11 +420,11 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                     </div>
                   </button>
                   <button
-                    onClick={() => setActiveTab('password')}
+                    onClick={() => setActiveTab("password")}
                     className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-all ${
-                      activeTab === 'password'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-white/80 hover:text-white'
+                      activeTab === "password"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-white/80 hover:text-white"
                     }`}
                   >
                     <div className="flex items-center justify-center gap-1">
@@ -413,7 +436,9 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
               </div>
             </div>
 
-            <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
+            <div
+              className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}
+            >
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
                   <AlertCircle size={16} />
@@ -421,7 +446,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                 </div>
               )}
 
-              {activeTab === 'profile' ? (
+              {activeTab === "profile" ? (
                 <form onSubmit={handleProfileSubmit} className="space-y-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div>
@@ -429,13 +454,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                         First Name *
                       </label>
                       <div className="relative">
-                        <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <User
+                          size={16}
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        />
                         <input
                           type="text"
                           value={formData.firstName}
-                          onChange={(e) => handleInputChange("firstName", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("firstName", e.target.value)
+                          }
                           className={`w-full pl-10 pr-3 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                            fieldErrors.firstName ? "border-red-300" : "border-gray-300"
+                            fieldErrors.firstName
+                              ? "border-red-300"
+                              : "border-gray-300"
                           }`}
                           placeholder="John"
                           required
@@ -443,7 +475,9 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                         />
                       </div>
                       {fieldErrors.firstName && (
-                        <p className="text-red-500 text-xs mt-1">{fieldErrors.firstName}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {fieldErrors.firstName}
+                        </p>
                       )}
                     </div>
 
@@ -452,13 +486,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                         Last Name *
                       </label>
                       <div className="relative">
-                        <User size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                        <User
+                          size={16}
+                          className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                        />
                         <input
                           type="text"
                           value={formData.lastName}
-                          onChange={(e) => handleInputChange("lastName", e.target.value)}
+                          onChange={(e) =>
+                            handleInputChange("lastName", e.target.value)
+                          }
                           className={`w-full pl-10 pr-3 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                            fieldErrors.lastName ? "border-red-300" : "border-gray-300"
+                            fieldErrors.lastName
+                              ? "border-red-300"
+                              : "border-gray-300"
                           }`}
                           placeholder="Doe"
                           required
@@ -466,7 +507,9 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                         />
                       </div>
                       {fieldErrors.lastName && (
-                        <p className="text-red-500 text-xs mt-1">{fieldErrors.lastName}</p>
+                        <p className="text-red-500 text-xs mt-1">
+                          {fieldErrors.lastName}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -476,13 +519,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       Username *
                     </label>
                     <div className="relative">
-                      <AtSign size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <AtSign
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type="text"
                         value={formData.username}
-                        onChange={(e) => handleInputChange("username", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("username", e.target.value)
+                        }
                         className={`w-full pl-10 pr-3 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                          fieldErrors.username ? "border-red-300" : "border-gray-300"
+                          fieldErrors.username
+                            ? "border-red-300"
+                            : "border-gray-300"
                         }`}
                         placeholder="johndoe"
                         required
@@ -490,7 +540,9 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       />
                     </div>
                     {fieldErrors.username && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.username}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.username}
+                      </p>
                     )}
                   </div>
 
@@ -499,37 +551,51 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       Email
                     </label>
                     <div className="relative">
-                      <Mail size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Mail
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type="email"
                         value={formData.email}
-                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("email", e.target.value)
+                        }
                         className={`w-full pl-10 pr-3 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                          fieldErrors.email ? "border-red-300" : "border-gray-300"
+                          fieldErrors.email
+                            ? "border-red-300"
+                            : "border-gray-300"
                         }`}
                         placeholder="john.doe@example.com"
                         disabled={loading}
                       />
                     </div>
                     {fieldErrors.email && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.email}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.email}
+                      </p>
                     )}
                   </div>
 
                   <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl shadow-sm">
                     <div className="flex items-center gap-2 mb-2">
                       <User size={14} className="text-blue-600" />
-                      <span className="text-sm font-medium text-blue-800">Preview</span>
+                      <span className="text-sm font-medium text-blue-800">
+                        Preview
+                      </span>
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                        {formData.firstName?.[0]}{formData.lastName?.[0]}
+                        {formData.firstName?.[0]}
+                        {formData.lastName?.[0]}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-blue-900">
                           {formData.firstName} {formData.lastName}
                         </p>
-                        <p className="text-xs text-blue-700">@{formData.username}</p>
+                        <p className="text-xs text-blue-700">
+                          @{formData.username}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -541,13 +607,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       Current Password *
                     </label>
                     <div className="relative">
-                      <Lock size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Lock
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type={showPasswords.current ? "text" : "password"}
                         value={passwordData.currentPassword}
-                        onChange={(e) => handleInputChange("currentPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("currentPassword", e.target.value)
+                        }
                         className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                          fieldErrors.currentPassword ? "border-red-300" : "border-gray-300"
+                          fieldErrors.currentPassword
+                            ? "border-red-300"
+                            : "border-gray-300"
                         }`}
                         placeholder="Enter current password"
                         required
@@ -555,14 +628,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => togglePasswordVisibility('current')}
+                        onClick={() => togglePasswordVisibility("current")}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showPasswords.current ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPasswords.current ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
                       </button>
                     </div>
                     {fieldErrors.currentPassword && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.currentPassword}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.currentPassword}
+                      </p>
                     )}
                   </div>
 
@@ -571,13 +650,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       New Password *
                     </label>
                     <div className="relative">
-                      <Lock size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Lock
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type={showPasswords.new ? "text" : "password"}
                         value={passwordData.newPassword}
-                        onChange={(e) => handleInputChange("newPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("newPassword", e.target.value)
+                        }
                         className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                          fieldErrors.newPassword ? "border-red-300" : "border-gray-300"
+                          fieldErrors.newPassword
+                            ? "border-red-300"
+                            : "border-gray-300"
                         }`}
                         placeholder="Enter new password"
                         required
@@ -585,16 +671,24 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => togglePasswordVisibility('new')}
+                        onClick={() => togglePasswordVisibility("new")}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showPasswords.new ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPasswords.new ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
                       </button>
                     </div>
                     {fieldErrors.newPassword && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.newPassword}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.newPassword}
+                      </p>
                     )}
-                    <p className="text-xs text-gray-500 mt-1">Password must be at least 6 characters long</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Password must be at least 6 characters long
+                    </p>
                   </div>
 
                   <div>
@@ -602,13 +696,20 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       Confirm New Password *
                     </label>
                     <div className="relative">
-                      <Lock size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <Lock
+                        size={16}
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                      />
                       <input
                         type={showPasswords.confirm ? "text" : "password"}
                         value={passwordData.confirmPassword}
-                        onChange={(e) => handleInputChange("confirmPassword", e.target.value)}
+                        onChange={(e) =>
+                          handleInputChange("confirmPassword", e.target.value)
+                        }
                         className={`w-full pl-10 pr-12 py-3 border rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm ${
-                          fieldErrors.confirmPassword ? "border-red-300" : "border-gray-300"
+                          fieldErrors.confirmPassword
+                            ? "border-red-300"
+                            : "border-gray-300"
                         }`}
                         placeholder="Confirm new password"
                         required
@@ -616,31 +717,42 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       />
                       <button
                         type="button"
-                        onClick={() => togglePasswordVisibility('confirm')}
+                        onClick={() => togglePasswordVisibility("confirm")}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
                       >
-                        {showPasswords.confirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                        {showPasswords.confirm ? (
+                          <EyeOff size={16} />
+                        ) : (
+                          <Eye size={16} />
+                        )}
                       </button>
                     </div>
                     {fieldErrors.confirmPassword && (
-                      <p className="text-red-500 text-xs mt-1">{fieldErrors.confirmPassword}</p>
+                      <p className="text-red-500 text-xs mt-1">
+                        {fieldErrors.confirmPassword}
+                      </p>
                     )}
                   </div>
 
                   <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <Shield size={14} className="text-amber-600" />
-                      <span className="text-sm font-medium text-amber-800">Security Notice</span>
+                      <span className="text-sm font-medium text-amber-800">
+                        Security Notice
+                      </span>
                     </div>
                     <p className="text-xs text-amber-700">
-                      Make sure your new password is strong and unique. Avoid using personal information or common words.
+                      Make sure your new password is strong and unique. Avoid
+                      using personal information or common words.
                     </p>
                   </div>
                 </form>
               )}
             </div>
 
-            <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+            <div
+              className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}
+            >
               <button
                 type="button"
                 onClick={onClose}
@@ -651,19 +763,33 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
               </button>
               <button
                 type="submit"
-                onClick={activeTab === 'profile' ? handleProfileSubmit : handlePasswordSubmit}
-                disabled={activeTab === 'profile' ? !canSubmitProfile() || loading : !canSubmitPassword() || loading}
+                onClick={
+                  activeTab === "profile"
+                    ? handleProfileSubmit
+                    : handlePasswordSubmit
+                }
+                disabled={
+                  activeTab === "profile"
+                    ? !canSubmitProfile() || loading
+                    : !canSubmitPassword() || loading
+                }
                 className="flex-1 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
               >
                 {loading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    {activeTab === 'profile' ? 'Updating...' : 'Changing...'}
+                    {activeTab === "profile" ? "Updating..." : "Changing..."}
                   </>
                 ) : (
                   <>
-                    {activeTab === 'profile' ? <Edit size={16} /> : <Shield size={16} />}
-                    {activeTab === 'profile' ? 'Save Changes' : 'Change Password'}
+                    {activeTab === "profile" ? (
+                      <Edit size={16} />
+                    ) : (
+                      <Shield size={16} />
+                    )}
+                    {activeTab === "profile"
+                      ? "Save Changes"
+                      : "Change Password"}
                   </>
                 )}
               </button>
@@ -695,16 +821,19 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
                       </div>
                       <div>
                         <h3 className="font-semibold text-lg">Success!</h3>
-                        <p className="text-green-100 text-sm">Password updated successfully</p>
+                        <p className="text-green-100 text-sm">
+                          Password updated successfully
+                        </p>
                       </div>
                     </div>
                   </div>
 
                   <div className="p-4">
                     <p className="text-gray-700 text-sm mb-4">
-                      Your password has been changed successfully. Your account is now more secure.
+                      Your password has been changed successfully. Your account
+                      is now more secure.
                     </p>
-                    
+
                     <button
                       onClick={handleSuccessConfirm}
                       className="w-full px-4 py-3 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 transition-all flex items-center justify-center gap-2"

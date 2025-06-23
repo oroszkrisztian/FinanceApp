@@ -3,7 +3,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
 import { editDefaultAccount } from "../../services/accountService";
 import { Account } from "../../interfaces/Account";
-import { X, CreditCard, FileText, ChevronDown, Edit, AlertCircle, TrendingUp, DollarSign } from "lucide-react";
+import {
+  X,
+  CreditCard,
+  FileText,
+  ChevronDown,
+  Edit,
+  AlertCircle,
+  TrendingUp,
+  DollarSign,
+} from "lucide-react";
 
 interface EditDefaultAccountPopupProps {
   setIsEditModalOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -39,7 +48,6 @@ const EditDefaultAccountPopup = ({
   const [isCurrencyOpen, setIsCurrencyOpen] = useState(false);
 
   const currencyRef = useRef<HTMLDivElement>(null);
-
 
   useEffect(() => {
     const checkMobileView = () => {
@@ -94,7 +102,9 @@ const EditDefaultAccountPopup = ({
     const fetchExchangeRates = async () => {
       setFetchingRates(true);
       try {
-        const response = await fetch("https://financeapp-bg0k.onrender.com/exchange-rates");
+        const response = await fetch(
+          "https://financeapp-bg0k.onrender.com/exchange-rates"
+        );
         const xmlText = await response.text();
 
         const parser = new DOMParser();
@@ -168,8 +178,6 @@ const EditDefaultAccountPopup = ({
     setError(null);
 
     try {
-      
-
       if (!formData.name.trim()) {
         throw new Error("Account name is required");
       }
@@ -179,13 +187,6 @@ const EditDefaultAccountPopup = ({
           ? convertedBalance
           : undefined;
 
-      console.log("Currency changing:", formData.currency !== originalCurrency);
-      console.log("Original currency:", originalCurrency);
-      console.log("New currency:", formData.currency);
-      console.log("Original amount:", account.amount);
-      console.log("Converted amount:", convertedBalance);
-      console.log("Should update amount:", updatedAmount);
-
       const requestBody = {
         name: formData.name,
         description: formData.description,
@@ -194,9 +195,7 @@ const EditDefaultAccountPopup = ({
         ...(updatedAmount !== undefined && { amount: updatedAmount }),
       };
 
-      await editDefaultAccount( account.id as number, requestBody);
-
-      console.log("Account updated successfully");
+      await editDefaultAccount(account.id as number, requestBody);
 
       if (onAccountEdited) {
         onAccountEdited();
@@ -258,9 +257,7 @@ const EditDefaultAccountPopup = ({
             ></div>
             <div
               className={`absolute bg-white/15 rounded-full ${
-                isMobileView
-                  ? "top-2 left-16 w-6 h-6"
-                  : "top-2 left-16 w-8 h-8"
+                isMobileView ? "top-2 left-16 w-6 h-6" : "top-2 left-16 w-8 h-8"
               }`}
             ></div>
             <div
@@ -282,10 +279,14 @@ const EditDefaultAccountPopup = ({
                     <Edit size={isMobileView ? 14 : 18} />
                   </div>
                   <div>
-                    <h2 className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}>
+                    <h2
+                      className={`font-semibold ${isMobileView ? "text-base" : "text-lg"}`}
+                    >
                       Edit Account
                     </h2>
-                    <p className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}>
+                    <p
+                      className={`opacity-90 ${isMobileView ? "text-xs" : "text-sm"}`}
+                    >
                       {account.name}
                     </p>
                   </div>
@@ -303,7 +304,9 @@ const EditDefaultAccountPopup = ({
           </div>
 
           {/* Content */}
-          <div className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}>
+          <div
+            className={`${isMobileView ? "p-3" : "p-4"} flex-1 overflow-y-auto`}
+          >
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-xl text-sm flex items-center gap-2 mb-4 shadow-sm">
                 <AlertCircle size={16} />
@@ -383,7 +386,10 @@ const EditDefaultAccountPopup = ({
                             key={currency}
                             type="button"
                             onClick={() => {
-                              setFormData({ ...formData, currency: currency as CurrencyType });
+                              setFormData({
+                                ...formData,
+                                currency: currency as CurrencyType,
+                              });
                               setIsCurrencyOpen(false);
                             }}
                             className={`w-full text-left px-3 py-2 hover:bg-gray-50 ${
@@ -463,14 +469,18 @@ const EditDefaultAccountPopup = ({
                         <div className="text-xs mt-1 text-indigo-600 text-center">
                           Exchange rate: 1 {originalCurrency} ={" "}
                           {rates[originalCurrency] && rates[formData.currency]
-                            ? (rates[originalCurrency] / rates[formData.currency]).toFixed(4)
+                            ? (
+                                rates[originalCurrency] /
+                                rates[formData.currency]
+                              ).toFixed(4)
                             : "N/A"}{" "}
                           {formData.currency}
                         </div>
                       </div>
                     ) : (
                       <p className="text-indigo-700 text-sm">
-                        Unable to convert currencies. Please select a different currency.
+                        Unable to convert currencies. Please select a different
+                        currency.
                       </p>
                     )}
                   </div>
@@ -479,7 +489,9 @@ const EditDefaultAccountPopup = ({
           </div>
 
           {/* Footer */}
-          <div className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}>
+          <div
+            className={`${isMobileView ? "p-3" : "p-4"} border-t bg-gray-50/50 flex gap-2`}
+          >
             <button
               type="button"
               onClick={() => setIsEditModalOpen(false)}
@@ -491,7 +503,11 @@ const EditDefaultAccountPopup = ({
             <button
               type="submit"
               onClick={handleSubmit}
-              disabled={!canSubmit() || isLoading || (formData.currency !== originalCurrency && fetchingRates)}
+              disabled={
+                !canSubmit() ||
+                isLoading ||
+                (formData.currency !== originalCurrency && fetchingRates)
+              }
               className="flex-1 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-md"
             >
               {isLoading ? (

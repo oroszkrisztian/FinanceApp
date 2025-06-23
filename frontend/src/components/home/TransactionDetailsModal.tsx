@@ -592,7 +592,6 @@ const TransactionDetailsModal: React.FC<TransactionDetailsModalProps> = ({
                           )}
                       </>
                     ) : (
-                      // Regular transactions
                       <>
                         {new Date(
                           transaction.createdAt || transaction.date || ""

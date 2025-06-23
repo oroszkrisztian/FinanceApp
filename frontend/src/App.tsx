@@ -90,7 +90,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   return (
     <div className=" bg-white h-screen w-full overflow-hidden">
-      {/* Fixed TopBar at the top */}
+      {/* Fixed TopBar*/}
       <div className="fixed top-0 left-0 right-0 z-50">
         <TopBar
           title={getTitle(location.pathname)}
@@ -99,7 +99,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         />
       </div>
 
-      {/* Sidebar - with smooth animation - original positioning */}
+      {/* Sidebar*/}
       <div className="pt-14">
         <div className="h-screen w-full overflow-auto">
           <div
@@ -113,7 +113,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
             <SideBar collapsed={collapsed} onItemClick={closeSidebar} />
           </div>
 
-          {/* Main content - with adjusted margin for desktop closed sidebar */}
+          {/* Main content*/}
           <div
             className="overflow-auto h-full transition-all duration-300 ease-in-out"
             style={{
@@ -121,7 +121,6 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
               width: isMobile ? "100%" : `calc(100% - ${contentMarginLeft})`,
             }}
           >
-            {/* Optional overlay when sidebar is open on mobile */}
             {!collapsed && isMobile && (
               <div
                 className="fixed inset-0 bg-black bg-opacity-50 z-30 transition-opacity duration-300 ease-in-out"

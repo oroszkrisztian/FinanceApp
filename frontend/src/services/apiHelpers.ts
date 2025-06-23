@@ -66,7 +66,6 @@ export const apiRequest = async (
     ...options.headers,
   };
 
-  // Build full URL if it's a relative path
   const fullUrl = url.startsWith("http") ? url : buildApiUrl(url);
 
   let response = await fetch(fullUrl, {

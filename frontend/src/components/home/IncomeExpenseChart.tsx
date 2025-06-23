@@ -180,19 +180,16 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
     const fetchAccountsData = async () => {
       try {
         setAccountsLoading(true);
-        console.log("Fetching accounts for chart component");
 
         const { startDate, endDate } = currentDateRange;
         const accountsData = await fetchAllAccounts(startDate, endDate);
 
-        console.log("Accounts loaded in chart:", accountsData);
         setAccounts(accountsData || []);
 
         if (onAccountsUpdate) {
           onAccountsUpdate(accountsData || []);
         }
       } catch (error) {
-        console.error("Failed to fetch accounts in chart:", error);
         setAccounts([]);
       } finally {
         setAccountsLoading(false);
@@ -268,7 +265,6 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         setRates(ratesData);
         setAvailableCurrencies(Object.keys(ratesData));
       } catch (err) {
-        console.error("Error fetching exchange rates:", err);
       } finally {
         setFetchingRates(false);
       }
@@ -311,12 +307,10 @@ const AccountsTrendChart: React.FC<IncomeExpenseChartProps> = ({
         rates
       );
       if (!validation.valid) {
-        console.error(validation.error);
         return amount;
       }
       return convertAmount(amount, fromCurrency, toCurrency, rates);
     } catch (err) {
-      console.error("Conversion error:", err);
       return amount;
     }
   };

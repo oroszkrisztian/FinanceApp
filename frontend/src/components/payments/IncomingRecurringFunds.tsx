@@ -371,7 +371,6 @@ const IncomingRecurringFunds: React.FC<IncomingRecurringFundsProps> = ({
           categoryIds
         );
 
-        console.log("Income executed successfully:", incomeToExecute);
         onPaymentCreated();
       } catch (error) {
         console.error("Failed to execute income:", error);

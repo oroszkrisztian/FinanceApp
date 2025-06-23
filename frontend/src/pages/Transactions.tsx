@@ -58,7 +58,6 @@ const Transactions: React.FC = () => {
     return () => window.removeEventListener("resize", checkScreenSize);
   }, []);
 
-  // Load exchange rates
   useEffect(() => {
     const loadRates = async () => {
       setFetchingRates(true);
