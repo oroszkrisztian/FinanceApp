@@ -233,7 +233,6 @@ ai.post("/aiCategorySuggestion", async (c) => {
                 error: "Authorization token not found",
             }, 401);
         }
-        console.log("passing userid from aicategoriesSuggestions: ", userId);
         const categoriesData = await getAllCategoriesForUser(token);
         if (!categoriesData || !Array.isArray(categoriesData)) {
             return c.json({

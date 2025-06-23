@@ -43,7 +43,6 @@ class ExpenseNotificationService {
                     }
                 }
             });
-            console.log(`📧 Checking ${paymentsWithNotifications.length} recurring payments for notifications to send today`);
             const today = new Date();
             today.setHours(0, 0, 0, 0);
             for (const payment of paymentsWithNotifications) {
@@ -65,7 +64,6 @@ class ExpenseNotificationService {
                             status: 'success',
                             type: payment.type
                         });
-                        console.log(`✅ Sent ${payment.type.toLowerCase()} notification for ${payment.name} (due in ${notificationDaysAhead} days)`);
                         await new Promise(resolve => setTimeout(resolve, 200));
                     }
                     catch (error) {
@@ -78,11 +76,11 @@ class ExpenseNotificationService {
                             error: errorMessage,
                             type: payment.type
                         });
-                        console.error(`❌ Failed to send notification for ${payment.name}:`, errorMessage);
+                        console.error(`Failed to send notification for ${payment.name}:`, errorMessage);
                     }
                 }
             }
-            console.log(`📊 Daily notification summary: ${successCount} sent, ${failedCount} failed`);
+            console.log(`Daily notification summary: ${successCount} sent, ${failedCount} failed`);
             return { success: successCount, failed: failedCount, details };
         }
         catch (error) {
@@ -230,10 +228,9 @@ You're receiving this because you enabled notifications for this recurring ${pay
         };
         try {
             await this.brevoService.sendTransactionalEmail(emailData);
-            console.log(`✅ Notification sent for ${payment.type.toLowerCase()}: ${payment.name} to ${user.email}`);
         }
         catch (error) {
-            console.error(`❌ Failed to send notification for ${payment.type.toLowerCase()} ${payment.name}:`, error);
+            console.error(`Failed to send notification for ${payment.type.toLowerCase()} ${payment.name}:`, error);
             throw error;
         }
     }

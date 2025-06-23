@@ -15,8 +15,6 @@ import {
 } from "lucide-react";
 import {
   checkAvailability,
-  editUser,
-  changePassword,
 } from "../../services/userService";
 
 interface EditUserPopupProps {
@@ -212,14 +210,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
         return;
       }
 
-      const updateData = {
-        firstName: formData.firstName.trim(),
-        lastName: formData.lastName.trim(),
-        username: formData.username.trim(),
-        email: formData.email.trim() || undefined,
-      };
 
-      const result = await editUser(updateData);
 
       onSuccess({
         ...user,
@@ -260,12 +251,7 @@ const EditUserPopup: React.FC<EditUserPopupProps> = ({
         return;
       }
 
-      const updateData = {
-        currentPassword: passwordData.currentPassword,
-        newPassword: passwordData.newPassword,
-      };
 
-      const result = await changePassword(updateData);
 
       setPasswordData({
         currentPassword: "",

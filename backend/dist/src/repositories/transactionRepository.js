@@ -26,7 +26,6 @@ class TransactionRepository {
                 description,
             },
         });
-        console.log(`Balance change recorded for account ${accountId}: ${previousBalance} -> ${newBalance} (${amountChanged >= 0 ? "+" : ""}${amountChanged})`);
     }
     async updateAccountBalance(prisma, accountId, amount, isIncrement, transactionId, changeType, description) {
         const account = await prisma.account.findUnique({
@@ -155,7 +154,6 @@ class TransactionRepository {
                     }
                 }
             }
-            console.log("Exchange rates fetched:", rates);
             return rates;
         }
         catch (error) {
@@ -164,7 +162,6 @@ class TransactionRepository {
         }
     }
     async addFundsDefaultAccount(userId, name, description, amount, type, toAccountId, customCategoriesId, currency) {
-        console.log("Sent account id ", toAccountId);
         const defaultAccount = await this.prisma.account.findFirst({
             where: {
                 id: toAccountId,
@@ -175,7 +172,6 @@ class TransactionRepository {
         if (!defaultAccount) {
             throw new Error("No default account found for the user");
         }
-        console.log("Adding funds to default account:", toAccountId, "amount:", amount, "currency:", currency);
         return await this.prisma.$transaction(async (prisma) => {
             const transaction = await prisma.transaction.create({
                 data: {
@@ -250,7 +246,6 @@ class TransactionRepository {
             }
             amountToWithdraw =
                 amount * (rates[currency] / rates[fromAccount.currency]);
-            console.log(`Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`);
         }
         if (fromAccount.amount < amountToWithdraw) {
             throw new Error(`Insufficient funds in source account. Available: ${fromAccount.amount} ${fromAccount.currency}, Required: ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`);
@@ -325,7 +320,6 @@ class TransactionRepository {
             }
             amountToWithdraw =
                 amount * (rates[currency] / rates[fromAccount.currency]);
-            console.log(`Converting ${amount} ${currency} to ${amountToWithdraw.toFixed(2)} ${fromAccount.currency} for withdrawal`);
         }
         if (fromAccount.amount < amountToWithdraw) {
             throw new Error(`Insufficient funds in savings account. Available: ${fromAccount.amount} ${fromAccount.currency}, Required: ${amountToWithdraw.toFixed(2)} ${fromAccount.currency}`);
@@ -347,8 +341,6 @@ class TransactionRepository {
                 },
             });
             await this.updateAccountBalance(prisma, fromSavingId, amountToWithdraw, false, transaction.id, client_1.BalanceChangeType.TRANSACTION_TRANSFER_OUT, `Transfer from savings to main account`);
-            console.log("Adding funds to default account:", toAccountId);
-            console.log("amount:", amount);
             await this.updateAccountBalance(prisma, toAccountId, amount, true, transaction.id, client_1.BalanceChangeType.TRANSACTION_TRANSFER_IN, `Transfer from savings account`);
             return transaction;
         });
@@ -474,7 +466,6 @@ class TransactionRepository {
                 throw new Error(`Exchange rate for ${currency} not found`);
             }
             amountToDeposit = amount * (rates[currency] / rates[toAccount.currency]);
-            console.log(`Converting ${amount} ${currency} to ${amountToDeposit.toFixed(2)} ${toAccount.currency} for deposit`);
         }
         return await this.prisma.$transaction(async (prisma) => {
             const transaction = await prisma.transaction.create({
@@ -586,7 +577,6 @@ class TransactionRepository {
                             transactions: { connect: { id: transaction.id } },
                         },
                     });
-                    console.log(`Updated budget "${budget.name}" with ${budgetAmount} ${budget.currency} for recurring payment`);
                 }
             }
             const payment = await prisma.recurringFundAndBill.findUnique({
@@ -602,7 +592,6 @@ class TransactionRepository {
                             deletedAt: today,
                         },
                     });
-                    console.log(`One-time payment "${payment.name}" has been executed and completed`);
                 }
                 else {
                     const scheduledDate = payment.nextExecution || new Date();
@@ -630,7 +619,6 @@ class TransactionRepository {
                         where: { id: paymentId },
                         data: { nextExecution: nextExecution },
                     });
-                    console.log(`Updated payment "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`);
                 }
             }
             return transaction;
@@ -684,7 +672,6 @@ class TransactionRepository {
                             deletedAt: today,
                         },
                     });
-                    console.log(`One-time income "${payment.name}" has been executed and completed`);
                 }
                 else {
                     const scheduledDate = payment.nextExecution || new Date();
@@ -712,7 +699,6 @@ class TransactionRepository {
                         where: { id: paymentId },
                         data: { nextExecution: nextExecution },
                     });
-                    console.log(`Updated income "${payment.name}" next execution from ${scheduledDate.toDateString()} to ${nextExecution.toDateString()}`);
                 }
             }
             return transaction;

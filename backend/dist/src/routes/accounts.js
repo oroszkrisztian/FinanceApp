@@ -163,11 +163,9 @@ accounts.post("/editSavingAccount", async (c) => {
         const userId = c.get("userId");
         const accountId = c.req.query("accountId");
         const body = await c.req.json();
-        console.log("Request Body:", body);
         const { name, description, currency, accountType } = body;
         const targetAmount = body.savingAccount?.update?.targetAmount;
         const targetDate = body.savingAccount?.update?.targetDate;
-        console.log("targetDate:", targetDate);
         if (!accountId || isNaN(Number(accountId))) {
             return c.json({ error: "Invalid or missing accountId" }, 400);
         }

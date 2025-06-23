@@ -25,7 +25,7 @@ const Savings: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [searchInput, setSearchInput] = useState<string>("");
-  const [showSearchDropdown, setShowSearchDropdown] = useState<boolean>(false);
+  const [, setShowSearchDropdown] = useState<boolean>(false);
   const [selectedSearchResult, setSelectedSearchResult] =
     useState<Account | null>(null);
   const [activeMenu, setActiveMenu] = useState<string | null>(null);
@@ -43,7 +43,6 @@ const Savings: React.FC = () => {
   const [defaultAccounts, setDefaultAccounts] = useState<Account[]>([]);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLDivElement>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
   const contentAreaRef = useRef<HTMLDivElement>(null);
 
   const [sortMenuOpen, setSortMenuOpen] = useState<boolean>(false);
@@ -189,20 +188,8 @@ const Savings: React.FC = () => {
     };
   }, []);
 
-  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    setSearchInput(value);
-  };
 
-  const selectSearchResult = (account: Account) => {
-    setSelectedSearchResult(account);
-    setSearchInput(account.name);
-  };
 
-  const clearSearch = () => {
-    setSearchInput("");
-    setSelectedSearchResult(null);
-  };
 
   const handleSortChange = (order: SortOrder, type: "percentage" | "none") => {
     setFilterLoading(true);
@@ -299,15 +286,7 @@ const Savings: React.FC = () => {
     setSelectedSearchResult(null);
   };
 
-  const handleSearchFieldClick = () => {
-    setShowSearchDropdown(true);
-    setSearchInput("");
-  };
 
-  const renderSearchDropdown = () => {
-    // Search functionality will be handled by child components
-    return null;
-  };
 
   // SearchWithSuggestions component
   const SearchWithSuggestions: React.FC<{

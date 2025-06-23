@@ -10,7 +10,6 @@ budget.post("/getAllUserBudgets", async (c) => {
     try {
         const userId = c.get("userId");
         const budgets = await budgetController.getAllBudgets(c, userId);
-        console.log("Sending budgets to client:", budgets);
         return c.json(budgets);
     }
     catch (error) {
@@ -27,7 +26,6 @@ budget.post("/createUserBudgetWithCategories", async (c) => {
         const body = await c.req.json();
         const { name, limitAmount, currency, categoryIds } = body;
         const budget = await budgetController.createUserBudgetWithCategories(c, userId, name, limitAmount, currency, categoryIds);
-        console.log("Sending created budget to client:", budget);
         return c.json(budget);
     }
     catch (error) {
@@ -44,7 +42,6 @@ budget.post("/deleteUserBudget", async (c) => {
         const body = await c.req.json();
         const { budgetId } = body;
         const budget = await budgetController.deleteUserBudget(c, userId, Number(budgetId));
-        console.log("Sending deleted budget to client:", budget);
         return c.json(budget);
     }
     catch (error) {
@@ -61,7 +58,6 @@ budget.post("/updateUserBudget", async (c) => {
         const body = await c.req.json();
         const { budgetId, name, limitAmount, currency, categoryIds } = body;
         const budget = await budgetController.updateUserBudget(c, userId, Number(budgetId), name, limitAmount, currency, categoryIds);
-        console.log("Sending updated budget to client:", budget);
         return c.json(budget);
     }
     catch (error) {

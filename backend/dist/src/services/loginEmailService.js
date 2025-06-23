@@ -37,7 +37,6 @@ class LoginEmailService {
                 tags: ["login-notification"],
             };
             await this.brevoService.sendTransactionalEmail(emailData);
-            console.log(`Login notification email sent to ${data.userEmail}`);
         }
         catch (error) {
             console.error("Failed to send login notification email:", error);

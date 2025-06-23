@@ -30,7 +30,6 @@ class AuthService {
         }
         const token = await this.generateToken(user);
         const { password: _, ...userWithoutPassword } = user;
-        // Look up location from IP address
         let location = undefined;
         if (ipAddress && ipAddress !== "unknown") {
             const geo = geoip_lite_1.default.lookup(ipAddress.split(",")[0].trim());
@@ -41,7 +40,6 @@ class AuthService {
                 };
             }
         }
-        // Send login notification email
         try {
             await this.loginEmailService.sendLoginNotification({
                 userEmail: user.email,

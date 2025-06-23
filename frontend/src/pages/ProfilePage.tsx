@@ -104,7 +104,7 @@ const ProfilePage: React.FC = () => {
     setForceCloseDropdowns((prev) => prev + 1);
   };
 
-  const handleDeleteSuccess = (accountId?: number): void => {
+  const handleDeleteSuccess = (): void => {
     refreshAccounts();
     setDeleteRequest({
       isOpen: false,

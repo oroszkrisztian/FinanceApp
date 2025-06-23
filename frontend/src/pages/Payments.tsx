@@ -94,7 +94,6 @@ const Payments: React.FC = () => {
   const refreshCategories = async () => {
     try {
       setError(null);
-      const updatedCategories = await fetchCategories();
     } catch (err) {
       console.error("Error refreshing categories:", err);
       setError(

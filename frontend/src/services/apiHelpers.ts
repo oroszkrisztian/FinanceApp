@@ -1,4 +1,4 @@
-import { buildApiUrl, API_CONFIG } from "../config/apiConfig";
+import { buildApiUrl } from "../config/apiConfig";
 
 export const getAuthHeaders = (): HeadersInit => {
   const token =

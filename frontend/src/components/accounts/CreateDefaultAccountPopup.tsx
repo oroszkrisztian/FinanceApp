@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AccountType, CurrencyType } from "../../interfaces/enums";
-import { createDefaultAccount } from "../../services/accountService";
 import {
   fetchExchangeRates,
   ExchangeRates,
@@ -103,12 +102,6 @@ const CreateDefaultAccountPopup = ({
         throw new Error("Account name is required");
       }
 
-      const data = await createDefaultAccount({
-        accountType: formData.accountType,
-        currencyType: formData.currency,
-        name: formData.name,
-        description: formData.description,
-      });
 
       if (onAccountCreated) {
         onAccountCreated();

@@ -108,25 +108,17 @@ app.get("/test-gemini", async (c) => {
         }, 500);
     }
 });
-app.get("/warmup", (c) => {
-    console.log("🔥 Server warmup request");
-    return c.json({
-        status: "warmed",
-        timestamp: new Date().toISOString(),
-        message: "Server is now warm and ready",
-    });
-});
 app.get("/warmup-full", async (c) => {
     const startTime = Date.now();
     try {
-        console.log("🔥 Full server warmup started");
+        console.log("Full server warmup started");
         const { default: ExpenseNotificationService } = await Promise.resolve().then(() => __importStar(require("./services/expenseNotificationService")));
         const notificationService = new ExpenseNotificationService(process.env.BREVO_API_KEY, process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com", process.env.BREVO_SENDER_NAME || "Your Finance App");
         const { default: BrevoEmailService } = await Promise.resolve().then(() => __importStar(require("./services/brevoService")));
         const brevoService = new BrevoEmailService(process.env.BREVO_API_KEY);
         await brevoService.testConnection();
         const duration = Date.now() - startTime;
-        console.log(`✅ Full warmup completed in ${duration}ms`);
+        console.log(`Full warmup completed in ${duration}ms`);
         return c.json({
             status: "fully-warmed",
             duration: `${duration}ms`,
@@ -150,12 +142,12 @@ app.get("/warmup-full", async (c) => {
 app.post("/cron/daily-notifications", async (c) => {
     const startTime = Date.now();
     try {
-        console.log("📧 Daily notification endpoint triggered");
+        console.log("Daily notification endpoint triggered");
         const { default: ExpenseNotificationService } = await Promise.resolve().then(() => __importStar(require("./services/expenseNotificationService")));
         const notificationService = new ExpenseNotificationService(process.env.BREVO_API_KEY, process.env.BREVO_SENDER_EMAIL || "noreply@yourfinanceapp.com", process.env.BREVO_SENDER_NAME || "Your Finance App");
         const result = await notificationService.sendDailyScheduledNotifications();
         const duration = Date.now() - startTime;
-        console.log(`✅ Daily notifications completed in ${duration}ms:`, result);
+        console.log(`Daily notifications completed in ${duration}ms:`, result);
         return c.json({
             success: true,
             message: "Daily notifications sent successfully",
@@ -180,12 +172,12 @@ app.post("/cron/daily-notifications", async (c) => {
 app.post("/cron/automatic-payments", async (c) => {
     const startTime = Date.now();
     try {
-        console.log("💰 Automatic payments cron job triggered");
+        console.log("Automatic payments cron job triggered");
         const { default: AutomaticPaymentService } = await Promise.resolve().then(() => __importStar(require("./services/automaticPaymentService")));
         const paymentService = new AutomaticPaymentService();
         const result = await paymentService.processAutomaticPayments();
         const duration = Date.now() - startTime;
-        console.log(`✅ Automatic payments processing completed in ${duration}ms:`, result);
+        console.log(`Automatic payments processing completed in ${duration}ms:`, result);
         return c.json({
             success: true,
             message: "Automatic payments processed successfully",
@@ -197,7 +189,7 @@ app.post("/cron/automatic-payments", async (c) => {
     catch (error) {
         const duration = Date.now() - startTime;
         const errorMessage = error instanceof Error ? error.message : String(error);
-        console.error(`❌ Automatic payments cron job failed after ${duration}ms:`, errorMessage);
+        console.error(`Automatic payments cron job failed after ${duration}ms:`, errorMessage);
         return c.json({
             success: false,
             error: "Failed to process automatic payments",
@@ -222,7 +214,7 @@ app.get("/test-brevo", async (c) => {
         });
     }
     catch (error) {
-        console.error("❌ Brevo test failed:", error);
+        console.error("Brevo test failed:", error);
         return c.json({
             error: "Brevo test failed",
             details: error instanceof Error ? error.message : "Unknown error",
@@ -248,17 +240,17 @@ app.get("/exchange-rates", async (c) => {
 app.get("/", (c) => c.text("Server is running"));
 console.log(`Server is running on port ${port}`);
 if (process.env.GEMINI_API_KEY) {
-    console.log("✅ Gemini API key configured");
+    console.log("Gemini API key configured");
 }
 else {
-    console.log("⚠️  Gemini API key not found in environment variables");
+    console.log("Gemini API key not found in environment variables");
 }
 (0, node_server_1.serve)({
     fetch: app.fetch,
     port,
 });
 const gracefulShutdown = () => {
-    console.log("\n🛑 Shutting down server...");
+    console.log("\nShutting down server...");
     process.exit(0);
 };
 process.on("SIGINT", gracefulShutdown);

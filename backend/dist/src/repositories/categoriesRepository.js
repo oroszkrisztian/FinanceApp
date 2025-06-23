@@ -39,7 +39,6 @@ class CategoriesRepository {
                 deletedAt: null,
             },
         });
-        console.log(allcat);
         return allcat;
     }
     async updateUserCategory(categoryId, userId, newName) {

@@ -348,7 +348,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
 
     onSuccess?.();
 
-    const successful = results.filter((r) => r.success);
     const failed = results.filter((r) => !r.success);
 
     if (failed.length > 0) {
@@ -1288,15 +1287,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                 ) : filteredTransactions.length > 0 ? (
                   <div className={`space-y-${isMobileView ? "1.5" : "3"}`}>
                     {filteredTransactions.slice(0, 20).map((transaction) => {
-                      const categoryId = (transaction as any)
-                        .transactionCategories?.[0]?.customCategoryId;
-                      const budget = categoryId
-                        ? budgets?.find((b) =>
-                            b.customCategories.some(
-                              (cat) => String(cat.id) === String(categoryId)
-                            )
-                          )
-                        : null;
                       const convertedAmount = convertToDisplayCurrency(
                         transaction.amount,
                         transaction.currency
@@ -1576,8 +1566,6 @@ const BudgetDashboard: React.FC<BudgetDashboardProps> = ({
                 ) : filteredTransactions.length > 0 ? (
                   <div className={`space-y-${isMobileView ? "1.5" : "3"}`}>
                     {filteredTransactions.slice(0, 20).map((transaction) => {
-                      const categoryId = (transaction as any)
-                        .transactionCategories?.[0]?.customCategoryId;
                       const convertedAmount = convertToDisplayCurrency(
                         transaction.amount,
                         transaction.currency
